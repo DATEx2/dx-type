@@ -19,7 +19,7 @@ export class DxBase extends BaseHTMLElement {
     unpackTemplate() {
         const tpl = this.querySelector(':scope > template');
         if (tpl && tpl.content) {
-            this.replaceChildren(tpl.content);
+            tpl.replaceWith(tpl.content);
             return true;
         }
         return false;

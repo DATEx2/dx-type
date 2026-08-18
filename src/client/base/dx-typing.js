@@ -12,7 +12,7 @@ export function unpackTemplate(el) {
     if (el.classList && el.classList.contains(DX_ANIM.TYPED)) return false;
     const tpl = el.querySelector(':scope > template');
     if (tpl && tpl.content) {
-        el.replaceChildren(tpl.content);
+        tpl.replaceWith(tpl.content);
         return true;
     }
     return false;
