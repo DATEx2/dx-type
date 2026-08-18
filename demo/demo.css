@@ -1,4 +1,5 @@
 /* demo/demo.css — Styles and Animation Keyframes for @datex2/dx-type Demo */
+@import url("../dist/css/dx-type.min.css");
 
 :root {
     --bg-color: #0b0f19;
@@ -358,54 +359,8 @@ dx-reveal-sda.REVEALED {
     animation: none !important;
 }
 
-/* 5. Mechanical Odometer Ribbon Styling & Keyframes */
-.odometer,
-.odometer-inside {
-    display: inline-flex;
-    align-items: baseline;
-    vertical-align: baseline;
-    position: relative;
-    line-height: 1;
-    font-variant-numeric: tabular-nums;
-}
-
-.odometer-digit {
-    display: inline-block;
-    position: relative;
-    overflow: hidden;
-    vertical-align: baseline;
-    line-height: 1;
-    height: 1em;
-}
-
-.odometer-digit-spacer {
-    visibility: hidden;
-    display: block;
-    line-height: 1;
-    height: 1em;
-}
-
-.odometer-digit-inner {
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    overflow: hidden;
-    line-height: 1;
-    height: 1em;
-}
-
-.odometer-ribbon {
-    display: block;
-    height: 100%;
-    line-height: 1;
-}
-
+/* 5. Mechanical Odometer Animation Keyframe */
 .odometer-ribbon-inner {
-    display: block;
-    line-height: 1;
-    transform: translateY(var(--initial-pos, 0%));
     animation: odo-roll 1.2s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
     animation-delay: calc(var(--digit-i, 0) * 80ms + var(--year-base-delay, 0ms));
 }
@@ -414,20 +369,6 @@ dx-reveal-sda.REVEALED {
     to {
         transform: translateY(var(--final-pos, 0%));
     }
-}
-
-.odometer-value {
-    display: block;
-    text-align: center;
-    height: 1em;
-    line-height: 1;
-}
-
-.odometer-formatting-mark {
-    display: inline-block;
-    vertical-align: baseline;
-    line-height: 1;
-    height: 1em;
 }
 
 /* Responsive */
