@@ -58,7 +58,7 @@
     </div>
 
     <!-- ─── 2. Animated Numeric Counter ─── -->
-    <div class="section">
+    <div class="section" id="section-number">
         <div class="section-title">
             <span>2. &lt;dx-number&gt;</span>
             <span class="badge">Centralized rAF Batching</span>
@@ -68,7 +68,7 @@
         </p>
 
         <div class="preview-box">
-            <dx-number id="demo-number" percent="2450" suffix=" €" comma=" "></dx-number>
+            <dx-number id="demo-number" percent="0" suffix=" €" comma=" "></dx-number>
         </div>
 
         <div class="controls">
@@ -80,7 +80,7 @@
     </div>
 
     <!-- ─── 3. Mechanical Odometer Ribbon ─── -->
-    <div class="section">
+    <div class="section" id="section-odometer">
         <div class="section-title">
             <span>3. &lt;dx-odometer&gt;</span>
             <span class="badge">Pure CSS 3D Drum</span>
@@ -90,7 +90,7 @@
         </p>
 
         <div class="preview-box" id="odometer-container">
-            <dx-odometer id="demo-odometer" type="year" start="2018" percent="2026"></dx-odometer>
+            <span style="color: var(--text-muted); font-size: 1rem;">↓ Scroll to view mechanical roll ↓</span>
         </div>
 
         <div class="controls">
@@ -100,7 +100,7 @@
     </div>
 
     <!-- ─── 4. Composite: Typewriter with Embedded Odometer ─── -->
-    <div class="section">
+    <div class="section" id="section-composite">
         <div class="section-title">
             <span>4. Composite Orchestration</span>
             <span class="badge">Typewriter + Embedded Odometer</span>
@@ -109,19 +109,8 @@
             Embed <code>&lt;dx-odometer class="tw-embed"&gt;</code> inside a typewriter. The typewriter waits for the drum roll before completing.
         </p>
 
-        <div class="preview-box">
-            <dx-type-ready class="type-ready" id="composite-orchestrator">
-                <dx-type style="--u: 40ms;">
-                    <template>
-                        <t>
-                            <w><c>S</c><c>i</c><c>n</c><c>c</c><c>e</c></w>
-                            <w style="--w:5"><c><dx-odometer class="tw-embed" type="year" start="2018" percent="2026" style="margin: 0 0.35rem; color: var(--accent-emerald);"></dx-odometer></c></w>
-                            <w style="--w:10"><c>e</c><c>x</c><c>c</c><c>e</c><c>l</c><c>l</c><c>e</c><c>n</c><c class="last-char">c</c><c>e</c></w>
-                        </t>
-                    </template>
-                    <s-t>Since 2026 excellence</s-t>
-                </dx-type>
-            </dx-type-ready>
+        <div class="preview-box" id="composite-box">
+            <span style="color: var(--text-muted); font-size: 1rem;">↓ Scroll to trigger composite typewriter ↓</span>
         </div>
 
         <div class="controls">
@@ -130,6 +119,15 @@
     </div>
 
     <!-- ─── 5. Scroll-Driven Animations (SDA) ─── -->
+    <div class="section">
+        <div class="section-title">
+            <span>5. Scroll-Driven Animations (SDA)</span>
+            <span class="badge">CSS view() Timelines</span>
+        </div>
+        <p class="section-desc">
+            Zero-JavaScript timeline tracking using native CSS <code>animation-timeline: view()</code>. Scroll down to trigger.
+        </p>
+
         <div style="height: 120px; display: flex; align-items: center; justify-content: center; color: var(--text-muted); font-size: 0.9rem;">
             ↓ Scroll down to trigger SDA ↓
         </div>
@@ -174,11 +172,25 @@
         document.getElementById('btn-num-0').addEventListener('click', () => numEl.val(0, 600));
         document.getElementById('btn-num-99999').addEventListener('click', () => numEl.val(99999, 1200));
 
-        const compositeBox = document.getElementById('composite-orchestrator').parentElement;
-        const compositeOriginal = compositeBox.innerHTML;
+        const compositeOriginalHtml = `
+            <dx-type-ready class="type-ready" id="composite-orchestrator">
+                <dx-type style="--u: 40ms;">
+                    <template>
+                        <t>
+                            <w><c>S</c><c>i</c><c>n</c><c>c</c><c>e</c></w>
+                            <w style="--w:5"><c><dx-odometer class="tw-embed" type="year" start="2018" percent="2026" style="margin: 0 0.35rem; color: var(--accent-emerald);"></dx-odometer></c></w>
+                            <w style="--w:10"><c>e</c><c>x</c><c>c</c><c>e</c><c>l</c><c>l</c><c>e</c><c>n</c><c class="last-char">c</c><c>e</c></w>
+                        </t>
+                    </template>
+                    <s-t>Since 2026 excellence</s-t>
+                </dx-type>
+            </dx-type-ready>
+        `;
+
+        const compositeBox = document.getElementById('composite-box');
         document.getElementById('btn-replay-composite').addEventListener('click', () => {
             compositeBox.innerHTML = '';
-            setTimeout(() => { compositeBox.innerHTML = compositeOriginal; }, 10);
+            setTimeout(() => { compositeBox.innerHTML = compositeOriginalHtml; }, 10);
         });
 
         document.getElementById('btn-replay-odo').addEventListener('click', () => {
@@ -189,6 +201,34 @@
         document.getElementById('btn-odo-price').addEventListener('click', () => {
             const box = document.getElementById('odometer-container');
             box.innerHTML = '<dx-odometer type="number" start="0" percent="1450" suffix=" €" comma=","></dx-odometer>';
+        });
+
+        // ─── Viewport Trigger Observer (Animates sections only when scrolled into view) ───
+        const onViewportEnter = (el, callback) => {
+            if (!el) return;
+            const observer = new IntersectionObserver((entries) => {
+                if (entries[0].isIntersecting) {
+                    observer.disconnect();
+                    callback();
+                }
+            }, { threshold: 0.35 });
+            observer.observe(el);
+        };
+
+        // Section 2: Count up from 0 to 2 450 € on scroll
+        onViewportEnter(document.getElementById('section-number'), () => {
+            numEl.val(2450, 1000);
+        });
+
+        // Section 3: Roll odometer from 2018 to 2026 on scroll
+        onViewportEnter(document.getElementById('section-odometer'), () => {
+            const box = document.getElementById('odometer-container');
+            box.innerHTML = '<dx-odometer type="year" start="2018" percent="2026"></dx-odometer>';
+        });
+
+        // Section 4: Trigger composite sequence on scroll
+        onViewportEnter(document.getElementById('section-composite'), () => {
+            compositeBox.innerHTML = compositeOriginalHtml;
         });
     </script>
 </body>
