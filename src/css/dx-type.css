@@ -300,8 +300,11 @@ dx-odometer[data-static] .odometer-ribbon-inner {
     transition: none !important;
 }
 
-/* ─── Number Running State ──────────────────────────────────────────────────── */
-dx-number.ui-number-running .ui-num {
+/* ─── Number Tabular State (Always active to prevent width snapping) ──────── */
+dx-number,
+dx-number .ui-num,
+dx-number .ui-pad,
+dx-odometer {
     font-variant-numeric: tabular-nums;
 }
 
