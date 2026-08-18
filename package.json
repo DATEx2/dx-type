@@ -68,11 +68,6 @@
     "node": ">=18.0.0"
   },
   "devDependencies": {
-    "esbuild": "^0.28.2",
-    "gif-encoder-2": "^1.0.5",
-    "omggif": "^1.0.10",
-    "pngjs": "^7.0.0",
-    "puppeteer": "^25.8.0",
-    "sharp": "^0.35.3"
+    "esbuild": "^0.28.2"
   }
 }
