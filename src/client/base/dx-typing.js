@@ -63,54 +63,41 @@ export function cleanupTypedDOM(typeEl) {
     const doc = typeEl.ownerDocument || (typeof document !== 'undefined' ? document : null);
     if (!doc) return;
 
-    const cleanNode = (node) => {
-        if (!node) return null;
-        if (node.nodeType === 3) return node; // Text node
-        if (node.nodeType === 1) {
-            const tag = node.tagName;
-            if (tag === 'UI-ODOMETER' || tag === 'DX-ODOMETER' ||
-                tag === 'UI-NUMBER' || tag === 'DX-NUMBER' ||
-                node.classList.contains('tw-embed')) {
-                return node;
-            }
-            if (tag === 'C') {
-                if (node.querySelector && node.querySelector('ui-odometer, dx-odometer, ui-number, dx-number, .tw-embed')) {
-                    return cleanChildren(node);
-                }
-                return doc.createTextNode(node.textContent || '');
-            }
-            if (tag === 'W') {
-                return cleanChildren(node);
-            }
-            const clone = node.cloneNode(false);
-            clone.appendChild(cleanChildren(node));
-            return clone;
-        }
-        return null;
-    };
-
-    const cleanChildren = (parent) => {
-        const frag = doc.createDocumentFragment();
-        const chs = parent?.childNodes;
-        if (chs) {
-            for (let i = 0; i < chs.length; i++) {
-                const cl = cleanNode(chs[i]);
-                if (cl) frag.appendChild(cl);
-            }
-        }
-        return frag;
-    };
-
+    // 1. Remove SEO search-text and template elements
     const directTpl = typeEl.querySelector(':scope > template');
     if (directTpl) directTpl.remove();
     const st = typeEl.querySelector(':scope > s-t');
     if (st) st.remove();
 
-    const tWrapper = typeEl.querySelector(':scope > t');
-    if (tWrapper) {
-        typeEl.replaceChildren(cleanChildren(tWrapper));
-    } else if (typeEl.querySelector('c, w')) {
-        typeEl.replaceChildren(cleanChildren(typeEl));
+    // 2. If there are NO embedded interactive components, extract full text content
+    const embeds = typeEl.querySelectorAll('dx-odometer, ui-odometer, dx-number, ui-number, .tw-embed');
+    if (!embeds.length) {
+        const text = typeEl.textContent ? typeEl.textContent.trim() : '';
+        typeEl.textContent = text;
+        typeEl.removeAttribute('aria-label');
+        return;
+    }
+
+    // 3. For embedded components (e.g. Section 4), safely unwrap <c>, <w>, <t> without mutating live NodeLists
+    const t = typeEl.querySelector(':scope > t');
+    const root = t || typeEl;
+
+    const allC = Array.from(root.querySelectorAll('c'));
+    for (const c of allC) {
+        if (!c.querySelector('dx-odometer, ui-odometer, dx-number, ui-number, .tw-embed')) {
+            c.replaceWith(doc.createTextNode(c.textContent || ''));
+        } else {
+            c.replaceWith(...Array.from(c.childNodes));
+        }
+    }
+
+    const allW = Array.from(root.querySelectorAll('w'));
+    for (const w of allW) {
+        w.replaceWith(...Array.from(w.childNodes), doc.createTextNode(' '));
+    }
+
+    if (t) {
+        t.replaceWith(...Array.from(t.childNodes));
     }
 
     if (typeof typeEl.normalize === 'function') typeEl.normalize();
