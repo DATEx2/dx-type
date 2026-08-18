@@ -63,79 +63,65 @@ export function cleanupTypedDOM(typeEl) {
     const doc = typeEl.ownerDocument || (typeof document !== 'undefined' ? document : null);
     if (!doc) return;
 
-    const isSSR = typeEl.classList.contains(DX_ANIM.TYPE_GUARD) || typeEl.closest('.' + DX_ANIM.TYPE_GUARD) !== null;
-
     const performCleanup = () => {
+        // Remove s-t now that live DOM is unpacked and finalized
         const st = typeEl.querySelector(':scope > s-t');
-        if (st) {
-            // Remove the temporary typewriter tree (<t> and <template>)
-            const tWrapper = typeEl.querySelector(':scope > t, :scope > template');
-            if (tWrapper) {
-                tWrapper.remove();
-            }
-        } else {
-            // Fallback for legacy / direct elements without <s-t>
-            const cleanChildren = (parent) => {
-                const frag = doc.createDocumentFragment();
-                const chs = parent?.childNodes;
-                if (chs) {
-                    for (let i = 0; i < chs.length; i++) {
-                        const cl = cleanNode(chs[i]);
-                        if (cl) frag.appendChild(cl);
-                    }
-                }
-                return frag;
-            };
+        if (st) st.remove();
 
-            const cleanNode = (node) => {
-                if (!node) return null;
-                if (node.nodeType === 3) return node; // Text node
-                if (node.nodeType === 1) {
-                    const tag = node.tagName;
-                    if (tag === 'UI-ODOMETER' || tag === 'DX-ODOMETER' ||
-                        tag === 'UI-NUMBER' || tag === 'DX-NUMBER' ||
-                        node.classList.contains('tw-embed')) {
-                        return node;
-                    }
-                    if (tag === 'C') {
-                        if (node.querySelector && node.querySelector('ui-odometer, dx-odometer, ui-number, dx-number, .tw-embed')) {
-                            return cleanChildren(node);
-                        }
-                        return doc.createTextNode(node.textContent || '');
-                    }
-                    if (tag === 'W') {
-                        if (node.classList.contains('word') || (node.textContent && node.textContent.includes('-'))) {
-                            const span = doc.createElement('span');
-                            span.className = 'word';
-                            span.appendChild(cleanChildren(node));
-                            if (typeof span.normalize === 'function') span.normalize();
-                            return span;
-                        }
+        const cleanChildren = (parent) => {
+            const frag = doc.createDocumentFragment();
+            const chs = parent?.childNodes;
+            if (chs) {
+                for (let i = 0; i < chs.length; i++) {
+                    const cl = cleanNode(chs[i]);
+                    if (cl) frag.appendChild(cl);
+                }
+            }
+            return frag;
+        };
+
+        const cleanNode = (node) => {
+            if (!node) return null;
+            if (node.nodeType === 3) return node; // Text node
+            if (node.nodeType === 1) {
+                const tag = node.tagName;
+                if (tag === 'UI-ODOMETER' || tag === 'DX-ODOMETER' ||
+                    tag === 'UI-NUMBER' || tag === 'DX-NUMBER' ||
+                    node.classList.contains('tw-embed')) {
+                    return node;
+                }
+                if (tag === 'C') {
+                    if (node.querySelector && node.querySelector('ui-odometer, dx-odometer, ui-number, dx-number, .tw-embed')) {
                         return cleanChildren(node);
                     }
-                    const clone = node.cloneNode(false);
-                    clone.appendChild(cleanChildren(node));
-                    if (typeof clone.normalize === 'function') clone.normalize();
-                    return clone;
+                    return doc.createTextNode(node.textContent || '');
                 }
-                return null;
-            };
-
-            const directTpl = typeEl.querySelector(':scope > template');
-            const tWrapper = typeEl.querySelector(':scope > t, :scope > template > t');
-
-            if (directTpl && tWrapper) {
-                typeEl.replaceChildren(cleanChildren(tWrapper));
-            } else if (tWrapper) {
-                const frag = cleanChildren(tWrapper);
-                if (typeof tWrapper.replaceWith === 'function') {
-                    tWrapper.replaceWith(frag);
-                } else if (tWrapper.parentNode) {
-                    tWrapper.parentNode.replaceChild(frag, tWrapper);
+                if (tag === 'W') {
+                    if (node.classList.contains('word') || (node.textContent && node.textContent.includes('-'))) {
+                        const span = doc.createElement('span');
+                        span.className = 'word';
+                        span.appendChild(cleanChildren(node));
+                        if (typeof span.normalize === 'function') span.normalize();
+                        return span;
+                    }
+                    return cleanChildren(node);
                 }
-            } else if (typeEl.querySelector('c, w')) {
-                typeEl.replaceChildren(cleanChildren(typeEl));
+                const clone = node.cloneNode(false);
+                clone.appendChild(cleanChildren(node));
+                if (typeof clone.normalize === 'function') clone.normalize();
+                return clone;
             }
+            return null;
+        };
+
+        const directTpl = typeEl.querySelector(':scope > template');
+        if (directTpl) directTpl.remove();
+
+        const tWrapper = typeEl.querySelector(':scope > t');
+        if (tWrapper) {
+            typeEl.replaceChildren(cleanChildren(tWrapper));
+        } else if (typeEl.querySelector('c, w')) {
+            typeEl.replaceChildren(cleanChildren(typeEl));
         }
 
         if (typeof typeEl.normalize === 'function') typeEl.normalize();
@@ -147,11 +133,7 @@ export function cleanupTypedDOM(typeEl) {
         });
     };
 
-    if (isSSR || typeEl.querySelector(':scope > s-t')) {
-        performCleanup();
-    } else {
-        setTimeout(performCleanup, 50);
-    }
+    performCleanup();
 }
 
 // ─── onTypewriterEnd — called when last <c> finishes animating ───────────────
