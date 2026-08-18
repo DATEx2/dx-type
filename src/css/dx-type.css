@@ -27,13 +27,19 @@ dx-odometer {
     vertical-align: baseline;
 }
 
-/* ─── Typewriter Character Elements ─────────────────────────────────────────── */
+/* ─── Typewriter Character & Word Elements ─────────────────────────────────── */
 dx-type-sda c,
 dx-type c,
 dx-reveal-sda c,
 dx-reveal c {
-    display: inline;
-    will-change: opacity;
+    display: inline-block;
+    will-change: opacity, transform;
+}
+
+dx-type-sda w,
+dx-type w {
+    display: inline-block;
+    white-space: nowrap;
 }
 
 /* ─── Search Text Hidden (SEO only) ────────────────────────────────────────── */
@@ -59,14 +65,13 @@ dx-type-sda.TYPED,
 dx-type.TYPED,
 dx-reveal-sda.REVEALED,
 dx-reveal.REVEALED {
-    animation: none !important;
     will-change: auto;
 }
 
 dx-type-sda.TYPED c,
 dx-type.TYPED c {
-    animation: none !important;
     opacity: 1 !important;
+    transform: none !important;
     will-change: auto;
 }
 

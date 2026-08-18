@@ -60,11 +60,60 @@ export function cleanupTypedDOM(typeEl) {
     if (!typeEl || typeEl._cleanedUp) return;
     typeEl._cleanedUp = true;
 
-    const tpl = typeEl.querySelector(':scope > template');
-    if (tpl) tpl.remove();
+    const doc = typeEl.ownerDocument || (typeof document !== 'undefined' ? document : null);
+    if (!doc) return;
+
+    const cleanNode = (node) => {
+        if (!node) return null;
+        if (node.nodeType === 3) return node; // Text node
+        if (node.nodeType === 1) {
+            const tag = node.tagName;
+            if (tag === 'UI-ODOMETER' || tag === 'DX-ODOMETER' ||
+                tag === 'UI-NUMBER' || tag === 'DX-NUMBER' ||
+                node.classList.contains('tw-embed')) {
+                return node;
+            }
+            if (tag === 'C') {
+                if (node.querySelector && node.querySelector('ui-odometer, dx-odometer, ui-number, dx-number, .tw-embed')) {
+                    return cleanChildren(node);
+                }
+                return doc.createTextNode(node.textContent || '');
+            }
+            if (tag === 'W') {
+                return cleanChildren(node);
+            }
+            const clone = node.cloneNode(false);
+            clone.appendChild(cleanChildren(node));
+            return clone;
+        }
+        return null;
+    };
+
+    const cleanChildren = (parent) => {
+        const frag = doc.createDocumentFragment();
+        const chs = parent?.childNodes;
+        if (chs) {
+            for (let i = 0; i < chs.length; i++) {
+                const cl = cleanNode(chs[i]);
+                if (cl) frag.appendChild(cl);
+            }
+        }
+        return frag;
+    };
+
+    const directTpl = typeEl.querySelector(':scope > template');
+    if (directTpl) directTpl.remove();
     const st = typeEl.querySelector(':scope > s-t');
     if (st) st.remove();
 
+    const tWrapper = typeEl.querySelector(':scope > t');
+    if (tWrapper) {
+        typeEl.replaceChildren(cleanChildren(tWrapper));
+    } else if (typeEl.querySelector('c, w')) {
+        typeEl.replaceChildren(cleanChildren(typeEl));
+    }
+
+    if (typeof typeEl.normalize === 'function') typeEl.normalize();
     typeEl.removeAttribute('aria-label');
 }
 
