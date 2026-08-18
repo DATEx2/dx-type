@@ -80,8 +80,8 @@ async function recordHero() {
 
     encoder.finish();
     const gifBuffer = encoder.out.getData();
-    writeFileSync(join(root, 'assets/hero-showcase.gif'), gifBuffer);
-    console.log(`✨ Generated assets/hero-showcase.gif (${(gifBuffer.length / 1024).toFixed(1)} KB)!`);
+    writeFileSync(join(root, 'assets/demo-showcase.gif'), gifBuffer);
+    console.log(`✨ Generated assets/demo-showcase.gif (${(gifBuffer.length / 1024).toFixed(1)} KB)!`);
 }
 
 async function recordSda() {
@@ -155,8 +155,8 @@ async function recordSda() {
 
     encoder.finish();
     const gifBuffer = encoder.out.getData();
-    writeFileSync(join(root, 'assets/sda-showcase.gif'), gifBuffer);
-    console.log(`✨ Generated assets/sda-showcase.gif (${(gifBuffer.length / 1024).toFixed(1)} KB)!`);
+    writeFileSync(join(root, 'assets/demo-sda.gif'), gifBuffer);
+    console.log(`✨ Generated assets/demo-sda.gif (${(gifBuffer.length / 1024).toFixed(1)} KB)!`);
 }
 
 async function main() {

@@ -144,6 +144,10 @@ export class DxTyping extends DxBase {
         return this.classList.contains(DX_ANIM.TYPED);
     }
 
+    unpackTemplate() {
+        return unpackTemplate(this);
+    }
+
     markTyped() {
         if (this.cls) {
             this.cls({ [DX_ANIM.TYPING]: 0, [DX_ANIM.TYPED]: 1 });
