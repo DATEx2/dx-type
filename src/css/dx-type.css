@@ -1,0 +1,104 @@
+/* dx-type.css — Core CSS for @datex2/dx-type Web Components.
+ *
+ * All dx-* wrapper elements use display: contents to avoid
+ * disrupting parent Grid/Flexbox layouts.
+ *
+ * This file provides the foundational rules. Product-specific
+ * animation keyframes (type-sda, reveal-sda, type-in, reveal-in)
+ * remain in the consuming project's CSS (e.g. sda.css, type.css).
+ */
+
+/* ─── Layout Safety: display: contents ──────────────────────────────────────── */
+dx-type,
+dx-type-sda,
+dx-reveal,
+dx-reveal-sda,
+dx-type-ready {
+    display: contents;
+}
+
+/* dx-number and dx-odometer are inline-level (rendered content) */
+dx-number,
+dx-odometer {
+    display: inline-block;
+    vertical-align: baseline;
+}
+
+/* ─── Typewriter Character Elements ─────────────────────────────────────────── */
+dx-type-sda c,
+dx-type c,
+dx-reveal-sda c,
+dx-reveal c {
+    display: inline;
+    will-change: opacity;
+}
+
+/* ─── Search Text Hidden During Animation ───────────────────────────────────── */
+:is(dx-type-sda, dx-type, dx-type-ready):not(.TYPED) > s-t {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+    padding: 0;
+    margin: -1px;
+}
+
+/* Show search text after typed */
+:is(dx-type-sda, dx-type, dx-type-ready).TYPED > s-t {
+    position: static;
+    width: auto;
+    height: auto;
+    overflow: visible;
+    clip: auto;
+    white-space: normal;
+    margin: 0;
+}
+
+/* Hide template after typed */
+:is(dx-type-sda, dx-type, dx-type-ready, .TYPED).TYPED > :is(t, template) {
+    display: none !important;
+}
+
+/* ─── Final State Cleanup ───────────────────────────────────────────────────── */
+dx-type-sda.TYPED,
+dx-type.TYPED,
+dx-reveal-sda.REVEALED,
+dx-reveal.REVEALED {
+    animation: none !important;
+    will-change: auto;
+}
+
+dx-type-sda.TYPED c,
+dx-type.TYPED c {
+    animation: none !important;
+    opacity: 1 !important;
+    will-change: auto;
+}
+
+dx-reveal-sda.REVEALED,
+dx-reveal.REVEALED {
+    opacity: 1 !important;
+    transform: none !important;
+}
+
+/* ─── Odometer Static State ─────────────────────────────────────────────────── */
+dx-odometer[data-static] .odometer-ribbon-inner {
+    animation: none !important;
+    transition: none !important;
+}
+
+/* ─── Number Running State ──────────────────────────────────────────────────── */
+dx-number.ui-number-running .ui-num {
+    font-variant-numeric: tabular-nums;
+}
+
+dx-number .ui-pad {
+    opacity: 0;
+}
+
+dx-number .ui-pfx-pad {
+    opacity: 0;
+}

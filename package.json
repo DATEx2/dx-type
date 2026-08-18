@@ -1,0 +1,48 @@
+{
+  "name": "@datex2/dx-type",
+  "version": "0.1.0",
+  "description": "DATEx2 Web Components: Typewriter, Reveal, Number & Odometer scroll-driven animations",
+  "author": "Laurențiu Macovei <DATEx2.bike@gmail.com>",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/DATEx2/dx-type.git"
+  },
+  "homepage": "https://github.com/DATEx2/dx-type#readme",
+  "bugs": {
+    "url": "https://github.com/DATEx2/dx-type/issues"
+  },
+  "keywords": [
+    "web-components",
+    "typewriter",
+    "scroll-driven-animations",
+    "SDA",
+    "reveal",
+    "odometer",
+    "counter",
+    "css-animations",
+    "custom-elements",
+    "datex2"
+  ],
+  "type": "module",
+  "main": "src/index.js",
+  "module": "src/index.js",
+  "exports": {
+    ".": "./src/index.js",
+    "./client": "./src/client/index.js",
+    "./server": "./src/server/index.js",
+    "./css": "./src/css/dx-type.css",
+    "./css/*": "./src/css/*.css"
+  },
+  "files": [
+    "src/",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "test": "node tests/run-tests.js"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
