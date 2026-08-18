@@ -31,21 +31,23 @@ dx-reveal-sda {
 /* dx-number and dx-odometer are inline-level (rendered content) */
 dx-number {
     display: inline-block;
-    vertical-align: baseline;
+    vertical-align: middle;
 }
 
 dx-odometer {
     display: inline-flex;
-    align-items: baseline;
-    vertical-align: baseline;
+    align-items: center;
+    vertical-align: middle;
+    line-height: 1.2em;
+    height: 1.2em;
 }
 
 .tw-embed,
 dx-odometer.tw-embed,
 dx-number.tw-embed {
     display: inline-flex;
-    align-items: baseline;
-    vertical-align: baseline;
+    align-items: center;
+    vertical-align: middle;
     line-height: inherit;
 }
 
