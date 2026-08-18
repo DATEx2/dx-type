@@ -73,6 +73,7 @@ c,
     word-spacing: inherit;
     text-transform: inherit;
     text-rendering: inherit;
+    font-kerning: none;
     box-sizing: border-box;
 }
 

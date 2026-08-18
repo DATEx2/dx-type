@@ -79,31 +79,44 @@ async function recordHero() {
     });
 
     const page = await browser.newPage();
-    const width = 880;
-    const height = 520;
-    await page.setViewport({ width, height, deviceScaleFactor: 1 });
+    const vpWidth = 1000;
+    const vpHeight = 850;
+    await page.setViewport({ width: vpWidth, height: vpHeight, deviceScaleFactor: 1 });
 
     console.log('📄 Loading page:', demoUrl);
     await page.goto(demoUrl, { waitUntil: 'networkidle0' });
 
+    // Measure exact #hero-demo bounding rect
+    const heroBox = await page.evaluate(() => {
+        const el = document.getElementById('hero-demo');
+        const r = el.getBoundingClientRect();
+        return {
+            x: Math.max(0, Math.floor(r.x)),
+            y: Math.max(0, Math.floor(r.y)),
+            width: Math.min(1000, Math.ceil(r.width)),
+            height: Math.min(850, Math.ceil(r.height))
+        };
+    });
+
+    console.log('📐 Hero Bounding Box:', heroBox);
+
     // Click Replay All
     await page.click('#btn-replay-all');
 
-    const totalDurationMs = 3600;
-    const frameIntervalMs = 80; // ~12.5 fps
+    const totalDurationMs = 3800;
+    const frameIntervalMs = 80;
     const totalFrames = Math.floor(totalDurationMs / frameIntervalMs);
 
     console.log(`🎬 Capturing ${totalFrames} frames for Hero GIF...`);
     const capturedPngBuffers = [];
 
     for (let f = 0; f < totalFrames; f++) {
-        const buf = await page.screenshot({ type: 'png', clip: { x: 0, y: 0, width, height } });
+        const buf = await page.screenshot({ type: 'png', clip: heroBox });
         capturedPngBuffers.push(buf);
         await new Promise(r => setTimeout(r, frameIntervalMs));
     }
 
-    // Capture final static crisp PNG
-    await page.screenshot({ path: join(root, 'assets/hero-preview.png'), clip: { x: 0, y: 0, width, height } });
+    await page.screenshot({ path: join(root, 'assets/hero-preview.png'), clip: heroBox });
     console.log('📸 Saved assets/hero-preview.png');
 
     await browser.close();
@@ -111,11 +124,13 @@ async function recordHero() {
     console.log('🔄 Encoding frames to Animated GIF...');
     const decodedFrames = capturedPngBuffers.map(buf => PNG.sync.read(Buffer.from(buf)));
 
-    // Global palette built from multiple sample frames
+    const width = heroBox.width;
+    const height = heroBox.height;
+
     const sampleBuffer = decodedFrames[Math.floor(decodedFrames.length / 2)].data;
     const { palette } = buildPaletteAndIndexedPixels(sampleBuffer, width, height);
 
-    const gifBuffer = Buffer.alloc(width * height * decodedFrames.length + 1024 * 1024);
+    const gifBuffer = Buffer.alloc(width * height * decodedFrames.length + 2048 * 1024);
     const writer = new GifWriter(gifBuffer, width, height, { loop: 0, palette });
 
     for (let i = 0; i < decodedFrames.length; i++) {
@@ -126,7 +141,6 @@ async function recordHero() {
             const g = frame.data[p * 4 + 1];
             const b = frame.data[p * 4 + 2];
             
-            // Find closest palette index
             let minDist = Infinity;
             let bestIdx = 0;
             for (let palIdx = 0; palIdx < palette.length; palIdx++) {
@@ -158,9 +172,9 @@ async function recordSda() {
     });
 
     const page = await browser.newPage();
-    const width = 880;
-    const height = 680;
-    await page.setViewport({ width, height, deviceScaleFactor: 1 });
+    const vpWidth = 1000;
+    const vpHeight = 900;
+    await page.setViewport({ width: vpWidth, height: vpHeight, deviceScaleFactor: 1 });
 
     await page.goto(demoUrl, { waitUntil: 'networkidle0' });
 
@@ -170,7 +184,21 @@ async function recordSda() {
         if (sda) sda.scrollIntoView({ behavior: 'auto' });
     });
 
-    const totalDurationMs = 2800;
+    // Measure exact #section-sda bounding rect
+    const sdaBox = await page.evaluate(() => {
+        const el = document.getElementById('section-sda');
+        const r = el.getBoundingClientRect();
+        return {
+            x: Math.max(0, Math.floor(r.x)),
+            y: Math.max(0, Math.floor(r.y)),
+            width: Math.min(1000, Math.ceil(r.width)),
+            height: Math.min(850, Math.ceil(r.height))
+        };
+    });
+
+    console.log('📐 SDA Bounding Box:', sdaBox);
+
+    const totalDurationMs = 3000;
     const frameIntervalMs = 90;
     const totalFrames = Math.floor(totalDurationMs / frameIntervalMs);
 
@@ -178,12 +206,12 @@ async function recordSda() {
     const capturedPngBuffers = [];
 
     for (let f = 0; f < totalFrames; f++) {
-        const buf = await page.screenshot({ type: 'png', clip: { x: 0, y: 0, width, height } });
+        const buf = await page.screenshot({ type: 'png', clip: sdaBox });
         capturedPngBuffers.push(buf);
         await new Promise(r => setTimeout(r, frameIntervalMs));
     }
 
-    await page.screenshot({ path: join(root, 'assets/sda-preview.png'), clip: { x: 0, y: 0, width, height } });
+    await page.screenshot({ path: join(root, 'assets/sda-preview.png'), clip: sdaBox });
     console.log('📸 Saved assets/sda-preview.png');
 
     await browser.close();
@@ -191,10 +219,13 @@ async function recordSda() {
     console.log('🔄 Encoding SDA frames to Animated GIF...');
     const decodedFrames = capturedPngBuffers.map(buf => PNG.sync.read(Buffer.from(buf)));
 
+    const width = sdaBox.width;
+    const height = sdaBox.height;
+
     const sampleBuffer = decodedFrames[Math.floor(decodedFrames.length / 2)].data;
     const { palette } = buildPaletteAndIndexedPixels(sampleBuffer, width, height);
 
-    const gifBuffer = Buffer.alloc(width * height * decodedFrames.length + 1024 * 1024);
+    const gifBuffer = Buffer.alloc(width * height * decodedFrames.length + 2048 * 1024);
     const writer = new GifWriter(gifBuffer, width, height, { loop: 0, palette });
 
     for (let i = 0; i < decodedFrames.length; i++) {
