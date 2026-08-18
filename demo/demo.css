@@ -296,12 +296,12 @@ dx-reveal-sda.REVEALED {
 
 /* 5. Mechanical Odometer Ribbon Styling & Keyframes */
 .odometer {
-    display: inline-block;
+    display: inline-flex;
+    align-items: baseline;
+    vertical-align: baseline;
     position: relative;
     overflow: hidden;
-    vertical-align: baseline;
-    line-height: 1.15em;
-    height: 1.15em;
+    line-height: inherit;
     font-variant-numeric: tabular-nums;
 }
 
@@ -309,24 +309,23 @@ dx-reveal-sda.REVEALED {
     display: inline-flex;
     align-items: baseline;
     vertical-align: baseline;
-    line-height: 1.15em;
-    height: 1.15em;
+    line-height: inherit;
 }
 
 .odometer-digit {
-    display: inline-block;
+    display: inline-flex;
+    align-items: baseline;
+    vertical-align: baseline;
     position: relative;
     overflow: hidden;
-    vertical-align: baseline;
-    line-height: 1.15em;
-    height: 1.15em;
+    line-height: inherit;
 }
 
 .odometer-digit-spacer {
     visibility: hidden;
-    display: block;
-    line-height: 1.15em;
-    height: 1.15em;
+    display: inline-block;
+    vertical-align: baseline;
+    line-height: inherit;
 }
 
 .odometer-digit-inner {
@@ -336,19 +335,18 @@ dx-reveal-sda.REVEALED {
     right: 0;
     bottom: 0;
     overflow: hidden;
-    line-height: 1.15em;
-    height: 1.15em;
+    line-height: inherit;
 }
 
 .odometer-ribbon {
     display: block;
     height: 100%;
-    line-height: 1.15em;
+    line-height: inherit;
 }
 
 .odometer-ribbon-inner {
     display: block;
-    line-height: 1.15em;
+    line-height: inherit;
     transform: translateY(var(--initial-pos, 0%));
     animation: odo-roll 1.2s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
     animation-delay: calc(var(--digit-i, 0) * 80ms + var(--year-base-delay, 0ms));
@@ -363,14 +361,13 @@ dx-reveal-sda.REVEALED {
 .odometer-value {
     display: block;
     text-align: center;
-    line-height: 1.15em;
-    height: 1.15em;
+    line-height: inherit;
 }
 
 .odometer-formatting-mark {
     display: inline-block;
     vertical-align: baseline;
-    line-height: 1.15em;
+    line-height: inherit;
 }
 
 /* Responsive */

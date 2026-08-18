@@ -29,10 +29,24 @@ dx-reveal-sda {
 }
 
 /* dx-number and dx-odometer are inline-level (rendered content) */
-dx-number,
-dx-odometer {
+dx-number {
     display: inline-block;
     vertical-align: baseline;
+}
+
+dx-odometer {
+    display: inline-flex;
+    align-items: baseline;
+    vertical-align: baseline;
+}
+
+.tw-embed,
+dx-odometer.tw-embed,
+dx-number.tw-embed {
+    display: inline-flex;
+    align-items: baseline;
+    vertical-align: baseline;
+    line-height: inherit;
 }
 
 /* ─── Typography & Alignment Inheritance Contract ─────────────────────────── */
