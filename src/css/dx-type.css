@@ -35,6 +35,75 @@ dx-odometer {
     vertical-align: baseline;
 }
 
+/* ─── Typography & Alignment Inheritance Contract ─────────────────────────── */
+dx-type,
+dx-type-sda,
+dx-reveal,
+dx-reveal-sda,
+dx-type-ready,
+dx-number,
+dx-odometer,
+dx-type *,
+dx-type-sda *,
+dx-reveal *,
+dx-reveal-sda *,
+dx-type-ready *,
+dx-number *,
+dx-odometer *,
+t,
+s-t,
+w,
+c,
+.odometer,
+.odometer-inside,
+.odometer-digit,
+.odometer-ribbon,
+.odometer-ribbon-inner,
+.odometer-value,
+.odometer-digit-spacer,
+.odometer-formatting-mark,
+.ui-num,
+.ui-pfx,
+.ui-sfx,
+.ui-pad {
+    font-family: inherit;
+    font-size: inherit;
+    font-weight: inherit;
+    font-style: inherit;
+    line-height: inherit;
+    letter-spacing: inherit;
+    word-spacing: inherit;
+    text-transform: inherit;
+    text-rendering: inherit;
+    box-sizing: border-box;
+}
+
+dx-type,
+dx-type-sda,
+dx-reveal,
+dx-reveal-sda,
+dx-number,
+dx-odometer,
+s-t,
+t,
+w,
+c,
+.odometer,
+.odometer-digit,
+.odometer-digit-spacer,
+.odometer-formatting-mark,
+.ui-num,
+.ui-pfx,
+.ui-sfx {
+    vertical-align: baseline;
+}
+
+.odometer-inside {
+    display: inline-flex;
+    align-items: baseline;
+    vertical-align: baseline;
+}
+
 /* ─── Typewriter Character & Word Elements ─────────────────────────────────── */
 dx-type-sda c,
 dx-type c,

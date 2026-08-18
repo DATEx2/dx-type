@@ -294,23 +294,29 @@ dx-reveal-sda.REVEALED {
     position: relative;
     overflow: hidden;
     vertical-align: baseline;
+    line-height: inherit;
     font-variant-numeric: tabular-nums;
 }
 
 .odometer-inside {
     display: inline-flex;
     align-items: baseline;
+    vertical-align: baseline;
+    line-height: inherit;
 }
 
 .odometer-digit {
     display: inline-block;
     position: relative;
     overflow: hidden;
+    vertical-align: baseline;
+    line-height: inherit;
 }
 
 .odometer-digit-spacer {
     visibility: hidden;
     display: block;
+    line-height: inherit;
 }
 
 .odometer-digit-inner {
@@ -320,15 +326,18 @@ dx-reveal-sda.REVEALED {
     right: 0;
     bottom: 0;
     overflow: hidden;
+    line-height: inherit;
 }
 
 .odometer-ribbon {
     display: block;
     height: 100%;
+    line-height: inherit;
 }
 
 .odometer-ribbon-inner {
     display: block;
+    line-height: inherit;
     transform: translateY(var(--initial-pos, 0%));
     animation: odo-roll 1.2s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
     animation-delay: calc(var(--digit-i, 0) * 80ms + var(--year-base-delay, 0ms));
@@ -343,10 +352,13 @@ dx-reveal-sda.REVEALED {
 .odometer-value {
     display: block;
     text-align: center;
+    line-height: inherit;
 }
 
 .odometer-formatting-mark {
     display: inline-block;
+    vertical-align: baseline;
+    line-height: inherit;
 }
 
 /* Responsive */
