@@ -1,5 +1,7 @@
 import puppeteer from 'puppeteer';
+import GIFEncoder from 'gif-encoder-2';
 import sharp from 'sharp';
+import { writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 
@@ -8,18 +10,18 @@ const root = join(__dirname, '..');
 const demoUrl = 'file:///' + join(root, 'demo/index.html').replace(/\\/g, '/');
 
 async function recordHero() {
-    console.log('🚀 Launching Puppeteer for Sharp Hero Animation Capture...');
+    console.log('🚀 Launching Puppeteer for Hero Showcase Capture...');
     const browser = await puppeteer.launch({
         headless: true,
         args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-web-security']
     });
 
     const page = await browser.newPage();
-    const vpWidth = 1000;
-    const vpHeight = 900;
+    const vpWidth = 980;
+    const vpHeight = 850;
     await page.setViewport({ width: vpWidth, height: vpHeight, deviceScaleFactor: 1 });
 
-    console.log('📄 Loading page:', demoUrl);
+    console.log('📄 Loading demo page:', demoUrl);
     await page.goto(demoUrl, { waitUntil: 'networkidle0' });
 
     // Measure exact #hero-demo bounding rect
@@ -29,25 +31,24 @@ async function recordHero() {
         return {
             x: Math.max(0, Math.floor(r.x)),
             y: Math.max(0, Math.floor(r.y)),
-            width: Math.min(980, Math.ceil(r.width)),
+            width: Math.min(948, Math.ceil(r.width)),
             height: Math.ceil(r.height)
         };
     });
 
-    // Make dimensions even numbers (required by encoders)
     heroBox.width = heroBox.width % 2 === 0 ? heroBox.width : heroBox.width - 1;
     heroBox.height = heroBox.height % 2 === 0 ? heroBox.height : heroBox.height - 1;
 
     console.log('📐 Hero Bounding Box:', heroBox);
 
-    // Click Replay All
+    // Trigger full replay from t=0
     await page.click('#btn-replay-all');
 
     const totalDurationMs = 3800;
-    const frameIntervalMs = 70; // ~14 fps for silky-smooth motion
+    const frameIntervalMs = 90; // ~11 fps
     const totalFrames = Math.floor(totalDurationMs / frameIntervalMs);
 
-    console.log(`🎬 Capturing ${totalFrames} frames for Hero Showcase...`);
+    console.log(`🎬 Capturing ${totalFrames} frames for Hero Animated GIF...`);
     const rawFrames = [];
 
     for (let f = 0; f < totalFrames; f++) {
@@ -61,63 +62,55 @@ async function recordHero() {
         await new Promise(r => setTimeout(r, frameIntervalMs));
     }
 
-    // Capture final static crisp PNG
+    // Save final crisp static preview
     await page.screenshot({ path: join(root, 'assets/hero-preview.png'), clip: heroBox });
-    console.log('📸 Saved assets/hero-preview.png');
 
     await browser.close();
 
-    console.log('🔄 Encoding with libvips / Sharp...');
-    const combinedRaw = Buffer.concat(rawFrames);
+    console.log('🔄 Encoding Animated GIF with gif-encoder-2 (NeuQuant)...');
+    const encoder = new GIFEncoder(heroBox.width, heroBox.height, 'neuquant', true);
+    encoder.setDelay(frameIntervalMs);
+    encoder.setRepeat(0); // Loop forever
+    encoder.setQuality(10);
+    encoder.start();
 
-    // High-Quality Animated GIF
-    await sharp(combinedRaw, {
-        raw: {
-            width: heroBox.width,
-            height: heroBox.height * rawFrames.length,
-            channels: 4
-        }
-    })
-    .gif({
-        pageHeight: heroBox.height,
-        loop: 0,
-        delay: frameIntervalMs,
-        effort: 7,
-        dither: 1.0
-    })
-    .toFile(join(root, 'assets/hero-showcase.gif'));
+    for (let i = 0; i < rawFrames.length; i++) {
+        encoder.addFrame(rawFrames[i]);
+    }
 
-    console.log('✨ Generated assets/hero-showcase.gif with Sharp!');
+    encoder.finish();
+    const gifBuffer = encoder.out.getData();
+    writeFileSync(join(root, 'assets/hero-showcase.gif'), gifBuffer);
+    console.log(`✨ Generated assets/hero-showcase.gif (${(gifBuffer.length / 1024).toFixed(1)} KB)!`);
 }
 
 async function recordSda() {
-    console.log('🚀 Launching Puppeteer for Sharp SDA Animation Capture...');
+    console.log('🚀 Launching Puppeteer for SDA Showcase Capture...');
     const browser = await puppeteer.launch({
         headless: true,
         args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-web-security']
     });
 
     const page = await browser.newPage();
-    const vpWidth = 1000;
-    const vpHeight = 950;
+    const vpWidth = 980;
+    const vpHeight = 900;
     await page.setViewport({ width: vpWidth, height: vpHeight, deviceScaleFactor: 1 });
 
     await page.goto(demoUrl, { waitUntil: 'networkidle0' });
 
-    // Scroll to SDA section
+    // Scroll down to SDA section
     await page.evaluate(() => {
         const sda = document.getElementById('section-sda');
         if (sda) sda.scrollIntoView({ behavior: 'auto' });
     });
 
-    // Measure exact #section-sda bounding rect
     const sdaBox = await page.evaluate(() => {
         const el = document.getElementById('section-sda');
         const r = el.getBoundingClientRect();
         return {
             x: Math.max(0, Math.floor(r.x)),
             y: Math.max(0, Math.floor(r.y)),
-            width: Math.min(980, Math.ceil(r.width)),
+            width: Math.min(948, Math.ceil(r.width)),
             height: Math.ceil(r.height)
         };
     });
@@ -128,10 +121,10 @@ async function recordSda() {
     console.log('📐 SDA Bounding Box:', sdaBox);
 
     const totalDurationMs = 3000;
-    const frameIntervalMs = 80;
+    const frameIntervalMs = 90;
     const totalFrames = Math.floor(totalDurationMs / frameIntervalMs);
 
-    console.log(`🎬 Capturing ${totalFrames} frames for SDA Showcase...`);
+    console.log(`🎬 Capturing ${totalFrames} frames for SDA Animated GIF...`);
     const rawFrames = [];
 
     for (let f = 0; f < totalFrames; f++) {
@@ -146,31 +139,24 @@ async function recordSda() {
     }
 
     await page.screenshot({ path: join(root, 'assets/sda-preview.png'), clip: sdaBox });
-    console.log('📸 Saved assets/sda-preview.png');
 
     await browser.close();
 
-    console.log('🔄 Encoding SDA with Sharp...');
-    const combinedRaw = Buffer.concat(rawFrames);
+    console.log('🔄 Encoding SDA Animated GIF...');
+    const encoder = new GIFEncoder(sdaBox.width, sdaBox.height, 'neuquant', true);
+    encoder.setDelay(frameIntervalMs);
+    encoder.setRepeat(0); // Loop forever
+    encoder.setQuality(10);
+    encoder.start();
 
-    // High-Quality Animated GIF
-    await sharp(combinedRaw, {
-        raw: {
-            width: sdaBox.width,
-            height: sdaBox.height * rawFrames.length,
-            channels: 4
-        }
-    })
-    .gif({
-        pageHeight: sdaBox.height,
-        loop: 0,
-        delay: frameIntervalMs,
-        effort: 7,
-        dither: 1.0
-    })
-    .toFile(join(root, 'assets/sda-showcase.gif'));
+    for (let i = 0; i < rawFrames.length; i++) {
+        encoder.addFrame(rawFrames[i]);
+    }
 
-    console.log('✨ Generated assets/sda-showcase.gif with Sharp!');
+    encoder.finish();
+    const gifBuffer = encoder.out.getData();
+    writeFileSync(join(root, 'assets/sda-showcase.gif'), gifBuffer);
+    console.log(`✨ Generated assets/sda-showcase.gif (${(gifBuffer.length / 1024).toFixed(1)} KB)!`);
 }
 
 async function main() {
