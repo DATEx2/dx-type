@@ -72,14 +72,11 @@ export function cleanupTypedDOM(typeEl) {
 
         const st = typeEl.querySelector(':scope > s-t');
         const t = typeEl.querySelector(':scope > t');
-        const embeds = typeEl.querySelectorAll('dx-odometer, ui-odometer, dx-number, ui-number, .tw-embed');
 
-        if (st) {
-            // Standard & composite case: CSS switched to visibility: visible on <s-t>, remove temporary <t> tree in rAF
-            if (t) t.remove();
-        } else if (embeds.length && t) {
-            // Embedded interactive case (e.g. <dx-odometer>): preserve live odometer in DOM
+        if (t) {
+            // Remove <s-t> and flatten <c>/<w> in place to eliminate any kerning/raster shift
             if (st) st.remove();
+
             const allC = Array.from(t.querySelectorAll('c'));
             for (const c of allC) {
                 if (!c.querySelector('dx-odometer, ui-odometer, dx-number, ui-number, .tw-embed')) {
