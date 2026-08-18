@@ -75,55 +75,46 @@ export function cleanupTypedDOM(typeEl) {
             }
         } else {
             // Fallback for legacy / direct elements without <s-t>
+            const cleanChildren = (parent) => {
+                const frag = doc.createDocumentFragment();
+                const chs = parent?.childNodes;
+                if (chs) {
+                    for (let i = 0; i < chs.length; i++) {
+                        const cl = cleanNode(chs[i]);
+                        if (cl) frag.appendChild(cl);
+                    }
+                }
+                return frag;
+            };
+
             const cleanNode = (node) => {
                 if (!node) return null;
                 if (node.nodeType === 3) return node; // Text node
                 if (node.nodeType === 1) {
-                    // Keep Web Components and embedded numbers intact
                     const tag = node.tagName;
                     if (tag === 'UI-ODOMETER' || tag === 'DX-ODOMETER' ||
                         tag === 'UI-NUMBER' || tag === 'DX-NUMBER' ||
                         node.classList.contains('tw-embed')) {
                         return node;
                     }
-                    // <c> node (character) -> unwrap its content
                     if (tag === 'C') {
                         if (node.querySelector && node.querySelector('ui-odometer, dx-odometer, ui-number, dx-number, .tw-embed')) {
-                            const fragment = doc.createDocumentFragment();
-                            Array.from(node.childNodes).forEach(ch => {
-                                const cl = cleanNode(ch);
-                                if (cl) fragment.appendChild(cl);
-                            });
-                            return fragment;
+                            return cleanChildren(node);
                         }
                         return doc.createTextNode(node.textContent || '');
                     }
-                    // <w> node (word) -> if compound word, preserve as <span class="word">
                     if (tag === 'W') {
                         if (node.classList.contains('word') || (node.textContent && node.textContent.includes('-'))) {
                             const span = doc.createElement('span');
                             span.className = 'word';
-                            Array.from(node.childNodes).forEach(ch => {
-                                const cl = cleanNode(ch);
-                                if (cl) span.appendChild(cl);
-                            });
+                            span.appendChild(cleanChildren(node));
                             if (typeof span.normalize === 'function') span.normalize();
                             return span;
                         }
-                        const fragment = doc.createDocumentFragment();
-                        Array.from(node.childNodes).forEach(ch => {
-                            const cl = cleanNode(ch);
-                            if (cl) fragment.appendChild(cl);
-                        });
-                        return fragment;
+                        return cleanChildren(node);
                     }
-                    // All other elements (<b>, <a>, <span>, <br>, <strong>, etc.)
-                    // PRESERVE the element with its attributes, clean children recursively
                     const clone = node.cloneNode(false);
-                    Array.from(node.childNodes).forEach(ch => {
-                        const cl = cleanNode(ch);
-                        if (cl) clone.appendChild(cl);
-                    });
+                    clone.appendChild(cleanChildren(node));
                     if (typeof clone.normalize === 'function') clone.normalize();
                     return clone;
                 }
@@ -134,33 +125,16 @@ export function cleanupTypedDOM(typeEl) {
             const tWrapper = typeEl.querySelector(':scope > t, :scope > template > t');
 
             if (directTpl && tWrapper) {
-                const childNodes = Array.from(tWrapper.childNodes);
-                const fragment = doc.createDocumentFragment();
-                childNodes.forEach(child => {
-                    const cleaned = cleanNode(child);
-                    if (cleaned) fragment.appendChild(cleaned);
-                });
-                typeEl.replaceChildren(fragment);
+                typeEl.replaceChildren(cleanChildren(tWrapper));
             } else if (tWrapper) {
-                const childNodes = Array.from(tWrapper.childNodes);
-                const fragment = doc.createDocumentFragment();
-                childNodes.forEach(child => {
-                    const cleaned = cleanNode(child);
-                    if (cleaned) fragment.appendChild(cleaned);
-                });
+                const frag = cleanChildren(tWrapper);
                 if (typeof tWrapper.replaceWith === 'function') {
-                    tWrapper.replaceWith(fragment);
+                    tWrapper.replaceWith(frag);
                 } else if (tWrapper.parentNode) {
-                    tWrapper.parentNode.replaceChild(fragment, tWrapper);
+                    tWrapper.parentNode.replaceChild(frag, tWrapper);
                 }
             } else if (typeEl.querySelector('c, w')) {
-                const childNodes = Array.from(typeEl.childNodes);
-                const fragment = doc.createDocumentFragment();
-                childNodes.forEach(child => {
-                    const cleaned = cleanNode(child);
-                    if (cleaned) fragment.appendChild(cleaned);
-                });
-                typeEl.replaceChildren(fragment);
+                typeEl.replaceChildren(cleanChildren(typeEl));
             }
         }
 
@@ -202,16 +176,7 @@ export function onTypewriterEnd(cEl, event) {
             if (typeof parent.markTyped === 'function') {
                 parent.markTyped();
             } else {
-                if (parent.cls) {
-                    parent.cls({ [DX_ANIM.TYPING]: 0, [DX_ANIM.TYPED]: 1 });
-                } else {
-                    parent.classList.remove(DX_ANIM.TYPING);
-                    parent.classList.add(DX_ANIM.TYPED);
-                }
-                if (typeof rootWin?.__datex2TriggerPendingUiNumbers === 'function') {
-                    rootWin.__datex2TriggerPendingUiNumbers(parent);
-                }
-                cleanupTypedDOM(parent);
+                DxTyping.prototype.markTyped.call(parent);
             }
         }
     }
@@ -238,16 +203,18 @@ export class DxTyping extends DxBase {
     }
 }
 
+const checkAndObserve = (el) => {
+    if (el?.querySelector && el.querySelector(':scope > template') && !el.classList.contains(DX_ANIM.TYPED)) {
+        observeTypewriter(el);
+    }
+};
+
 // ─── Auto-Bootstrap at DOM Ready & Dynamic Insertions ────────────────────────
 export function bootstrapTypewriterObserver(root = (typeof document !== 'undefined' ? document : null)) {
     if (!root) return;
-    // Support both dx-* tags and legacy class-based selectors
     const elements = root.querySelectorAll('dx-type-sda, dx-reveal-sda, .type-sda, ui-type-sda, .type, .TYPE');
     for (let i = 0; i < elements.length; i++) {
-        const el = elements[i];
-        if (el && el.querySelector && el.querySelector(':scope > template') && !el.classList.contains(DX_ANIM.TYPED)) {
-            observeTypewriter(el);
-        }
+        checkAndObserve(elements[i]);
     }
 }
 
@@ -267,17 +234,12 @@ if (typeof document !== 'undefined') {
                     const node = added[j];
                     if (node && node.nodeType === 1) {
                         if (node.matches && node.matches(MATCH_SELECTOR)) {
-                            if (node.querySelector && node.querySelector(':scope > template') && !node.classList.contains(DX_ANIM.TYPED)) {
-                                observeTypewriter(node);
-                            }
+                            checkAndObserve(node);
                         }
                         if (node.querySelectorAll) {
                             const nested = node.querySelectorAll(MATCH_SELECTOR);
                             for (let k = 0; k < nested.length; k++) {
-                                const el = nested[k];
-                                if (el.querySelector && el.querySelector(':scope > template') && !el.classList.contains(DX_ANIM.TYPED)) {
-                                    observeTypewriter(el);
-                                }
+                                checkAndObserve(nested[k]);
                             }
                         }
                     }
@@ -290,14 +252,10 @@ if (typeof document !== 'undefined') {
 
 // ─── Global Exports ──────────────────────────────────────────────────────────
 if (rootWin) {
-    rootWin.DxTyping = DxTyping;
-    rootWin.UiTyping = DxTyping;  // backward compat alias
-    rootWin.unpackTemplate = unpackTemplate;
-    rootWin.mountTypewriter = mountTypewriter;
-    rootWin.observeTypewriter = observeTypewriter;
-    rootWin.ensureElementsUpToTarget = ensureElementsUpToTarget;
-    rootWin.onTypewriterEnd = onTypewriterEnd;
-    rootWin.__twEnd = onTypewriterEnd;
-    rootWin.__datex2CleanupTypedDOM = cleanupTypedDOM;
-    rootWin.bootstrapTypewriterObserver = bootstrapTypewriterObserver;
+    Object.assign(rootWin, {
+        DxTyping, UiTyping: DxTyping, unpackTemplate, mountTypewriter,
+        observeTypewriter, ensureElementsUpToTarget, onTypewriterEnd,
+        __twEnd: onTypewriterEnd, __datex2CleanupTypedDOM: cleanupTypedDOM,
+        bootstrapTypewriterObserver
+    });
 }

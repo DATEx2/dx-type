@@ -7,8 +7,8 @@
 // exports: DxNumber
 // used_by: src/client/index.js
 
-import { DxMeter } from '../base/dx-meter.js';
-import { rootWin } from '../base/dx-base.js';
+import { DxMeter, parseNumParts } from '../base/dx-meter.js';
+import { rootWin, span, defCustomElement } from '../base/dx-base.js';
 import { registerRAF, unregisterRAF, DX_ANIM } from '../base/dx-scheduler.js';
 
 // ─── Action Bar Visibility Gate (Singleton Observer) ─────────────────────────
@@ -16,16 +16,9 @@ const actionBarSubscribers = new Set();
 let actionBarObserver = null;
 
 function checkActionBarShown(abParent) {
-    const docEl = rootWin?.document?.documentElement;
-    const docBody = rootWin?.document?.body;
-    return !!(
-        docEl?.classList.contains('show-action-bar') ||
-        docBody?.classList.contains('show-action-bar') ||
-        docEl?.classList.contains('showing-action-bar') ||
-        docBody?.classList.contains('showing-action-bar') ||
-        abParent?.classList.contains('show-action-bar') ||
-        abParent?.classList.contains('showing-action-bar')
-    );
+    const isAb = el => el && (el.classList.contains('show-action-bar') || el.classList.contains('showing-action-bar'));
+    const doc = rootWin?.document;
+    return !!(isAb(doc?.documentElement) || isAb(doc?.body) || isAb(abParent));
 }
 
 function notifyActionBarSubscribers() {
@@ -283,57 +276,38 @@ export class DxNumber extends DxMeter {
         const numSpan = this._numSpan || (this._numSpan = this.querySelector('.ui-num'));
         if (!numSpan) { this.render(); return; }
 
-        const formatted = this.formatValue(this._value);
-        const m = /^([^0-9]*?)(\d(?:[\d\s]*\d)?)([,.]?)(\d*)(.*)$/.exec(formatted);
-        const mainDigits = m?.[2] || '';
-        const radixMark = m?.[3] || '';
-        const decimalDigits = m?.[4] || '';
-
+        const p = parseNumParts(this.formatValue(this._value));
         let digitPadHtml = '';
         if (targetVal !== undefined && !isNaN(targetVal) && this._value !== targetVal) {
-            const tf = this.formatValue(targetVal);
-            const tm = /^([^0-9]*?)(\d(?:[\d\s]*\d)?)([,.]?)(\d*)(.*)$/.exec(tf);
-            const missing = (tm?.[2] || '').replace(/\s/g, '').length - mainDigits.replace(/\s/g, '').length;
-            if (missing > 0) digitPadHtml = `<span class="ui-pad">${'0'.repeat(missing)}</span>`;
+            const tp = parseNumParts(this.formatValue(targetVal));
+            const missing = tp.digits.replace(/\s/g, '').length - p.digits.replace(/\s/g, '').length;
+            if (missing > 0) digitPadHtml = span('ui-pad', '0'.repeat(missing));
         }
 
-        const newInner = `${digitPadHtml}${mainDigits}${radixMark}${decimalDigits}`;
+        const newInner = `${digitPadHtml}${p.digits}${p.radix}${p.decimals}`;
         if (numSpan.innerHTML !== newInner) numSpan.innerHTML = newInner;
     }
 
     render() {
-        const formatted = this.formatValue(this._value);
-        const m = /^([^0-9]*?)(\d(?:[\d\s]*\d)?)([,.]?)(\d*)(.*)$/.exec(formatted);
-        const prefixText = (m?.[1] || '').trim();
-        const mainDigits = m?.[2] || '';
-        const radixMark = m?.[3] || '';
-        const decimalDigits = m?.[4] || '';
-        const suffixText = (m?.[5] || '').trim();
-        const prefixSpace = (m?.[1] || '').endsWith(' ') ? ' ' : '';
-        const suffixSpace = (m?.[5] || '').startsWith(' ') ? ' ' : '';
-
+        const p = parseNumParts(this.formatValue(this._value));
         const targetVal = (this._targetValue !== undefined && !isNaN(this._targetValue)) ? this._targetValue : (parseFloat(this.getAttribute('percent')) || 0);
         let pfxPadHtml = '';
         let digitPadHtml = '';
 
         if (!this.isStatic && targetVal !== undefined && !isNaN(targetVal) && this._value !== targetVal) {
-            const tf = this.formatValue(targetVal);
-            const tm = /^([^0-9]*?)(\d(?:[\d\s]*\d)?)([,.]?)(\d*)(.*)$/.exec(tf);
-            const tp = (tm?.[1] || '').trim();
-            const tps = (tm?.[1] || '').endsWith(' ') ? ' ' : '';
-
-            if (this._value === 0 && targetVal > 0 && tp.includes('+') && !prefixText.includes('+')) {
-                pfxPadHtml = `<span class="ui-pfx ui-pfx-pad">${tp}${tps}</span>`;
-            } else if (!prefixText && tp.trim()) {
-                pfxPadHtml = `<span class="ui-pfx ui-pfx-pad">${tp}${tps}</span>`;
+            const tp = parseNumParts(this.formatValue(targetVal));
+            if (this._value === 0 && targetVal > 0 && tp.pfx.includes('+') && !p.pfx.includes('+')) {
+                pfxPadHtml = span('ui-pfx ui-pfx-pad', `${tp.pfx}${tp.pfxSpace}`);
+            } else if (!p.pfx && tp.pfx) {
+                pfxPadHtml = span('ui-pfx ui-pfx-pad', `${tp.pfx}${tp.pfxSpace}`);
             }
-            const missing = (tm?.[2] || '').replace(/\s/g, '').length - mainDigits.replace(/\s/g, '').length;
-            if (missing > 0) digitPadHtml = `<span class="ui-pad">${'0'.repeat(missing)}</span>`;
+            const missing = tp.digits.replace(/\s/g, '').length - p.digits.replace(/\s/g, '').length;
+            if (missing > 0) digitPadHtml = span('ui-pad', '0'.repeat(missing));
         }
 
-        const pfxHtml = prefixText ? `<span class="ui-pfx">${prefixText}${prefixSpace}</span>` : pfxPadHtml;
-        const sfxHtml = suffixText ? `<span class="ui-sfx">${suffixSpace}${suffixText}</span>` : '';
-        const numHtml = `<span class="ui-num">${digitPadHtml}${mainDigits}${radixMark}${decimalDigits}</span>`;
+        const pfxHtml = p.pfx ? span('ui-pfx', `${p.pfx}${p.pfxSpace}`) : pfxPadHtml;
+        const sfxHtml = span('ui-sfx', p.sfx ? `${p.sfxSpace}${p.sfx}` : '');
+        const numHtml = span('ui-num', `${digitPadHtml}${p.digits}${p.radix}${p.decimals}`);
         const newHtml = `${pfxHtml}${numHtml}${sfxHtml}`;
 
         if (this.innerHTML !== newHtml) {
@@ -345,10 +319,6 @@ export class DxNumber extends DxMeter {
 }
 
 if (rootWin) {
-    rootWin.DxNumber = DxNumber;
-    rootWin.UiNumber = DxNumber;  // backward compat alias
-    rootWin.uiNumber = DxNumber;  // backward compat alias
-    if (rootWin.customElements && !rootWin.customElements.get('dx-number')) {
-        rootWin.customElements.define('dx-number', DxNumber);
-    }
+    rootWin.DxNumber = rootWin.UiNumber = rootWin.uiNumber = DxNumber;
 }
+defCustomElement('dx-number', DxNumber);

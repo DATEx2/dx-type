@@ -7,8 +7,8 @@
 // exports: DxOdometer
 // used_by: src/client/index.js
 
-import { DxMeter } from '../base/dx-meter.js';
-import { rootWin } from '../base/dx-base.js';
+import { DxMeter, parseNumParts } from '../base/dx-meter.js';
+import { rootWin, span, defCustomElement } from '../base/dx-base.js';
 import { DX_ANIM } from '../base/dx-scheduler.js';
 
 export class DxOdometer extends DxMeter {
@@ -82,28 +82,20 @@ export class DxOdometer extends DxMeter {
         const numericValue = parseFloat(valAttr);
         if (isNaN(numericValue)) return;
 
-        const formatted = this.formatValue(numericValue);
-
-        // Regex split matching formatted text structure (identical to SSR generateRibbonHtml)
-        const numberPartMatch = /(.*?-?)(\d(?:[\d\s]*\d)?)([,.]?)(\d*)(.*)/.exec(formatted);
-        const prefixText = (numberPartMatch?.[1] || '').trim();
-        const mainDigits = numberPartMatch?.[2] || '';
-        const radixMark = numberPartMatch?.[3] || '';
-        const decimalDigits = numberPartMatch?.[4] || '';
-        const suffixText = (numberPartMatch?.[5] || '').trim();
-
-        const formattedNumberStr = mainDigits + radixMark + decimalDigits;
+        const np = parseNumParts(this.formatValue(numericValue));
+        const formattedNumberStr = np.digits + np.radix + np.decimals;
 
         const startAttr = this.getAttribute('start');
         let formattedStartStr = null;
         if (startAttr) {
             const startNumeric = parseFloat(startAttr);
             if (!isNaN(startNumeric)) {
-                const formattedStart = this.formatValue(startNumeric);
-                const startMatch = /(.*?-?)(\d(?:[\d\s]*\d)?)([,.]?)(\d*)(.*)/.exec(formattedStart);
-                formattedStartStr = (startMatch?.[2] || '') + (startMatch?.[3] || '') + (startMatch?.[4] || '');
+                const sp = parseNumParts(this.formatValue(startNumeric));
+                formattedStartStr = sp.digits + sp.radix + sp.decimals;
             }
         }
+
+        const makeVal = (v, isF, isL) => span(`odometer-value${isF ? ' odometer-first-value' : ''}${isL ? ' odometer-last-value' : ''}`, v);
 
         let odoInsideHtml = '';
         for (let i = 0; i < formattedNumberStr.length; i++) {
@@ -123,17 +115,12 @@ export class DxOdometer extends DxMeter {
                 }
 
                 if (digitVal === 0 && formattedNumberStr.length > 1 && !startAttr) {
-                    for (let j = 0; j <= 10; j++) {
-                        const val = j % 10;
-                        const lastClass = (j === 10) ? ' odometer-last-value' : '';
-                        const firstClass = (j === 0) ? ' odometer-first-value' : '';
-                        ribbonValuesHtml += `<span class="odometer-value${firstClass}${lastClass}">${val}</span>`;
-                    }
+                    for (let j = 0; j <= 10; j++) ribbonValuesHtml += makeVal(j % 10, j === 0, j === 10);
                     totalItems = 11;
                     finalIndex = 10;
                 } else if (startAttr) {
                     if (startDigitVal === digitVal && type === 'year') {
-                        ribbonValuesHtml = `<span class="odometer-value odometer-first-value odometer-last-value">${digitVal}</span>`;
+                        ribbonValuesHtml = makeVal(digitVal, true, true);
                         totalItems = 1;
                         finalIndex = 0;
                     } else {
@@ -142,24 +129,16 @@ export class DxOdometer extends DxMeter {
                         while (true) {
                             const isFirst = (count === 0);
                             const isLast = (currentVal === digitVal && count > 0);
-                            const firstClass = isFirst ? ' odometer-first-value' : '';
-                            const lastClass = isLast ? ' odometer-last-value' : '';
-                            ribbonValuesHtml += `<span class="odometer-value${firstClass}${lastClass}">${currentVal}</span>`;
+                            ribbonValuesHtml += makeVal(currentVal, isFirst, isLast);
                             count++;
-                            if (isLast) break;
-                            currentVal++;
-                            if (currentVal > 9) currentVal = 0;
-                            if (count > 20) break;
+                            if (isLast || count > 20) break;
+                            currentVal = (currentVal + 1) % 10;
                         }
                         totalItems = count;
                         finalIndex = count - 1;
                     }
                 } else {
-                    for (let j = 0; j <= digitVal; j++) {
-                        const lastClass = (j === digitVal) ? ' odometer-last-value' : '';
-                        const firstClass = (j === 0) ? ' odometer-first-value' : '';
-                        ribbonValuesHtml += `<span class="odometer-value${firstClass}${lastClass}">${j}</span>`;
-                    }
+                    for (let j = 0; j <= digitVal; j++) ribbonValuesHtml += makeVal(j, j === 0, j === digitVal);
                     totalItems = digitVal + 1;
                     finalIndex = digitVal;
                 }
@@ -167,30 +146,25 @@ export class DxOdometer extends DxMeter {
                 const finalPosPercent = -((finalIndex / totalItems) * 100).toFixed(4);
                 const yearDelay = (type === 'year') ? ' --year-base-delay: 1000ms;' : '';
                 const ribbonStyle = `style="--initial-pos: 0%; --final-pos: ${finalPosPercent}%; --digit-i: ${i};${yearDelay}"`;
-                odoInsideHtml += `<span class="odometer-digit">` +
-                    `<span class="odometer-digit-spacer">${char}</span>` +
-                    `<span class="odometer-digit-inner">` +
-                        `<span class="odometer-ribbon">` +
-                            `<span class="odometer-ribbon-inner" data-final-pos="${finalPosPercent}%" ${ribbonStyle}>` +
-                                `${ribbonValuesHtml}` +
-                            `</span>` +
-                        `</span>` +
-                    `</span>` +
-                `</span>`;
+
+                odoInsideHtml += span('odometer-digit',
+                    span('odometer-digit-spacer', char) +
+                    span('odometer-digit-inner',
+                        span('odometer-ribbon',
+                            span('odometer-ribbon-inner', ribbonValuesHtml, `data-final-pos="${finalPosPercent}%" ${ribbonStyle}`)
+                        )
+                    )
+                );
             } else {
-                odoInsideHtml += `<span class="odometer-formatting-mark">${char}</span>`;
+                odoInsideHtml += span('odometer-formatting-mark', char);
             }
         }
 
-        const prefixHasSpace = (numberPartMatch?.[1] || '').endsWith(' ');
-        const prefixSpace = prefixHasSpace ? ' ' : '';
-        const suffixHasSpace = (numberPartMatch?.[5] || '').startsWith(' ');
-        const suffixSpace = suffixHasSpace ? ' ' : '';
+        const pfxHtml = span('ui-pfx', np.pfx ? `${np.pfx}${np.pfxSpace}` : '');
+        const sfxHtml = span('ui-sfx', np.sfx ? `${np.sfxSpace}${np.sfx}` : '');
+        const odoHtml = span('ui-odo', span('odometer odometer-theme-datex2', span('odometer-inside', odoInsideHtml)));
 
-        const pfxHtml = prefixText ? `<span class="ui-pfx">${prefixText}${prefixSpace}</span>` : '';
-        const sfxHtml = suffixText ? `<span class="ui-sfx">${suffixSpace}${suffixText}</span>` : '';
-
-        this.innerHTML = `${pfxHtml}<span class="ui-odo"><span class="odometer odometer-theme-datex2"><span class="odometer-inside">${odoInsideHtml}</span></span></span>${sfxHtml}`;
+        this.innerHTML = `${pfxHtml}${odoHtml}${sfxHtml}`;
 
         // Inherit --d from <c> parent
         const parentC = this.closest('c');
@@ -234,7 +208,7 @@ export class DxOdometer extends DxMeter {
         const parsed = parseFloat(newValue) || 0;
         const current = parseFloat(this.getAttribute('percent') || this.getAttribute('value') || this.textContent) || 0;
         if (parsed === current) return this;
-        throw new Error("dx-odometer is read-only");
+        this.update();
     }
 
     /** Read-only — throws unconditionally. */
@@ -244,10 +218,6 @@ export class DxOdometer extends DxMeter {
 }
 
 if (rootWin) {
-    rootWin.DxOdometer = DxOdometer;
-    rootWin.uiOdometer = DxOdometer;  // backward compat alias
-    rootWin.UiOdometer = DxOdometer;  // backward compat alias
-    if (rootWin.customElements && !rootWin.customElements.get('dx-odometer')) {
-        rootWin.customElements.define('dx-odometer', DxOdometer);
-    }
+    rootWin.DxOdometer = rootWin.uiOdometer = rootWin.UiOdometer = DxOdometer;
 }
+defCustomElement('dx-odometer', DxOdometer);

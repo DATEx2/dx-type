@@ -25,3 +25,21 @@ export class DxBase extends BaseHTMLElement {
         return false;
     }
 }
+
+// ─── Micro HTML Builders (eliminates repetitive template literals & closing tags) ───
+export const el = (tag, cls, content = '', extra = '') =>
+    content !== undefined && content !== null && content !== ''
+        ? `<${tag}${cls ? ` class="${cls}"` : ''}${extra ? ` ${extra}` : ''}>${content}</${tag}>`
+        : '';
+
+export const span = (cls, content, extra) => el('span', cls, content, extra);
+
+// ─── Custom Element Definition Helper ─────────────────────────────────────────
+export const defCustomElement = (tag, cls) => {
+    if (rootWin?.customElements && typeof rootWin.HTMLElement !== 'undefined') {
+        if (!rootWin.customElements.get(tag)) {
+            rootWin.customElements.define(tag, cls);
+        }
+    }
+};
+

@@ -19,12 +19,7 @@ export function finishReveal(el, e) {
     if (typeof el.markRevealed === 'function') {
         el.markRevealed();
     } else {
-        el.classList.remove('reveal-sda', 'reveal', DX_ANIM.REVEALING);
-        el.classList.add(DX_ANIM.REVEALED);
-
-        if (typeof rootWin?.__datex2TriggerPendingUiNumbers === 'function') {
-            rootWin.__datex2TriggerPendingUiNumbers(el);
-        }
+        DxRevealing.prototype.markRevealed.call(el);
     }
 }
 
@@ -61,8 +56,7 @@ export class DxRevealing extends DxBase {
 
 // ─── Global Exports ──────────────────────────────────────────────────────────
 if (rootWin) {
-    rootWin.DxRevealing = DxRevealing;
-    rootWin.UiRevealing = DxRevealing;  // backward compat alias
-    rootWin.finishReveal = finishReveal;
-    rootWin.startReveal = startReveal;
+    Object.assign(rootWin, {
+        DxRevealing, UiRevealing: DxRevealing, finishReveal, startReveal
+    });
 }

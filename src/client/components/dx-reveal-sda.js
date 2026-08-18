@@ -9,8 +9,7 @@
 
 import { DxRevealing, startReveal, finishReveal } from '../base/dx-revealing.js';
 import { observeTypewriter } from '../base/dx-typing.js';
-import { rootWin } from '../base/dx-base.js';
-import { DX_ANIM } from '../base/dx-scheduler.js';
+import { defCustomElement } from '../base/dx-base.js';
 
 export class DxRevealSda extends DxRevealing {
     connectedCallback() {
@@ -48,8 +47,4 @@ export class DxRevealSda extends DxRevealing {
     }
 }
 
-if (rootWin?.customElements && typeof rootWin.HTMLElement !== 'undefined') {
-    if (!rootWin.customElements.get('dx-reveal-sda')) {
-        rootWin.customElements.define('dx-reveal-sda', DxRevealSda);
-    }
-}
+defCustomElement('dx-reveal-sda', DxRevealSda);

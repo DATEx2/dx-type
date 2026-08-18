@@ -7,8 +7,8 @@
 // exports: DxTypeSda
 // used_by: src/client/index.js
 
-import { DxTyping, observeTypewriter, mountTypewriter } from '../base/dx-typing.js';
-import { rootWin } from '../base/dx-base.js';
+import { DxTyping, observeTypewriter } from '../base/dx-typing.js';
+import { defCustomElement } from '../base/dx-base.js';
 import { DX_ANIM } from '../base/dx-scheduler.js';
 
 export class DxTypeSda extends DxTyping {
@@ -34,8 +34,4 @@ export class DxTypeSda extends DxTyping {
     }
 }
 
-if (rootWin?.customElements && typeof rootWin.HTMLElement !== 'undefined') {
-    if (!rootWin.customElements.get('dx-type-sda')) {
-        rootWin.customElements.define('dx-type-sda', DxTypeSda);
-    }
-}
+defCustomElement('dx-type-sda', DxTypeSda);

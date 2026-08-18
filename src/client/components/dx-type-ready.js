@@ -6,7 +6,7 @@
 // exports: DxTypeReady
 // used_by: src/client/index.js
 
-import { DxBase, rootWin } from '../base/dx-base.js';
+import { DxBase, defCustomElement } from '../base/dx-base.js';
 
 export class DxTypeReady extends DxBase {
     connectedCallback() {
@@ -16,8 +16,4 @@ export class DxTypeReady extends DxBase {
     }
 }
 
-if (rootWin?.customElements && typeof rootWin.HTMLElement !== 'undefined') {
-    if (!rootWin.customElements.get('dx-type-ready')) {
-        rootWin.customElements.define('dx-type-ready', DxTypeReady);
-    }
-}
+defCustomElement('dx-type-ready', DxTypeReady);

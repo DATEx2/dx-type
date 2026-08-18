@@ -7,7 +7,7 @@
 // used_by: src/client/index.js
 
 import { DxRevealing } from '../base/dx-revealing.js';
-import { rootWin } from '../base/dx-base.js';
+import { defCustomElement } from '../base/dx-base.js';
 
 export class DxReveal extends DxRevealing {
     connectedCallback() {
@@ -17,8 +17,4 @@ export class DxReveal extends DxRevealing {
     }
 }
 
-if (rootWin?.customElements && typeof rootWin.HTMLElement !== 'undefined') {
-    if (!rootWin.customElements.get('dx-reveal')) {
-        rootWin.customElements.define('dx-reveal', DxReveal);
-    }
-}
+defCustomElement('dx-reveal', DxReveal);

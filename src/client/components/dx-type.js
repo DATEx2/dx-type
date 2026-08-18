@@ -7,7 +7,7 @@
 // used_by: src/client/index.js
 
 import { DxTyping } from '../base/dx-typing.js';
-import { rootWin } from '../base/dx-base.js';
+import { defCustomElement } from '../base/dx-base.js';
 
 export class DxType extends DxTyping {
     connectedCallback() {
@@ -18,8 +18,4 @@ export class DxType extends DxTyping {
     }
 }
 
-if (rootWin?.customElements && typeof rootWin.HTMLElement !== 'undefined') {
-    if (!rootWin.customElements.get('dx-type')) {
-        rootWin.customElements.define('dx-type', DxType);
-    }
-}
+defCustomElement('dx-type', DxType);

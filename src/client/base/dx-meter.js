@@ -5,6 +5,22 @@
 
 import { DxBase, rootWin } from './dx-base.js';
 
+// ─── Shared Numeric Parsing Helper ──────────────────────────────────────────
+const NUM_RE = /^([^0-9]*?)(\d(?:[\d\s]*\d)?)([,.]?)(\d*)(.*)$/;
+
+export function parseNumParts(str) {
+    const m = NUM_RE.exec(str || '');
+    return {
+        pfx: (m?.[1] || '').trim(),
+        digits: m?.[2] || '',
+        radix: m?.[3] || '',
+        decimals: m?.[4] || '',
+        sfx: (m?.[5] || '').trim(),
+        pfxSpace: (m?.[1] || '').endsWith(' ') ? ' ' : '',
+        sfxSpace: (m?.[5] || '').startsWith(' ') ? ' ' : ''
+    };
+}
+
 // ─── Self-contained uiNum formatter (ported faithfully from ww3/uiNum.js) ───
 export class uiNum {
     static format(value, type = 'number', comma = ',', prefix = '', suffix = ' €') {
@@ -105,7 +121,5 @@ export class DxMeter extends DxBase {
 }
 
 if (rootWin) {
-    rootWin.DxMeter = DxMeter;
-    rootWin.UiMeter = DxMeter;  // backward compat alias
-    rootWin.uiNum = uiNum;
+    Object.assign(rootWin, { DxMeter, UiMeter: DxMeter, uiNum });
 }

@@ -81,6 +81,16 @@ Import the base CSS:
 
 Product-specific keyframes (`@keyframes type-sda`, `@keyframes reveal-sda`) remain in the consuming project.
 
+## Build
+
+```bash
+# Production build into dist/
+npm run build
+
+# Watch mode for local development
+npm run watch
+```
+
 ## Testing
 
 ```bash
