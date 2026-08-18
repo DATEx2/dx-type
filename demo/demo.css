@@ -294,28 +294,18 @@ button.btn-secondary:hover {
     animation-delay: calc(var(--I, 0) * var(--u, 40ms));
 }
 
-/* 2. Typewriter SDA (Scroll-Driven Timeline with Opacity + Transform) */
-@keyframes type-sda {
-    0% {
-        opacity: 0;
-        transform: translateY(8px);
-    }
-    100% {
-        opacity: 1;
-        transform: translateY(0);
-    }
-}
-
-dx-type-sda {
-    display: inline-block;
-}
-
+/* 2. Typewriter SDA (Scroll-Triggered with Time-Based Typing Duration) */
 dx-type-sda c {
     opacity: 0;
-    transform: translateY(8px);
-    animation: type-sda linear both;
-    animation-timeline: view();
-    animation-range: entry calc(20% + var(--I, 0) * 0.8%) cover calc(50% + var(--I, 0) * 0.8%);
+    transform: translateY(6px) scale(0.96);
+}
+
+dx-type-sda.type-active c,
+dx-type-sda.TYPE- c {
+    opacity: 0;
+    transform: translateY(6px) scale(0.96);
+    animation: type-in 140ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    animation-delay: calc(var(--I, 0) * var(--u, 40ms));
 }
 
 /* 3. Reveal Hero Fade/Slide */

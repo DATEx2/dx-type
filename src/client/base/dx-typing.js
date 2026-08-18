@@ -13,6 +13,7 @@ export function unpackTemplate(el) {
     const tpl = el.querySelector(':scope > template');
     if (tpl && tpl.content) {
         tpl.replaceWith(tpl.content);
+        el.classList.add('type-active');
         return true;
     }
     return false;

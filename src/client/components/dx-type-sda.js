@@ -7,20 +7,21 @@
 // exports: DxTypeSda
 // used_by: src/client/index.js
 
-import { DxTyping, observeTypewriter } from '../base/dx-typing.js';
+import { DxTyping, unpackTemplate, onTypewriterEnd } from '../base/dx-typing.js';
 import { defCustomElement } from '../base/dx-base.js';
-import { DX_ANIM } from '../base/dx-scheduler.js';
+import { DX_ANIM, observeIO } from '../base/dx-scheduler.js';
 
 export class DxTypeSda extends DxTyping {
     connectedCallback() {
         if (this.isTyped) return;
 
-        // Listen for the SDA sensor animationstart to trigger JIT unpack
-        this.addEventListener('animationstart', this._onAnimStart, { passive: true });
         this.addEventListener('animationend', this._onAnimEnd);
 
-        // Also observe immediately in case IO should pre-unpack
-        observeTypewriter(this);
+        // When scrolled into view, IO unpacks template and triggers time-based typing animation
+        observeIO(this, (el) => {
+            unpackTemplate(el);
+            el.classList.add('type-active');
+        });
     }
 
     _onAnimStart = (e) => {
