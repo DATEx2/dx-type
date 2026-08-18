@@ -1,0 +1,108 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 420" width="100%" height="100%">
+  <defs>
+    <linearGradient id="bgGrad2" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#080c14"/>
+      <stop offset="50%" stop-color="#0b1329"/>
+      <stop offset="100%" stop-color="#080c14"/>
+    </linearGradient>
+    <filter id="shadow2" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="10" stdDeviation="14" flood-color="#000" flood-opacity="0.5"/>
+    </filter>
+  </defs>
+
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;800&amp;display=swap');
+
+    .mono { font-family: 'JetBrains Mono', monospace; }
+    .sans { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+
+    /* Scroll Triggered Staggered Animation Sequence (7s cycle) */
+    .stagger-item {
+      opacity: 0;
+      transform: translateY(20px);
+      animation: sdaReveal 7s cubic-bezier(0.16, 1, 0.3, 1) infinite;
+    }
+
+    @keyframes sdaReveal {
+      0%, 5% { opacity: 0; transform: translateY(20px); }
+      15%, 85% { opacity: 1; transform: translateY(0); }
+      92%, 100% { opacity: 0; transform: translateY(20px); }
+    }
+
+    .d1 { animation-delay: 0.2s; }
+    .d2 { animation-delay: 0.4s; }
+    .d3 { animation-delay: 0.6s; }
+    .d4 { animation-delay: 0.8s; }
+    .d5 { animation-delay: 1.0s; }
+    .d6 { animation-delay: 1.2s; }
+  </style>
+
+  <!-- Background Card -->
+  <rect width="900" height="420" rx="20" fill="url(#bgGrad2)" stroke="rgba(255,255,255,0.1)" stroke-width="1.5" filter="url(#shadow2)"/>
+
+  <!-- Header -->
+  <text x="50" y="55" fill="#f8fafc" font-size="20" font-weight="800" class="sans">Scroll-Driven Animations (SDA) Showcase</text>
+  <rect x="675" y="38" width="175" height="24" rx="12" fill="rgba(56,189,248,0.1)" stroke="rgba(56,189,248,0.3)" stroke-width="1"/>
+  <text x="762" y="54" fill="#38bdf8" font-size="11" font-weight="700" text-anchor="middle" class="mono">Scroll-Triggered</text>
+
+  <!-- Row 1: 3 SDA Feature Cards -->
+  <!-- Card 1: <dx-reveal-sda> -->
+  <g class="stagger-item d1" transform="translate(50, 90)">
+    <rect width="250" height="130" rx="14" fill="rgba(0,0,0,0.4)" stroke="rgba(255,255,255,0.08)" stroke-width="1"/>
+    <text x="125" y="35" fill="#38bdf8" font-size="11" font-weight="700" text-anchor="middle" class="mono">&lt;dx-reveal-sda&gt;</text>
+    <text x="125" y="78" fill="#38bdf8" font-size="16" font-weight="700" text-anchor="middle" class="sans">⚡ GPU Reveal</text>
+    <text x="125" y="105" fill="#64748b" font-size="10" font-weight="600" text-anchor="middle" class="sans">1s Smooth Transition</text>
+  </g>
+
+  <!-- Card 2: <dx-type-sda> -->
+  <g class="stagger-item d2" transform="translate(325, 90)">
+    <rect width="250" height="130" rx="14" fill="rgba(0,0,0,0.4)" stroke="rgba(255,255,255,0.08)" stroke-width="1"/>
+    <text x="125" y="35" fill="#38bdf8" font-size="11" font-weight="700" text-anchor="middle" class="mono">&lt;dx-type-sda&gt;</text>
+    <text x="125" y="78" fill="#ffffff" font-size="16" font-weight="700" text-anchor="middle" class="sans">Precision typing</text>
+    <text x="125" y="105" fill="#64748b" font-size="10" font-weight="600" text-anchor="middle" class="sans">Time-Based Trigger on Scroll</text>
+  </g>
+
+  <!-- Card 3: Orchestrated -->
+  <g class="stagger-item d3" transform="translate(600, 90)">
+    <rect width="250" height="130" rx="14" fill="rgba(0,0,0,0.4)" stroke="rgba(255,255,255,0.08)" stroke-width="1"/>
+    <text x="125" y="35" fill="#a855f7" font-size="11" font-weight="700" text-anchor="middle" class="mono">Orchestrated SDA</text>
+    <text x="125" y="78" fill="#34d399" font-size="16" font-weight="700" text-anchor="middle" class="sans">⭐ [VERIFIED]</text>
+    <text x="125" y="105" fill="#64748b" font-size="10" font-weight="600" text-anchor="middle" class="sans">Multi-Component Sync</text>
+  </g>
+
+  <!-- Row 2: Staggered Badges Set -->
+  <g transform="translate(50, 245)">
+    <rect width="800" height="135" rx="14" fill="rgba(0,0,0,0.4)" stroke="rgba(255,255,255,0.08)" stroke-width="1"/>
+    <text x="400" y="35" fill="#38bdf8" font-size="11" font-weight="700" text-anchor="middle" class="mono">Staggered &lt;dx-reveal-sda&gt; Sequence (--d: 100ms → 700ms)</text>
+    
+    <!-- Badge 1 -->
+    <g class="stagger-item d1" transform="translate(35, 60)">
+      <rect width="135" height="42" rx="21" fill="rgba(255,255,255,0.05)" stroke="rgba(255,255,255,0.12)" stroke-width="1"/>
+      <text x="67" y="26" fill="#38bdf8" font-size="11" font-weight="600" text-anchor="middle" class="mono">⚡ Zero CLS</text>
+    </g>
+
+    <!-- Badge 2 -->
+    <g class="stagger-item d2" transform="translate(185, 60)">
+      <rect width="135" height="42" rx="21" fill="rgba(52,211,153,0.1)" stroke="rgba(52,211,153,0.3)" stroke-width="1"/>
+      <text x="67" y="26" fill="#34d399" font-size="11" font-weight="600" text-anchor="middle" class="mono">🛡️ GPU Thread</text>
+    </g>
+
+    <!-- Badge 3 -->
+    <g class="stagger-item d3" transform="translate(335, 60)">
+      <rect width="135" height="42" rx="21" fill="rgba(168,85,247,0.1)" stroke="rgba(168,85,247,0.3)" stroke-width="1"/>
+      <text x="67" y="26" fill="#a855f7" font-size="11" font-weight="600" text-anchor="middle" class="mono">📦 &lt; 20 KB Min</text>
+    </g>
+
+    <!-- Badge 4 -->
+    <g class="stagger-item d4" transform="translate(485, 60)">
+      <rect width="135" height="42" rx="21" fill="rgba(56,189,248,0.1)" stroke="rgba(56,189,248,0.3)" stroke-width="1"/>
+      <text x="67" y="26" fill="#38bdf8" font-size="11" font-weight="600" text-anchor="middle" class="mono">💎 Pure ES2026</text>
+    </g>
+
+    <!-- Badge 5 -->
+    <g class="stagger-item d5" transform="translate(635, 60)">
+      <rect width="135" height="42" rx="21" fill="rgba(251,191,36,0.1)" stroke="rgba(251,191,36,0.3)" stroke-width="1"/>
+      <text x="67" y="26" fill="#fbbf24" font-size="11" font-weight="600" text-anchor="middle" class="mono">🚀 SSR Ready</text>
+    </g>
+  </g>
+</svg>

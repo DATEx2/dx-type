@@ -11,6 +11,10 @@
 >
 > High-performance, zero-dependency **DATEx2 Web Components** for scroll-triggered typewriter animations, character reveals, batched numeric counters, and mechanical rolling drum odometers.
 
+<p align="center">
+  <img src="assets/hero-type-reveal.svg" alt="@datex2/dx-type Live Animated Showcase" width="100%">
+</p>
+
 Designed for instant zero-layout-shift rendering, single-rAF batching, JIT template unpacking via singleton `IntersectionObserver`, and GPU compositor-thread animations.
 
 ---
@@ -441,6 +445,10 @@ An interactive showcase featuring live replay controls, fold isolation, and 10 s
 
 * 🌐 **Live Demo (Online)**: **[https://datex2.github.io/dx-type/demo/](https://datex2.github.io/dx-type/demo/)**
 * 📁 **Demo Source**: [`demo/index.html`](demo/index.html) and [`demo/demo.css`](demo/demo.css)
+
+<p align="center">
+  <img src="assets/sda-showcase.svg" alt="Scroll-Driven Animations Showcase" width="100%">
+</p>
 
 ### Running the Demo Locally
 
