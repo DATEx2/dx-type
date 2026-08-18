@@ -60,48 +60,43 @@ export function cleanupTypedDOM(typeEl) {
     if (!typeEl || typeEl._cleanedUp) return;
     typeEl._cleanedUp = true;
 
-    const doc = typeEl.ownerDocument || (typeof document !== 'undefined' ? document : null);
-    if (!doc) return;
+    const deferFn = typeof requestAnimationFrame === 'function' ? requestAnimationFrame : setTimeout;
+    deferFn(() => {
+        const doc = typeEl.ownerDocument || (typeof document !== 'undefined' ? document : null);
+        if (!doc) return;
 
-    // 1. Remove SEO search-text and template elements
-    const directTpl = typeEl.querySelector(':scope > template');
-    if (directTpl) directTpl.remove();
-    const st = typeEl.querySelector(':scope > s-t');
-    if (st) st.remove();
+        // 1. Remove template tag
+        const directTpl = typeEl.querySelector(':scope > template');
+        if (directTpl) directTpl.remove();
 
-    // 2. If there are NO embedded interactive components, extract full text content
-    const embeds = typeEl.querySelectorAll('dx-odometer, ui-odometer, dx-number, ui-number, .tw-embed');
-    if (!embeds.length) {
-        const text = typeEl.textContent ? typeEl.textContent.trim() : '';
-        typeEl.textContent = text;
-        typeEl.removeAttribute('aria-label');
-        return;
-    }
+        const st = typeEl.querySelector(':scope > s-t');
+        const t = typeEl.querySelector(':scope > t');
+        const embeds = typeEl.querySelectorAll('dx-odometer, ui-odometer, dx-number, ui-number, .tw-embed');
 
-    // 3. For embedded components (e.g. Section 4), safely unwrap <c>, <w>, <t> without mutating live NodeLists
-    const t = typeEl.querySelector(':scope > t');
-    const root = t || typeEl;
-
-    const allC = Array.from(root.querySelectorAll('c'));
-    for (const c of allC) {
-        if (!c.querySelector('dx-odometer, ui-odometer, dx-number, ui-number, .tw-embed')) {
-            c.replaceWith(doc.createTextNode(c.textContent || ''));
-        } else {
-            c.replaceWith(...Array.from(c.childNodes));
+        if (st && !embeds.length) {
+            // Standard case: CSS switched to display: static on <s-t>, remove temporary <t> tree in rAF
+            if (t) t.remove();
+        } else if (embeds.length && t) {
+            // Embedded interactive case (e.g. <dx-odometer>): preserve live odometer in DOM
+            if (st) st.remove();
+            const allC = Array.from(t.querySelectorAll('c'));
+            for (const c of allC) {
+                if (!c.querySelector('dx-odometer, ui-odometer, dx-number, ui-number, .tw-embed')) {
+                    c.replaceWith(doc.createTextNode(c.textContent || ''));
+                } else {
+                    c.replaceWith(...Array.from(c.childNodes));
+                }
+            }
+            const allW = Array.from(t.querySelectorAll('w'));
+            for (const w of allW) {
+                w.replaceWith(...Array.from(w.childNodes), doc.createTextNode(' '));
+            }
+            t.replaceWith(...Array.from(t.childNodes));
+            if (typeof typeEl.normalize === 'function') typeEl.normalize();
         }
-    }
 
-    const allW = Array.from(root.querySelectorAll('w'));
-    for (const w of allW) {
-        w.replaceWith(...Array.from(w.childNodes), doc.createTextNode(' '));
-    }
-
-    if (t) {
-        t.replaceWith(...Array.from(t.childNodes));
-    }
-
-    if (typeof typeEl.normalize === 'function') typeEl.normalize();
-    typeEl.removeAttribute('aria-label');
+        typeEl.removeAttribute('aria-label');
+    });
 }
 
 // ─── onTypewriterEnd — called when last <c> finishes animating ───────────────

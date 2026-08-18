@@ -42,8 +42,8 @@ dx-type w {
     white-space: nowrap;
 }
 
-/* ─── Search Text Hidden (SEO only) ────────────────────────────────────────── */
-:is(dx-type-sda, dx-type, dx-type-ready) > s-t {
+/* ─── Search Text Hidden During Animation (SEO & In-Browser Searchable) ────── */
+:is(dx-type-sda, dx-type, dx-type-ready):not(.TYPED) > s-t {
     position: absolute;
     width: 1px;
     height: 1px;
@@ -55,7 +55,22 @@ dx-type w {
     margin: -1px;
 }
 
-/* Hide template tag */
+/* ─── Show Search Text After Typed ─────────────────────────────────────────── */
+:is(dx-type-sda, dx-type, dx-type-ready).TYPED > s-t {
+    position: static;
+    width: auto;
+    height: auto;
+    overflow: visible;
+    clip: auto;
+    white-space: normal;
+    margin: 0;
+}
+
+/* ─── Hide Animated Template & Tree After Typed ────────────────────────────── */
+:is(dx-type-sda, dx-type, dx-type-ready, .TYPED).TYPED > :is(t, template) {
+    display: none !important;
+}
+
 :is(dx-type-sda, dx-type, dx-type-ready) > template {
     display: none !important;
 }
