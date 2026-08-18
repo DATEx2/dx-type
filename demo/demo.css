@@ -147,14 +147,18 @@ button.btn-secondary:hover {
     color: #fff;
 }
 
-/* ─── Standard Keyframes for DATEx2 Animations ─────────────────────────────── */
-
 /* 1. Typewriter Hero Animation (Character Opacity Flip) */
-.type-ready dx-type c,
-.type-ready .type c {
+.type-ready dx-type:not(.TYPED) c,
+.type-ready .type:not(.TYPED) c {
     opacity: 0;
     animation: type-in 10ms steps(1) forwards;
     animation-delay: calc(var(--I, 0) * var(--u, 40ms));
+}
+
+.type-ready dx-type.TYPED c,
+dx-type.TYPED c {
+    opacity: 1 !important;
+    animation: none !important;
 }
 
 @keyframes type-in {
@@ -166,11 +170,16 @@ dx-type-sda {
     display: inline-block;
 }
 
-dx-type-sda c {
+dx-type-sda:not(.TYPED) c {
     opacity: 0;
     animation: type-sda linear both;
     animation-timeline: view();
     animation-range: entry calc(10% + var(--I, 0) * 1.2%) cover calc(25% + var(--I, 0) * 1.2%);
+}
+
+dx-type-sda.TYPED c {
+    opacity: 1 !important;
+    animation: none !important;
 }
 
 @keyframes type-sda {
@@ -178,13 +187,20 @@ dx-type-sda c {
 }
 
 /* 3. Reveal Hero Fade/Slide */
-.type-ready dx-reveal,
-.type-ready .reveal {
+.type-ready dx-reveal:not(.REVEALED),
+.type-ready .reveal:not(.REVEALED) {
     display: inline-block;
     opacity: 0;
     transform: translateY(12px);
     animation: reveal-in 450ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
     animation-delay: var(--d, 0ms);
+}
+
+.type-ready dx-reveal.REVEALED,
+dx-reveal.REVEALED {
+    opacity: 1 !important;
+    transform: none !important;
+    animation: none !important;
 }
 
 @keyframes reveal-in {
@@ -195,13 +211,19 @@ dx-type-sda c {
 }
 
 /* 4. Reveal SDA (Scroll-Driven Fade/Slide) */
-dx-reveal-sda {
+dx-reveal-sda:not(.REVEALED) {
     display: block;
     opacity: 0;
     transform: translateY(20px);
     animation: reveal-sda linear both;
     animation-timeline: view();
     animation-range: entry 10% cover 35%;
+}
+
+dx-reveal-sda.REVEALED {
+    opacity: 1 !important;
+    transform: none !important;
+    animation: none !important;
 }
 
 @keyframes reveal-sda {

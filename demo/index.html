@@ -169,16 +169,18 @@
     <script src="../dist/dx-type.iife.min.js"></script>
     <script>
         // Live Replay Handlers
+        const heroOriginal = document.getElementById('hero-demo').querySelector('.preview-box').innerHTML;
         document.getElementById('btn-replay-hero').addEventListener('click', () => {
-            const container = document.getElementById('hero-orchestrator');
-            const clone = container.cloneNode(true);
-            container.parentNode.replaceChild(clone, container);
+            const box = document.getElementById('hero-demo').querySelector('.preview-box');
+            box.innerHTML = '';
+            setTimeout(() => { box.innerHTML = heroOriginal; }, 10);
         });
 
+        const compositeBox = document.getElementById('composite-orchestrator').parentElement;
+        const compositeOriginal = compositeBox.innerHTML;
         document.getElementById('btn-replay-composite').addEventListener('click', () => {
-            const container = document.getElementById('composite-orchestrator');
-            const clone = container.cloneNode(true);
-            container.parentNode.replaceChild(clone, container);
+            compositeBox.innerHTML = '';
+            setTimeout(() => { compositeBox.innerHTML = compositeOriginal; }, 10);
         });
 
         document.getElementById('btn-replay-odo').addEventListener('click', () => {
