@@ -113,7 +113,7 @@ export class DxNumber extends DxMeter {
             const trigger = () => {
                 if (this._animationStarted) return;
                 this._animationStarted = true;
-                const d = parseFloat(this.closest('[style*="--d"]')?.style.getPropertyValue('--d')) || 0;
+                const d = parseFloat(this.style.getPropertyValue('--d')) || parseFloat(this.closest('[style*="--d"]')?.style.getPropertyValue('--d')) || 0;
                 if (d > 0) {
                     setTimeout(() => this.val(targetVal, 400), d);
                 } else {

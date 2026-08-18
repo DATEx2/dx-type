@@ -297,7 +297,7 @@ button.btn-secondary:hover {
     opacity: 0;
     transform: translateY(6px) scale(0.96);
     animation: type-in 140ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
-    animation-delay: calc(var(--I, 0) * var(--u, 40ms));
+    animation-delay: calc(var(--d, 0ms) + var(--I, 0) * var(--u, 40ms));
 }
 
 /* 2. Typewriter SDA (Scroll-Triggered with Time-Based Typing Duration) */
@@ -311,7 +311,7 @@ dx-type-sda.TYPE- c {
     opacity: 0;
     transform: translateY(6px) scale(0.96);
     animation: type-in 140ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
-    animation-delay: calc(var(--I, 0) * var(--u, 40ms));
+    animation-delay: calc(var(--d, 0ms) + var(--I, 0) * var(--u, 40ms));
 }
 
 /* 3. Reveal Hero Fade/Slide */
@@ -362,7 +362,7 @@ dx-reveal-sda.REVEALED {
 /* 5. Mechanical Odometer Animation Keyframe */
 .odometer-ribbon-inner {
     animation: odo-roll 1.2s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
-    animation-delay: calc(var(--digit-i, 0) * 80ms + var(--year-base-delay, 0ms));
+    animation-delay: calc(var(--digit-i, 0) * 80ms + var(--d, 0ms) + var(--year-base-delay, 0ms));
 }
 
 @keyframes odo-roll {
