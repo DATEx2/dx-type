@@ -145,13 +145,14 @@ header p {
 }
 
 .hero-card .card-value {
-    font-size: 1.75rem;
+    font-size: 1.45rem;
     font-weight: 700;
     margin: auto 0;
     color: var(--text-main);
     display: flex;
     align-items: center;
     justify-content: center;
+    white-space: nowrap;
 }
 
 .hero-card .card-sub {

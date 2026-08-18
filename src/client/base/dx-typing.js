@@ -89,7 +89,7 @@ export function cleanupTypedDOM(typeEl) {
             }
             const allW = Array.from(t.querySelectorAll('w'));
             for (const w of allW) {
-                w.replaceWith(...Array.from(w.childNodes), doc.createTextNode(' '));
+                w.replaceWith(...Array.from(w.childNodes));
             }
             t.replaceWith(...Array.from(t.childNodes));
             if (typeof typeEl.normalize === 'function') typeEl.normalize();
