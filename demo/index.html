@@ -165,9 +165,9 @@
         </div>
     </div>
 
-    <!-- Scripts -->
-    <script type="module" src="../dist/index.js"></script>
-    <script type="module">
+    <!-- Scripts: Using Standalone IIFE bundle so demo runs directly from file:// or http:// -->
+    <script src="../dist/dx-type.iife.min.js"></script>
+    <script>
         // Live Replay Handlers
         document.getElementById('btn-replay-hero').addEventListener('click', () => {
             const container = document.getElementById('hero-orchestrator');
