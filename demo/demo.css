@@ -113,6 +113,14 @@ header p {
 }
 
 /* ─── Hero Multi-Component Grid (All 3 Cards Side-by-Side) ────────────────── */
+#section-hero {
+    min-height: calc(100vh - 60px);
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    margin-bottom: 5rem;
+}
+
 .hero-grid {
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -165,6 +173,69 @@ header p {
     font-size: 0.8rem;
     color: var(--text-muted);
     margin-top: 0.5rem;
+}
+
+.scroll-indicator {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    color: var(--accent);
+    font-size: 0.9rem;
+    font-family: var(--font-mono);
+    margin-top: 1.5rem;
+    animation: pulse-scroll 2s ease-in-out infinite;
+}
+
+@keyframes pulse-scroll {
+    0%, 100% { transform: translateY(0); opacity: 0.7; }
+    50% { transform: translateY(6px); opacity: 1; }
+}
+
+/* ─── SDA Showcase Grid (Comprehensive Combinations) ───────────────────────── */
+.sda-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    gap: 1.5rem;
+    margin-top: 2rem;
+}
+
+.sda-card {
+    background: rgba(0, 0, 0, 0.45);
+    border: 1px solid rgba(255, 255, 255, 0.07);
+    border-radius: 14px;
+    padding: 1.75rem 1.5rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    min-height: 160px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+}
+
+.sda-card.sda-card-full {
+    grid-column: 1 / -1;
+}
+
+.sda-card-title {
+    font-size: 0.78rem;
+    font-family: var(--font-mono);
+    color: var(--accent);
+    margin-bottom: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.sda-card-value {
+    font-size: 1.35rem;
+    font-weight: 600;
+    color: var(--text-main);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
 }
 
 .controls {
@@ -244,7 +315,7 @@ dx-type-sda c {
     transform: translateY(8px);
     animation: type-sda linear both;
     animation-timeline: view();
-    animation-range: entry calc(10% + var(--I, 0) * 1.2%) cover calc(25% + var(--I, 0) * 1.2%);
+    animation-range: entry calc(20% + var(--I, 0) * 0.8%) cover calc(50% + var(--I, 0) * 0.8%);
 }
 
 /* 3. Reveal Hero Fade/Slide */
@@ -272,13 +343,13 @@ dx-reveal.REVEALED {
 }
 
 /* 4. Reveal SDA (Scroll-Driven Fade/Slide) */
-dx-reveal-sda:not(.REVEALED) {
-    display: block;
+dx-reveal-sda {
+    display: inline-block;
     opacity: 0;
-    transform: translateY(20px);
+    transform: translateY(16px);
     animation: reveal-sda linear both;
     animation-timeline: view();
-    animation-range: entry 10% cover 35%;
+    animation-range: entry calc(15% + var(--sda-delay, 0%)) cover calc(45% + var(--sda-delay, 0%));
 }
 
 dx-reveal-sda.REVEALED {

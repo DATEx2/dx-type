@@ -93,39 +93,136 @@
             </div>
         </div>
 
-        <!-- Master Replay Bar -->
+        <!-- Master Replay Bar & Scroll Indicator -->
         <div class="controls" style="justify-content: center; margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid var(--card-border);">
             <button id="btn-replay-all" style="padding: 0.75rem 1.75rem; font-size: 1rem; background: var(--accent); color: #000; font-weight: 700;">
                 ▶ Replay Full Hero Sequence
             </button>
         </div>
+
+        <div class="scroll-indicator">
+            <span>↓ Scroll down for Scroll-Driven Animations (SDA) Showcase ↓</span>
+        </div>
     </div>
 
-    <!-- ─── 2. Scroll-Driven Animations (SDA) Section ─── -->
+    <!-- ─── 2. Scroll-Driven Animations (SDA) Section (Below-Fold Showcase) ─── -->
     <div class="section" id="section-sda">
         <div class="section-title">
-            <span>Scroll-Driven Animations (SDA)</span>
-            <span class="badge">CSS view() Timelines</span>
+            <span>Scroll-Driven Animations (SDA) Showcase</span>
+            <span class="badge">Pure CSS view() Timelines</span>
         </div>
         <p class="section-desc">
-            Zero-JavaScript timeline tracking using native CSS <code>animation-timeline: view()</code>. Scroll down to trigger.
+            100% Zero-JavaScript timeline tracking using native CSS <code>animation-timeline: view()</code>. Scroll down smoothly to experience every combination.
         </p>
 
-        <div style="height: 60px; display: flex; align-items: center; justify-content: center; color: var(--text-muted); font-size: 0.9rem;">
-            ↓ Scroll to animate text on compositor thread ↓
-        </div>
+        <div class="sda-grid">
+            <!-- 1. Standalone <dx-reveal-sda> -->
+            <div class="sda-card">
+                <span class="sda-card-title">&lt;dx-reveal-sda&gt;</span>
+                <div class="sda-card-value">
+                    <dx-reveal-sda style="color: var(--accent);">
+                        <span>⚡ GPU Compositor Reveal</span>
+                    </dx-reveal-sda>
+                </div>
+            </div>
 
-        <div class="preview-box" style="margin-top: 40px; margin-bottom: 40px;">
-            <dx-type-sda>
-                <template><t><w><c>S</c><c>c</c><c>r</c><c>o</c><c>l</c><c>l</c></w> <w style="--w:6"><c>t</c><c>o</c></w> <w style="--w:8"><c>a</c><c>n</c><c>i</c><c>m</c><c>a</c><c>t</c><c>e</c></w> <w style="--w:15"><c>t</c><c>h</c><c>i</c><c>s</c></w> <w style="--w:19"><c>t</c><c>e</c><c>x</c><c class="last-char">t</c></w></t></template>
-                <s-t>Scroll to animate this text</s-t>
-            </dx-type-sda>
-        </div>
+            <!-- 2. <dx-reveal-sda> + <dx-number> -->
+            <div class="sda-card">
+                <span class="sda-card-title">&lt;dx-reveal-sda&gt; + &lt;dx-number&gt;</span>
+                <div class="sda-card-value">
+                    <dx-reveal-sda>
+                        <span>🚀 Throughput: <dx-number start="0" value="99999" format="int" suffix=" req/s" comma=" "></dx-number></span>
+                    </dx-reveal-sda>
+                </div>
+            </div>
 
-        <div class="preview-box" style="margin-top: 40px; margin-bottom: 20px;">
-            <dx-reveal-sda style="color: var(--accent-emerald);">
-                <p>🚀 Revealed smoothly on scroll with GPU-accelerated SDA</p>
-            </dx-reveal-sda>
+            <!-- 3. <dx-reveal-sda> + <dx-odometer> -->
+            <div class="sda-card">
+                <span class="sda-card-title">&lt;dx-reveal-sda&gt; + &lt;dx-odometer&gt;</span>
+                <div class="sda-card-value">
+                    <dx-reveal-sda>
+                        <span>💎 Since <dx-odometer type="year" start="2018" percent="2026" style="color: var(--accent-emerald);"></dx-odometer> Leadership</span>
+                    </dx-reveal-sda>
+                </div>
+            </div>
+
+            <!-- 4. <dx-reveal-sda> + <dx-type-sda> -->
+            <div class="sda-card">
+                <span class="sda-card-title">&lt;dx-reveal-sda&gt; + &lt;dx-type-sda&gt;</span>
+                <div class="sda-card-value">
+                    <dx-reveal-sda style="font-size: 0.85rem; color: var(--accent); margin-bottom: 0.35rem;">
+                        <span>[SCROLL TIMELINE]</span>
+                    </dx-reveal-sda>
+                    <dx-type-sda>
+                        <template><t><w><c>P</c><c>r</c><c>e</c><c>c</c><c>i</c><c>s</c><c>i</c><c>o</c><c>n</c></w> <w style="--w:9"><c>t</c><c>y</c><c>p</c><c>i</c><c>n</c><c>g</c></w> <w style="--w:15"><c>o</c><c>n</c></w> <w style="--w:17"><c>s</c><c>c</c><c>r</c><c>o</c><c>l</c><c class="last-char">l</c></w></t></template>
+                        <s-t>Precision typing on scroll</s-t>
+                    </dx-type-sda>
+                </div>
+            </div>
+
+            <!-- 5. <dx-reveal-sda> + <dx-type-sda> + <dx-odometer> -->
+            <div class="sda-card">
+                <span class="sda-card-title">&lt;dx-reveal-sda&gt; + &lt;dx-type-sda&gt; + &lt;dx-odometer&gt;</span>
+                <div class="sda-card-value">
+                    <dx-reveal-sda style="font-size: 0.85rem; color: var(--accent-purple); margin-bottom: 0.35rem;">
+                        <span>🏆 Milestone Achieved</span>
+                    </dx-reveal-sda>
+                    <dx-type-sda>
+                        <template><t><w><c>C</c><c>e</c><c>l</c><c>e</c><c>b</c><c>r</c><c>a</c><c>t</c><c>i</c><c>n</c><c>g</c></w> <w style="--w:11"><c><dx-odometer class="tw-embed" type="year" start="2018" percent="2026" style="margin: 0 0.25rem; color: var(--accent-emerald);"></dx-odometer></c></w> <w style="--w:16"><c>v</c><c>e</c><c>r</c><c>s</c><c>i</c><c>o</c><c class="last-char">n</c></w></t></template>
+                        <s-t>Celebrating <dx-odometer class="tw-embed" type="year" start="2018" percent="2026" style="margin: 0 0.25rem; color: var(--accent-emerald);"></dx-odometer> version</s-t>
+                    </dx-type-sda>
+                </div>
+            </div>
+
+            <!-- 6. <dx-reveal-sda> + <dx-reveal-sda> + <dx-type-sda> + <dx-odometer> -->
+            <div class="sda-card">
+                <span class="sda-card-title">Orchestrated Multi-Reveal + Type + Odometer</span>
+                <div class="sda-card-value">
+                    <div style="display: flex; gap: 0.5rem; margin-bottom: 0.4rem;">
+                        <dx-reveal-sda style="color: var(--accent); font-size: 0.85rem;"><span>⭐ ARCHITECTURE</span></dx-reveal-sda>
+                        <dx-reveal-sda style="color: var(--accent-emerald); font-size: 0.85rem; --sda-delay: 5%;"><span>[VERIFIED]</span></dx-reveal-sda>
+                    </div>
+                    <dx-type-sda>
+                        <template><t><w><c>S</c><c>c</c><c>a</c><c>l</c><c>i</c><c>n</c><c>g</c></w> <w style="--w:7"><c>t</c><c>o</c></w> <w style="--w:9"><c><dx-odometer class="tw-embed" type="number" start="0" percent="1450" suffix=" €" comma=" " style="margin: 0 0.25rem; color: var(--accent);"></dx-odometer></c></w> <w style="--w:14"><c>v</c><c>a</c><c>l</c><c>u</c><c class="last-char">e</c></w></t></template>
+                        <s-t>Scaling to <dx-odometer class="tw-embed" type="number" start="0" percent="1450" suffix=" €" comma=" " style="margin: 0 0.25rem; color: var(--accent);"></dx-odometer> value</s-t>
+                    </dx-type-sda>
+                </div>
+            </div>
+
+            <!-- 7. Multi-Reveal Step Timeline + <dx-number> -->
+            <div class="sda-card sda-card-full">
+                <span class="sda-card-title">4x &lt;dx-reveal-sda&gt; Staggered Timeline + &lt;dx-number&gt;</span>
+                <div class="sda-card-value">
+                    <div style="display: flex; flex-direction: column; gap: 0.65rem; width: 100%; max-width: 580px; text-align: left; font-size: 1.05rem;">
+                        <dx-reveal-sda style="--sda-delay: 0%;"><span>🔹 Step 1: Zero External Dependencies</span></dx-reveal-sda>
+                        <dx-reveal-sda style="--sda-delay: 5%;"><span>🔹 Step 2: Native Web Components Standards</span></dx-reveal-sda>
+                        <dx-reveal-sda style="--sda-delay: 10%;"><span>🔹 Step 3: Pure CSS scroll() / view() Timelines</span></dx-reveal-sda>
+                        <dx-reveal-sda style="--sda-delay: 15%; color: var(--accent);"><span>🔹 Step 4: Total Operations Handled: <dx-number start="0" value="48250" format="int" suffix=" ops" comma=" "></dx-number></span></dx-reveal-sda>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 8. Standalone <dx-type-sda> -->
+            <div class="sda-card">
+                <span class="sda-card-title">&lt;dx-type-sda&gt; Standalone</span>
+                <div class="sda-card-value">
+                    <dx-type-sda>
+                        <template><t><w><c>S</c><c>c</c><c>r</c><c>o</c><c>l</c><c>l</c></w> <w style="--w:6"><c>t</c><c>o</c></w> <w style="--w:8"><c>a</c><c>n</c><c>i</c><c>m</c><c>a</c><c>t</c><c>e</c></w> <w style="--w:15"><c>t</c><c>h</c><c>i</c><c>s</c></w> <w style="--w:19"><c>t</c><c>e</c><c>x</c><c class="last-char">t</c></w></t></template>
+                        <s-t>Scroll to animate this text</s-t>
+                    </dx-type-sda>
+                </div>
+            </div>
+
+            <!-- 9. <dx-type-sda> + <dx-odometer> -->
+            <div class="sda-card">
+                <span class="sda-card-title">&lt;dx-type-sda&gt; + &lt;dx-odometer&gt; Composite</span>
+                <div class="sda-card-value">
+                    <dx-type-sda>
+                        <template><t><w><c>E</c><c>x</c><c>p</c><c>e</c><c>r</c><c>i</c><c>e</c><c>n</c><c>c</c><c>e</c></w> <w style="--w:10"><c><dx-odometer class="tw-embed" type="year" start="2018" percent="2026" style="margin: 0 0.25rem; color: var(--accent);"></dx-odometer></c></w> <w style="--w:15"><c>p</c><c>e</c><c>r</c><c>f</c><c>o</c><c>r</c><c>m</c><c>a</c><c>n</c><c>c</c><c class="last-char">e</c></w></t></template>
+                        <s-t>Experience <dx-odometer class="tw-embed" type="year" start="2018" percent="2026" style="margin: 0 0.25rem; color: var(--accent);"></dx-odometer> performance</s-t>
+                    </dx-type-sda>
+                </div>
+            </div>
         </div>
     </div>
 
