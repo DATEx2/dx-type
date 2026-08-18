@@ -23,17 +23,18 @@
         </div>
     </header>
 
-    <!-- ─── 1. Hero Typewriter & Reveal Orchestrator ─── -->
+    <!-- ─── 1. Hero Unified Showcase (All 4 Core Components in 1st Viewport) ─── -->
     <div class="section" id="hero-demo">
         <div class="section-title">
-            <span>1. &lt;dx-type&gt; & &lt;dx-reveal&gt;</span>
-            <span class="badge">Hero Orchestration</span>
+            <span>Unified Component Showcase</span>
+            <span class="badge">Hero Viewport</span>
         </div>
         <p class="section-desc">
-            Orchestrated by <code>&lt;dx-type-ready&gt;</code>. Letters reveal sequentially on character timeline without layout shift.
+            Orchestrated by <code>&lt;dx-type-ready&gt;</code>. Typewriter, Reveal, Counter and Mechanical Odometer in unified harmony.
         </p>
 
-        <div class="preview-box">
+        <!-- 1A. Hero Headline: <dx-type> & <dx-reveal> -->
+        <div class="preview-box" id="hero-headline-box">
             <dx-type-ready class="type-ready" id="hero-orchestrator">
                 <dx-type style="--u: 35ms;">
                     <template>
@@ -52,87 +53,82 @@
             </dx-type-ready>
         </div>
 
-        <div class="controls">
-            <button id="btn-replay-hero">▶ Replay Typewriter</button>
+        <!-- 1B. 3-Card Multi-Component Grid -->
+        <div class="hero-grid">
+            <!-- 1. <dx-number> Counter Card -->
+            <div class="hero-card">
+                <span class="card-title">&lt;dx-number&gt;</span>
+                <div class="card-value">
+                    <dx-number id="demo-number" percent="2450" suffix=" €" comma=" "></dx-number>
+                </div>
+                <div class="controls" style="justify-content: center; margin-top: 0.5rem;">
+                    <button id="btn-num-2450" style="padding: 0.35rem 0.65rem; font-size: 0.8rem;">2 450 €</button>
+                    <button id="btn-num-1299" class="btn-secondary" style="padding: 0.35rem 0.65rem; font-size: 0.8rem;">1 299 €</button>
+                    <button id="btn-num-99999" class="btn-secondary" style="padding: 0.35rem 0.65rem; font-size: 0.8rem;">99 999 €</button>
+                </div>
+                <span class="card-sub">Centralized rAF 60/120fps</span>
+            </div>
+
+            <!-- 2. <dx-odometer> Drum Card -->
+            <div class="hero-card">
+                <span class="card-title">&lt;dx-odometer&gt;</span>
+                <div class="card-value" id="odometer-container">
+                    <dx-odometer id="demo-odometer" type="year" start="2018" percent="2026"></dx-odometer>
+                </div>
+                <div class="controls" style="justify-content: center; margin-top: 0.5rem;">
+                    <button id="btn-replay-odo" style="padding: 0.35rem 0.65rem; font-size: 0.8rem;">Roll 2018 → 2026</button>
+                    <button id="btn-odo-price" class="btn-secondary" style="padding: 0.35rem 0.65rem; font-size: 0.8rem;">Roll 1 450 €</button>
+                </div>
+                <span class="card-sub">Pure CSS 3D Drum</span>
+            </div>
+
+            <!-- 3. Composite Embedded Odometer Card -->
+            <div class="hero-card">
+                <span class="card-title">Composite (.tw-embed)</span>
+                <div class="card-value" id="composite-box">
+                    <dx-type-ready class="type-ready" id="composite-orchestrator">
+                        <dx-type style="--u: 40ms;">
+                            <template>
+                                <t>
+                                    <w><c>S</c><c>i</c><c>n</c><c>c</c><c>e</c></w>
+                                    <w style="--w:5"><c><dx-odometer class="tw-embed" type="year" start="2018" percent="2026" style="margin: 0 0.25rem; color: var(--accent-emerald);"></dx-odometer></c></w>
+                                    <w style="--w:10"><c>e</c><c>x</c><c>c</c><c>e</c><c>l</c><c>l</c><c>e</c><c>n</c><c class="last-char">c</c><c>e</c></w>
+                                </t>
+                            </template>
+                            <s-t>Since 2026 excellence</s-t>
+                        </dx-type>
+                    </dx-type-ready>
+                </div>
+                <div class="controls" style="justify-content: center; margin-top: 0.5rem;">
+                    <button id="btn-replay-composite" style="padding: 0.35rem 0.65rem; font-size: 0.8rem;">Replay Embedded</button>
+                </div>
+                <span class="card-sub">Typewriter + Embedded Roll</span>
+            </div>
+        </div>
+
+        <!-- Master Replay Bar -->
+        <div class="controls" style="justify-content: center; margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid var(--card-border);">
+            <button id="btn-replay-all" style="padding: 0.75rem 1.75rem; font-size: 1rem; background: var(--accent); color: #000; font-weight: 700;">
+                ▶ Replay Full Hero Sequence
+            </button>
         </div>
     </div>
 
-    <!-- ─── 2. Animated Numeric Counter ─── -->
-    <div class="section" id="section-number">
+    <!-- ─── 2. Scroll-Driven Animations (SDA) Section ─── -->
+    <div class="section" id="section-sda">
         <div class="section-title">
-            <span>2. &lt;dx-number&gt;</span>
-            <span class="badge">Centralized rAF Batching</span>
-        </div>
-        <p class="section-desc">
-            Smooth 60/120fps cubic ease-out counter. Batched globally in a single rAF ticker with tabular padding.
-        </p>
-
-        <div class="preview-box">
-            <dx-number id="demo-number" percent="0" suffix=" €" comma=" "></dx-number>
-        </div>
-
-        <div class="controls">
-            <button id="btn-num-2450">Set: 2 450 €</button>
-            <button id="btn-num-1299" class="btn-secondary">Set: 1 299 €</button>
-            <button id="btn-num-0" class="btn-secondary">Set: 0 €</button>
-            <button id="btn-num-99999" class="btn-secondary">Set: 99 999 €</button>
-        </div>
-    </div>
-
-    <!-- ─── 3. Mechanical Odometer Ribbon ─── -->
-    <div class="section" id="section-odometer">
-        <div class="section-title">
-            <span>3. &lt;dx-odometer&gt;</span>
-            <span class="badge">Pure CSS 3D Drum</span>
-        </div>
-        <p class="section-desc">
-            3D mechanical rolling odometer with automatic digit ribbon generation and static freezing on animation end.
-        </p>
-
-        <div class="preview-box" id="odometer-container">
-            <span style="color: var(--text-muted); font-size: 1rem;">↓ Scroll to view mechanical roll ↓</span>
-        </div>
-
-        <div class="controls">
-            <button id="btn-replay-odo">▶ Roll Year: 2018 → 2026</button>
-            <button id="btn-odo-price" class="btn-secondary">▶ Roll Price: 0 → 1 450 €</button>
-        </div>
-    </div>
-
-    <!-- ─── 4. Composite: Typewriter with Embedded Odometer ─── -->
-    <div class="section" id="section-composite">
-        <div class="section-title">
-            <span>4. Composite Orchestration</span>
-            <span class="badge">Typewriter + Embedded Odometer</span>
-        </div>
-        <p class="section-desc">
-            Embed <code>&lt;dx-odometer class="tw-embed"&gt;</code> inside a typewriter. The typewriter waits for the drum roll before completing.
-        </p>
-
-        <div class="preview-box" id="composite-box">
-            <span style="color: var(--text-muted); font-size: 1rem;">↓ Scroll to trigger composite typewriter ↓</span>
-        </div>
-
-        <div class="controls">
-            <button id="btn-replay-composite">▶ Replay Composite Sequence</button>
-        </div>
-    </div>
-
-    <!-- ─── 5. Scroll-Driven Animations (SDA) ─── -->
-    <div class="section">
-        <div class="section-title">
-            <span>5. Scroll-Driven Animations (SDA)</span>
+            <span>Scroll-Driven Animations (SDA)</span>
             <span class="badge">CSS view() Timelines</span>
         </div>
         <p class="section-desc">
             Zero-JavaScript timeline tracking using native CSS <code>animation-timeline: view()</code>. Scroll down to trigger.
         </p>
 
-        <div style="height: 120px; display: flex; align-items: center; justify-content: center; color: var(--text-muted); font-size: 0.9rem;">
-            ↓ Scroll down to trigger SDA ↓
+        <div style="height: 60px; display: flex; align-items: center; justify-content: center; color: var(--text-muted); font-size: 0.9rem;">
+            ↓ Scroll to animate text on compositor thread ↓
         </div>
 
-        <div class="preview-box" style="margin-top: 100px; margin-bottom: 100px;">
+        <div class="preview-box" style="margin-top: 40px; margin-bottom: 40px;">
             <dx-type-sda>
                 <template>
                     <t>
@@ -147,7 +143,7 @@
             </dx-type-sda>
         </div>
 
-        <div class="preview-box" style="margin-top: 80px; margin-bottom: 40px;">
+        <div class="preview-box" style="margin-top: 40px; margin-bottom: 20px;">
             <dx-reveal-sda style="color: var(--accent-emerald);">
                 <p>🚀 Revealed smoothly on scroll with GPU-accelerated SDA</p>
             </dx-reveal-sda>
@@ -157,78 +153,50 @@
     <!-- Scripts: Using Standalone IIFE bundle so demo runs directly from file:// or http:// -->
     <script src="../dist/dx-type.iife.min.js"></script>
     <script>
-        // Live Replay Handlers
-        const heroOriginal = document.getElementById('hero-demo').querySelector('.preview-box').innerHTML;
-        document.getElementById('btn-replay-hero').addEventListener('click', () => {
-            const box = document.getElementById('hero-demo').querySelector('.preview-box');
+        // HTML Template Snapshots for Pristine Replays
+        const heroHeadlineHtml = document.getElementById('hero-headline-box').innerHTML;
+        const compositeHtml = document.getElementById('composite-box').innerHTML;
+
+        // Replay Hero Headline
+        const replayHeadline = () => {
+            const box = document.getElementById('hero-headline-box');
             box.innerHTML = '';
-            setTimeout(() => { box.innerHTML = heroOriginal; }, 10);
-        });
+            setTimeout(() => { box.innerHTML = heroHeadlineHtml; }, 10);
+        };
 
         // Number Counter Handlers
         const numEl = document.getElementById('demo-number');
         document.getElementById('btn-num-2450').addEventListener('click', () => numEl.val(2450, 800));
         document.getElementById('btn-num-1299').addEventListener('click', () => numEl.val(1299, 800));
-        document.getElementById('btn-num-0').addEventListener('click', () => numEl.val(0, 600));
         document.getElementById('btn-num-99999').addEventListener('click', () => numEl.val(99999, 1200));
 
-        const compositeOriginalHtml = `
-            <dx-type-ready class="type-ready" id="composite-orchestrator">
-                <dx-type style="--u: 40ms;">
-                    <template>
-                        <t>
-                            <w><c>S</c><c>i</c><c>n</c><c>c</c><c>e</c></w>
-                            <w style="--w:5"><c><dx-odometer class="tw-embed" type="year" start="2018" percent="2026" style="margin: 0 0.35rem; color: var(--accent-emerald);"></dx-odometer></c></w>
-                            <w style="--w:10"><c>e</c><c>x</c><c>c</c><c>e</c><c>l</c><c>l</c><c>e</c><c>n</c><c class="last-char">c</c><c>e</c></w>
-                        </t>
-                    </template>
-                    <s-t>Since 2026 excellence</s-t>
-                </dx-type>
-            </dx-type-ready>
-        `;
-
-        const compositeBox = document.getElementById('composite-box');
-        document.getElementById('btn-replay-composite').addEventListener('click', () => {
-            compositeBox.innerHTML = '';
-            setTimeout(() => { compositeBox.innerHTML = compositeOriginalHtml; }, 10);
-        });
-
-        document.getElementById('btn-replay-odo').addEventListener('click', () => {
+        // Odometer Handlers
+        const replayOdo = () => {
             const box = document.getElementById('odometer-container');
             box.innerHTML = '<dx-odometer type="year" start="2018" percent="2026"></dx-odometer>';
-        });
+        };
+        document.getElementById('btn-replay-odo').addEventListener('click', replayOdo);
 
         document.getElementById('btn-odo-price').addEventListener('click', () => {
             const box = document.getElementById('odometer-container');
             box.innerHTML = '<dx-odometer type="number" start="0" percent="1450" suffix=" €" comma=","></dx-odometer>';
         });
 
-        // ─── Viewport Trigger Observer (Animates sections only when scrolled into view) ───
-        const onViewportEnter = (el, callback) => {
-            if (!el) return;
-            const observer = new IntersectionObserver((entries) => {
-                if (entries[0].isIntersecting) {
-                    observer.disconnect();
-                    callback();
-                }
-            }, { threshold: 0.35 });
-            observer.observe(el);
+        // Composite Replay Handler
+        const replayComposite = () => {
+            const box = document.getElementById('composite-box');
+            box.innerHTML = '';
+            setTimeout(() => { box.innerHTML = compositeHtml; }, 10);
         };
+        document.getElementById('btn-replay-composite').addEventListener('click', replayComposite);
 
-        // Section 2: Count up from 0 to 2 450 € on scroll
-        onViewportEnter(document.getElementById('section-number'), () => {
-            numEl.val(2450, 1000);
-        });
-
-        // Section 3: Roll odometer from 2018 to 2026 on scroll
-        onViewportEnter(document.getElementById('section-odometer'), () => {
-            const box = document.getElementById('odometer-container');
-            box.innerHTML = '<dx-odometer type="year" start="2018" percent="2026"></dx-odometer>';
-        });
-
-        // Section 4: Trigger composite sequence on scroll
-        onViewportEnter(document.getElementById('section-composite'), () => {
-            compositeBox.innerHTML = compositeOriginalHtml;
+        // Master Replay All (All 4 in sync)
+        document.getElementById('btn-replay-all').addEventListener('click', () => {
+            replayHeadline();
+            numEl.val(0, 100);
+            setTimeout(() => numEl.val(2450, 900), 200);
+            replayOdo();
+            replayComposite();
         });
     </script>
 </body>
