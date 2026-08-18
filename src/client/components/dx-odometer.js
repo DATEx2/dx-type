@@ -155,7 +155,7 @@ export class DxOdometer extends DxMeter {
                     )
                 );
             } else {
-                odoInsideHtml += span('odometer-formatting-mark', char);
+                odoInsideHtml += span('odometer-formatting-mark', char === ' ' ? '&nbsp;' : char);
             }
         }
 
