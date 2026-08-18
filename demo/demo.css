@@ -148,21 +148,17 @@ button.btn-secondary:hover {
 }
 
 /* 1. Typewriter Hero Animation (Character Opacity Flip) */
-.type-ready dx-type:not(.TYPED) c,
-.type-ready .type:not(.TYPED) c {
-    opacity: 0;
-    animation: type-in 10ms steps(1) forwards;
-    animation-delay: calc(var(--I, 0) * var(--u, 40ms));
-}
-
-.type-ready dx-type.TYPED c,
-dx-type.TYPED c {
-    opacity: 1 !important;
-    animation: none !important;
-}
-
 @keyframes type-in {
-    to { opacity: 1; }
+    from, to {
+        opacity: 1;
+    }
+}
+
+.type-ready dx-type c,
+.type-ready .type c {
+    opacity: 0;
+    animation: type-in 1ms step-start forwards;
+    animation-delay: calc(var(--I, 0) * var(--u, 40ms));
 }
 
 /* 2. Typewriter SDA (Scroll-Driven Timeline) */
