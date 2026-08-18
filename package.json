@@ -68,6 +68,9 @@
     "node": ">=18.0.0"
   },
   "devDependencies": {
-    "esbuild": "^0.28.2"
+    "esbuild": "^0.28.2",
+    "omggif": "^1.0.10",
+    "pngjs": "^7.0.0",
+    "puppeteer": "^25.8.0"
   }
 }
