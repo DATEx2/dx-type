@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>@datex2/dx-type — Interactive Component Showcase</title>
+    <!-- Base Component CSS -->
+    <link rel="stylesheet" href="../dist/css/dx-type.css">
+    <!-- Demo Showcase Styles & Keyframes -->
+    <link rel="stylesheet" href="demo.css">
+</head>
+<body>
+
+    <header>
+        <h1>@datex2/dx-type</h1>
+        <p>DATEx2 Web Components: Typewriter, Reveal, Number Counter & Mechanical Odometer</p>
+        <div class="badge-row">
+            <span class="badge">ES2026 Native</span>
+            <span class="badge">&lt; 20 KB Minified</span>
+            <span class="badge">Zero Dependencies</span>
+            <span class="badge">Singleton rAF & IO</span>
+            <span class="badge">TypeScript Ready</span>
+        </div>
+    </header>
+
+    <!-- ─── 1. Hero Typewriter & Reveal Orchestrator ─── -->
+    <div class="section" id="hero-demo">
+        <div class="section-title">
+            <span>1. &lt;dx-type&gt; & &lt;dx-reveal&gt;</span>
+            <span class="badge">Hero Orchestration</span>
+        </div>
+        <p class="section-desc">
+            Orchestrated by <code>&lt;dx-type-ready&gt;</code>. Letters reveal sequentially on character timeline without layout shift.
+        </p>
+
+        <div class="preview-box">
+            <dx-type-ready class="type-ready" id="hero-orchestrator">
+                <dx-type style="--u: 35ms;">
+                    <template>
+                        <t>
+                            <w><c style="--I:0">B</c><c style="--I:1">u</c><c style="--I:2">i</c><c style="--I:3">l</c><c style="--I:4">d</c></w>
+                            <w><c style="--I:5">i</c><c style="--I:6">n</c><c style="--I:7">c</c><c style="--I:8">r</c><c style="--I:9">e</c><c style="--I:10">d</c><c style="--I:11">i</c><c style="--I:12">b</c><c style="--I:13">l</c><c style="--I:14">e</c></w>
+                            <w><c style="--I:15">w</c><c style="--I:16">e</c><c style="--I:17">b</c></w>
+                            <w><c style="--I:18">a</c><c style="--I:19">n</c><c style="--I:20">i</c><c style="--I:21">m</c><c style="--I:22">a</c><c style="--I:23">t</c><c style="--I:24">i</c><c style="--I:25">o</c><c style="--I:26">n</c><c style="--I:27">s</c></w>
+                        </t>
+                    </template>
+                    <s-t>Build incredible web animations</s-t>
+                </dx-type>
+                <dx-reveal style="--d: 850ms; color: var(--accent); margin-left: 0.5rem;">
+                    <span>✨ with DATEx2</span>
+                </dx-reveal>
+            </dx-type-ready>
+        </div>
+
+        <div class="controls">
+            <button id="btn-replay-hero">▶ Replay Typewriter</button>
+        </div>
+    </div>
+
+    <!-- ─── 2. Animated Numeric Counter ─── -->
+    <div class="section">
+        <div class="section-title">
+            <span>2. &lt;dx-number&gt;</span>
+            <span class="badge">Centralized rAF Batching</span>
+        </div>
+        <p class="section-desc">
+            Smooth 60/120fps cubic ease-out counter. Batched globally in a single rAF ticker with tabular padding.
+        </p>
+
+        <div class="preview-box">
+            <dx-number id="demo-number" type="number" percent="1299" suffix=" €" comma=","></dx-number>
+        </div>
+
+        <div class="controls">
+            <button onclick="document.getElementById('demo-number').val(2450, 800)">Set to 2 450 €</button>
+            <button onclick="document.getElementById('demo-number').val(1299, 800)">Set to 1 299 €</button>
+            <button onclick="document.getElementById('demo-number').val(0, 600)">Set to 0 €</button>
+            <button class="btn-secondary" onclick="document.getElementById('demo-number').val(99999, 1200)">Set to 99 999 €</button>
+        </div>
+    </div>
+
+    <!-- ─── 3. Mechanical Drum Odometer ─── -->
+    <div class="section">
+        <div class="section-title">
+            <span>3. &lt;dx-odometer&gt;</span>
+            <span class="badge">Hardware Ribbon Roll</span>
+        </div>
+        <p class="section-desc">
+            Mechanical rotating drum odometer with ribbon animation. Automatically freezes to static HTML upon completion.
+        </p>
+
+        <div class="preview-box" id="odometer-container">
+            <dx-odometer id="demo-odometer" type="year" start="2018" percent="2026"></dx-odometer>
+        </div>
+
+        <div class="controls">
+            <button id="btn-replay-odo">▶ Roll Year: 2018 → 2026</button>
+            <button class="btn-secondary" id="btn-odo-price">▶ Roll Price: 0 → 1 450 €</button>
+        </div>
+    </div>
+
+    <!-- ─── 4. Typewriter with Embedded Odometer ─── -->
+    <div class="section">
+        <div class="section-title">
+            <span>4. Typewriter + Embedded Odometer (.tw-embed)</span>
+            <span class="badge">Composite Orchestration</span>
+        </div>
+        <p class="section-desc">
+            An odometer embedded directly inside a typewriter string. The drum rolls exactly when typewriter reaches its position!
+        </p>
+
+        <div class="preview-box">
+            <dx-type-ready class="type-ready" id="composite-orchestrator">
+                <dx-type style="--u: 35ms;">
+                    <template>
+                        <t>
+                            <w><c style="--I:0">S</c><c style="--I:1">i</c><c style="--I:2">n</c><c style="--I:3">c</c><c style="--I:4">e</c></w>
+                            <w><c style="--I:5"><dx-odometer class="tw-embed" type="year" start="1990" percent="2026"></dx-odometer></c></w>
+                            <w><c style="--I:6">e</c><c style="--I:7">x</c><c style="--I:8">c</c><c style="--I:9">e</c><c style="--I:10">l</c><c style="--I:11">l</c><c style="--I:12">e</c><c style="--I:13">n</c><c style="--I:14">c</c><c style="--I:15">e</c></w>
+                        </t>
+                    </template>
+                    <s-t>Since 2026 excellence</s-t>
+                </dx-type>
+            </dx-type-ready>
+        </div>
+
+        <div class="controls">
+            <button id="btn-replay-composite">▶ Replay Composite</button>
+        </div>
+    </div>
+
+    <!-- ─── 5. Scroll-Driven Animations (SDA) ─── -->
+    <div class="section" style="margin-top: 4rem;">
+        <div class="section-title">
+            <span>5. &lt;dx-type-sda&gt; & &lt;dx-reveal-sda&gt;</span>
+            <span class="badge">Scroll-Driven Animations</span>
+        </div>
+        <p class="section-desc">
+            Scroll down to test pure CSS Scroll-Driven Animations on the compositor thread (zero JS on scroll).
+        </p>
+
+        <div style="height: 120px; display: flex; align-items: center; justify-content: center; color: var(--text-muted); font-size: 0.9rem;">
+            ↓ Scroll down to trigger SDA ↓
+        </div>
+
+        <div class="preview-box" style="margin-top: 100px; margin-bottom: 100px;">
+            <dx-type-sda>
+                <template>
+                    <t>
+                        <w><c style="--I:0">S</c><c style="--I:1">c</c><c style="--I:2">r</c><c style="--I:3">o</c><c style="--I:4">l</c><c style="--I:5">l</c></w>
+                        <w><c style="--I:6">t</c><c style="--I:7">o</c></w>
+                        <w><c style="--I:8">a</c><c style="--I:9">n</c><c style="--I:10">i</c><c style="--I:11">m</c><c style="--I:12">a</c><c style="--I:13">t</c><c style="--I:14">e</c></w>
+                        <w><c style="--I:15">t</c><c style="--I:16">h</c><c style="--I:17">i</c><c style="--I:18">s</c></w>
+                        <w><c style="--I:19">t</c><c style="--I:20">e</c><c style="--I:21">x</c><c style="--I:22">t</c></w>
+                    </t>
+                </template>
+                <s-t>Scroll to animate this text</s-t>
+            </dx-type-sda>
+        </div>
+
+        <div class="preview-box" style="margin-top: 80px; margin-bottom: 40px;">
+            <dx-reveal-sda style="color: var(--accent-emerald);">
+                <p>🚀 Revealed smoothly on scroll with GPU-accelerated SDA</p>
+            </dx-reveal-sda>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script type="module" src="../dist/index.js"></script>
+    <script type="module">
+        // Live Replay Handlers
+        document.getElementById('btn-replay-hero').addEventListener('click', () => {
+            const container = document.getElementById('hero-orchestrator');
+            const clone = container.cloneNode(true);
+            container.parentNode.replaceChild(clone, container);
+        });
+
+        document.getElementById('btn-replay-composite').addEventListener('click', () => {
+            const container = document.getElementById('composite-orchestrator');
+            const clone = container.cloneNode(true);
+            container.parentNode.replaceChild(clone, container);
+        });
+
+        document.getElementById('btn-replay-odo').addEventListener('click', () => {
+            const box = document.getElementById('odometer-container');
+            box.innerHTML = '<dx-odometer type="year" start="2018" percent="2026"></dx-odometer>';
+        });
+
+        document.getElementById('btn-odo-price').addEventListener('click', () => {
+            const box = document.getElementById('odometer-container');
+            box.innerHTML = '<dx-odometer type="number" start="0" percent="1450" suffix=" €" comma=","></dx-odometer>';
+        });
+    </script>
+</body>
+</html>
