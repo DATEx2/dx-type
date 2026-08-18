@@ -36,8 +36,8 @@ dx-reveal c {
     will-change: opacity;
 }
 
-/* ─── Search Text Hidden During Animation ───────────────────────────────────── */
-:is(dx-type-sda, dx-type, dx-type-ready):not(.TYPED) > s-t {
+/* ─── Search Text Hidden (SEO only) ────────────────────────────────────────── */
+:is(dx-type-sda, dx-type, dx-type-ready) > s-t {
     position: absolute;
     width: 1px;
     height: 1px;
@@ -49,19 +49,8 @@ dx-reveal c {
     margin: -1px;
 }
 
-/* Show search text after typed */
-:is(dx-type-sda, dx-type, dx-type-ready).TYPED > s-t {
-    position: static;
-    width: auto;
-    height: auto;
-    overflow: visible;
-    clip: auto;
-    white-space: normal;
-    margin: 0;
-}
-
-/* Hide template after typed */
-:is(dx-type-sda, dx-type, dx-type-ready, .TYPED).TYPED > :is(t, template) {
+/* Hide template tag */
+:is(dx-type-sda, dx-type, dx-type-ready) > template {
     display: none !important;
 }
 
