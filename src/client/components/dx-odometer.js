@@ -144,8 +144,7 @@ export class DxOdometer extends DxMeter {
                 }
 
                 const finalPosPercent = -((finalIndex / totalItems) * 100).toFixed(4);
-                const yearDelay = (type === 'year') ? ' --year-base-delay: 1000ms;' : '';
-                const ribbonStyle = `style="--initial-pos: 0%; --final-pos: ${finalPosPercent}%; --digit-i: ${i};${yearDelay}"`;
+                const ribbonStyle = `style="--initial-pos: 0%; --final-pos: ${finalPosPercent}%; --digit-i: ${i};"`;
 
                 odoInsideHtml += span('odometer-digit',
                     span('odometer-digit-spacer', char) +

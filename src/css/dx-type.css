@@ -8,13 +8,16 @@
  * remain in the consuming project's CSS (e.g. sda.css, type.css).
  */
 
-/* ─── Layout Safety: display: contents ──────────────────────────────────────── */
+/* ─── Layout Safety ──────────────────────────────────────── */
 dx-type,
-dx-type-sda,
-dx-reveal,
-dx-reveal-sda,
 dx-type-ready {
     display: contents;
+}
+
+dx-type-sda,
+dx-reveal,
+dx-reveal-sda {
+    display: inline-block;
 }
 
 /* dx-number and dx-odometer are inline-level (rendered content) */

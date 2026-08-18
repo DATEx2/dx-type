@@ -148,6 +148,15 @@ export function onTypewriterEnd(cEl, event) {
     // Find parent: support both dx-* tags and legacy class-based selectors
     const parent = cEl.closest('dx-type-sda, dx-type, .type-sda, .type, .TYPE-, ui-type, ui-type-sda');
     if (parent) {
+        if (parent.classList.contains(DX_ANIM.TYPED)) return false;
+
+        const allC = parent.querySelectorAll('c');
+        const lastC = allC.length ? allC[allC.length - 1] : null;
+        const isLastChar = (cEl === lastC) || (lastC && (cEl.contains(lastC) || lastC.contains(cEl)));
+        const isEmbed = cEl.classList.contains('tw-embed') || !!cEl.querySelector?.('.tw-embed');
+
+        if (!isLastChar && !isEmbed) return false;
+
         parent._typed = (parent._typed || 0) + 1;
         if (parent._toType === undefined) {
             parent._toType = 1 + parent.querySelectorAll('ui-odometer.tw-embed, dx-odometer.tw-embed').length;
