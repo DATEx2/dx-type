@@ -10,14 +10,22 @@
 
 /* ─── Layout Safety ──────────────────────────────────────── */
 dx-type,
-dx-type-ready {
-    display: contents;
+dx-type-sda {
+    display: inline-block;
+    position: relative;
+    vertical-align: baseline;
 }
 
-dx-type-sda,
+dx-type-ready {
+    display: inline-flex;
+    align-items: baseline;
+    justify-content: center;
+}
+
 dx-reveal,
 dx-reveal-sda {
     display: inline-block;
+    vertical-align: baseline;
 }
 
 /* dx-number and dx-odometer are inline-level (rendered content) */
@@ -95,28 +103,31 @@ c:nth-child(48) { --i: 47; }
 c:nth-child(49) { --i: 48; }
 c:nth-child(50) { --i: 49; }
 
-/* ─── Search Text Hidden During Animation (SEO & In-Browser Searchable) ────── */
+/* ─── Search Text in Document Flow: Reserves Full Width & Searchable ───────── */
 :is(dx-type-sda, dx-type, dx-type-ready):not(.TYPED) > s-t {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    overflow: hidden;
-    clip: rect(0, 0, 0, 0);
+    visibility: hidden;
+    display: inline-block;
     white-space: nowrap;
-    border: 0;
-    padding: 0;
-    margin: -1px;
 }
 
-/* ─── Show Search Text After Typed ─────────────────────────────────────────── */
+/* ─── Animated <t> Tree: Overlaid on top of reserved <s-t> space ──────────── */
+:is(dx-type-sda, dx-type, dx-type-ready):not(.TYPED) > t {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    white-space: nowrap;
+    display: inline-block;
+    pointer-events: none;
+}
+
+/* ─── On .TYPED: <s-t> becomes visible in the exact same reserved space ────── */
 :is(dx-type-sda, dx-type, dx-type-ready).TYPED > s-t {
+    visibility: visible;
+    display: inline-block;
     position: static;
-    width: auto;
-    height: auto;
-    overflow: visible;
-    clip: auto;
-    white-space: normal;
-    margin: 0;
+    white-space: nowrap;
 }
 
 /* ─── Hide Animated Template & Tree After Typed ────────────────────────────── */

@@ -67,6 +67,6 @@ export default async function testDist() {
 
     // 5. Verify CSS minified bundle
     const minCss = readFileSync(join(root, 'dist/css/dx-type.min.css'), 'utf8');
-    assert(minCss.includes('display:contents'), 'dist/css/dx-type.min.css should include display:contents');
+    assert(minCss.includes('display:inline-block') || minCss.includes('display:inline-flex'), 'dist/css/dx-type.min.css should include inline layout rules');
     assert(minCss.includes('tabular-nums'), 'dist/css/dx-type.min.css should include tabular-nums');
 }

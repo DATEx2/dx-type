@@ -33,7 +33,7 @@ export default function testCssContracts() {
 
     // 4. Search text (<s-t>) should be hidden during animation
     assert(css.includes('s-t'), 'CSS should style search text element');
-    assert(css.includes('clip: rect'), 'Hidden s-t should use clip rect');
+    assert(css.includes('visibility: hidden') || css.includes('visibility:hidden'), 'Hidden s-t should use visibility: hidden');
 
     // 5. No legacy class-only selectors (CSS should target dx-* tags, not .type-sda)
     // The CSS file should NOT use .type-sda or .reveal-sda as standalone selectors
