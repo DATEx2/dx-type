@@ -212,7 +212,7 @@ const checkAndObserve = (el) => {
 // ─── Auto-Bootstrap at DOM Ready & Dynamic Insertions ────────────────────────
 export function bootstrapTypewriterObserver(root = (typeof document !== 'undefined' ? document : null)) {
     if (!root) return;
-    const elements = root.querySelectorAll('dx-type-sda, dx-reveal-sda, .type-sda, ui-type-sda, .type, .TYPE');
+    const elements = root.querySelectorAll('dx-type-sda, dx-reveal-sda, dx-type, .type-sda, ui-type-sda, .type, .TYPE');
     for (let i = 0; i < elements.length; i++) {
         checkAndObserve(elements[i]);
     }
@@ -226,7 +226,7 @@ if (typeof document !== 'undefined') {
     }
 
     if (typeof MutationObserver !== 'undefined' && document.documentElement) {
-        const MATCH_SELECTOR = 'dx-type-sda, dx-reveal-sda, .type-sda, ui-type-sda, .type, .TYPE';
+        const MATCH_SELECTOR = 'dx-type-sda, dx-reveal-sda, dx-type, .type-sda, ui-type-sda, .type, .TYPE';
         const mutObs = new MutationObserver((mutations) => {
             for (let i = 0; i < mutations.length; i++) {
                 const added = mutations[i].addedNodes;

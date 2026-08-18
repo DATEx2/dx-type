@@ -17,6 +17,7 @@ export class DxTypeSda extends DxTyping {
 
         // Listen for the SDA sensor animationstart to trigger JIT unpack
         this.addEventListener('animationstart', this._onAnimStart, { passive: true });
+        this.addEventListener('animationend', this._onAnimEnd);
 
         // Also observe immediately in case IO should pre-unpack
         observeTypewriter(this);
@@ -29,8 +30,18 @@ export class DxTypeSda extends DxTyping {
         observeTypewriter(this);
     };
 
+    _onAnimEnd = (e) => {
+        if (e.animationName === DX_ANIM.KF_TYPE_SDA || e.animationName === DX_ANIM.KF_TYPE_IN) {
+            const allC = this.querySelectorAll('c');
+            if (allC.length && e.target === allC[allC.length - 1]) {
+                onTypewriterEnd(e.target, e);
+            }
+        }
+    };
+
     disconnectedCallback() {
         this.removeEventListener('animationstart', this._onAnimStart);
+        this.removeEventListener('animationend', this._onAnimEnd);
     }
 }
 
