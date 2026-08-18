@@ -15,9 +15,14 @@ export class DxType extends DxTyping {
 
     _onAnimEnd = (e) => {
         if (e.animationName === DX_ANIM.KF_TYPE_IN || e.animationName === DX_ANIM.KF_TYPE_SDA) {
-            const allC = this.querySelectorAll('c');
-            if (allC.length && e.target === allC[allC.length - 1]) {
-                onTypewriterEnd(e.target, e);
+            const target = e.target;
+            if (target.classList?.contains('last-char') || target.hasAttribute?.('last-char')) {
+                onTypewriterEnd(target, e);
+            } else {
+                const allC = this.querySelectorAll('c');
+                if (allC.length && target === allC[allC.length - 1]) {
+                    onTypewriterEnd(target, e);
+                }
             }
         }
     };

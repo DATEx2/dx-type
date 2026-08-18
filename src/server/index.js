@@ -11,6 +11,9 @@ export const VERSION = '0.1.0';
 export function tokenize(text) {
     if (!text) return '';
     const words = text.split(/(\s+)/);
+    const nonSpaceWords = words.filter(w => !/^\s+$/.test(w) && w.length > 0);
+    const totalChars = nonSpaceWords.reduce((sum, w) => sum + w.length, 0);
+
     let html = '<t>';
     let charIndex = 0;
 
@@ -24,7 +27,9 @@ export function tokenize(text) {
         const wStyle = charIndex > 0 ? ` style="--w:${charIndex}"` : '';
         html += `<w${wStyle}>`;
         for (const char of segment) {
-            html += `<c>${char}</c>`;
+            const isLast = (charIndex === totalChars - 1);
+            const cls = isLast ? ' class="last-char"' : '';
+            html += `<c${cls}>${char}</c>`;
             charIndex++;
         }
         html += '</w>';
