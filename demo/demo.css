@@ -114,11 +114,16 @@ header p {
 
 /* ─── Hero Multi-Component Grid (All 3 Cards Side-by-Side) ────────────────── */
 #section-hero {
-    min-height: calc(100vh - 60px);
+    min-height: 100vh;
     display: flex;
     flex-direction: column;
     justify-content: space-between;
-    margin-bottom: 5rem;
+    margin-bottom: 6rem;
+    box-sizing: border-box;
+}
+
+#section-sda {
+    margin-top: 4rem;
 }
 
 .hero-grid {

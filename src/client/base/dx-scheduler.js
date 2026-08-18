@@ -56,7 +56,7 @@ export function getIO() {
     if (ioInstance) return ioInstance;
     const IO = rootWin?.IntersectionObserver;
     if (typeof IO === 'function') {
-        ioInstance = new IO(ioHandler, { rootMargin: '200px' });
+        ioInstance = new IO(ioHandler, { rootMargin: '0px', threshold: 0.1 });
     }
     return ioInstance;
 }
