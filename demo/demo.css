@@ -112,13 +112,19 @@ header p {
     overflow: hidden;
 }
 
-/* ─── Hero Multi-Component Grid (All 4 in 1st Viewport) ────────────────────── */
+/* ─── Hero Multi-Component Grid (All 3 Cards Side-by-Side) ────────────────── */
 .hero-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 1.25rem;
     margin-top: 1.25rem;
     margin-bottom: 1.5rem;
+}
+
+@media (max-width: 860px) {
+    .hero-grid {
+        grid-template-columns: 1fr;
+    }
 }
 
 .hero-card {
@@ -294,7 +300,8 @@ dx-reveal-sda.REVEALED {
     position: relative;
     overflow: hidden;
     vertical-align: baseline;
-    line-height: inherit;
+    line-height: 1.15em;
+    height: 1.15em;
     font-variant-numeric: tabular-nums;
 }
 
@@ -302,7 +309,8 @@ dx-reveal-sda.REVEALED {
     display: inline-flex;
     align-items: baseline;
     vertical-align: baseline;
-    line-height: inherit;
+    line-height: 1.15em;
+    height: 1.15em;
 }
 
 .odometer-digit {
@@ -310,13 +318,15 @@ dx-reveal-sda.REVEALED {
     position: relative;
     overflow: hidden;
     vertical-align: baseline;
-    line-height: inherit;
+    line-height: 1.15em;
+    height: 1.15em;
 }
 
 .odometer-digit-spacer {
     visibility: hidden;
     display: block;
-    line-height: inherit;
+    line-height: 1.15em;
+    height: 1.15em;
 }
 
 .odometer-digit-inner {
@@ -326,18 +336,19 @@ dx-reveal-sda.REVEALED {
     right: 0;
     bottom: 0;
     overflow: hidden;
-    line-height: inherit;
+    line-height: 1.15em;
+    height: 1.15em;
 }
 
 .odometer-ribbon {
     display: block;
     height: 100%;
-    line-height: inherit;
+    line-height: 1.15em;
 }
 
 .odometer-ribbon-inner {
     display: block;
-    line-height: inherit;
+    line-height: 1.15em;
     transform: translateY(var(--initial-pos, 0%));
     animation: odo-roll 1.2s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
     animation-delay: calc(var(--digit-i, 0) * 80ms + var(--year-base-delay, 0ms));
@@ -352,13 +363,14 @@ dx-reveal-sda.REVEALED {
 .odometer-value {
     display: block;
     text-align: center;
-    line-height: inherit;
+    line-height: 1.15em;
+    height: 1.15em;
 }
 
 .odometer-formatting-mark {
     display: inline-block;
     vertical-align: baseline;
-    line-height: inherit;
+    line-height: 1.15em;
 }
 
 /* Responsive */
