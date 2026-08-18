@@ -68,7 +68,7 @@
         </p>
 
         <div class="preview-box">
-            <dx-number percent="2450" suffix=" €" comma=" "></dx-number>
+            <dx-number id="demo-number" percent="2450" suffix=" €" comma=" "></dx-number>
         </div>
 
         <div class="controls">
@@ -166,6 +166,13 @@
             box.innerHTML = '';
             setTimeout(() => { box.innerHTML = heroOriginal; }, 10);
         });
+
+        // Number Counter Handlers
+        const numEl = document.getElementById('demo-number');
+        document.getElementById('btn-num-2450').addEventListener('click', () => numEl.val(2450, 800));
+        document.getElementById('btn-num-1299').addEventListener('click', () => numEl.val(1299, 800));
+        document.getElementById('btn-num-0').addEventListener('click', () => numEl.val(0, 600));
+        document.getElementById('btn-num-99999').addEventListener('click', () => numEl.val(99999, 1200));
 
         const compositeBox = document.getElementById('composite-orchestrator').parentElement;
         const compositeOriginal = compositeBox.innerHTML;
