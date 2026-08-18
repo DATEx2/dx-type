@@ -7,42 +7,33 @@
 // exports: DxRevealSda
 // used_by: src/client/index.js
 
-import { DxRevealing, startReveal, finishReveal } from '../base/dx-revealing.js';
-import { observeTypewriter } from '../base/dx-typing.js';
+import { DxRevealing, finishReveal } from '../base/dx-revealing.js';
 import { defCustomElement } from '../base/dx-base.js';
+import { observeIO } from '../base/dx-scheduler.js';
 
 export class DxRevealSda extends DxRevealing {
     connectedCallback() {
         if (this.isRevealed) return;
 
-        // If element has a <template>, observe for JIT unpack
-        const tpl = this.querySelector(':scope > template');
-        if (tpl) {
-            observeTypewriter(this);
-        }
+        // When scrolled into view, trigger time-based reveal animation
+        observeIO(this, (el) => {
+            el.classList.add('reveal-active');
+            const tpl = el.querySelector(':scope > template');
+            if (tpl && tpl.content) tpl.replaceWith(tpl.content);
+        });
 
-        // Attach animation lifecycle listeners (replaces inline onanimationstart/onanimationend)
-        this.addEventListener('animationstart', this._onAnimStart, { passive: true });
         this.addEventListener('animationend', this._onAnimEnd);
     }
-
-    _onAnimStart = (e) => {
-        if (e.target !== this) return;
-        startReveal(this, e);
-    };
 
     _onAnimEnd = (e) => {
         if (e.target !== this) return;
         finishReveal(this, e);
-        // Self-cleanup: remove listeners after reveal is done
         if (this.isRevealed) {
-            this.removeEventListener('animationstart', this._onAnimStart);
             this.removeEventListener('animationend', this._onAnimEnd);
         }
     };
 
     disconnectedCallback() {
-        this.removeEventListener('animationstart', this._onAnimStart);
         this.removeEventListener('animationend', this._onAnimEnd);
     }
 }

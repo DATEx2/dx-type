@@ -332,27 +332,25 @@ dx-reveal.REVEALED {
     }
 }
 
-/* 4. Reveal SDA (Scroll-Driven Fade/Slide) */
+/* 4. Reveal SDA (Scroll-Triggered with Time-Based reveal-in Animation) */
 dx-reveal-sda {
     display: inline-block;
     opacity: 0;
-    transform: translateY(16px);
-    animation: reveal-sda linear both;
-    animation-timeline: view();
-    animation-range: entry calc(15% + var(--sda-delay, 0%)) cover calc(45% + var(--sda-delay, 0%));
+    transform: translateY(20px);
+}
+
+dx-reveal-sda.reveal-active:not(.REVEALED),
+dx-reveal-sda.REVEALING {
+    opacity: 0;
+    transform: translateY(20px);
+    animation: reveal-in 500ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    animation-delay: var(--d, var(--sda-delay, 0ms));
 }
 
 dx-reveal-sda.REVEALED {
     opacity: 1 !important;
     transform: none !important;
     animation: none !important;
-}
-
-@keyframes reveal-sda {
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
 }
 
 /* 5. Mechanical Odometer Ribbon Styling & Keyframes */
