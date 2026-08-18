@@ -59,25 +59,10 @@ dx-reveal-sda,
 dx-type-ready,
 dx-number,
 dx-odometer,
-dx-type *,
-dx-type-sda *,
-dx-reveal *,
-dx-reveal-sda *,
-dx-type-ready *,
-dx-number *,
-dx-odometer *,
 t,
 s-t,
 w,
 c,
-.odometer,
-.odometer-inside,
-.odometer-digit,
-.odometer-ribbon,
-.odometer-ribbon-inner,
-.odometer-value,
-.odometer-digit-spacer,
-.odometer-formatting-mark,
 .ui-num,
 .ui-pfx,
 .ui-sfx,
@@ -92,6 +77,70 @@ c,
     text-transform: inherit;
     text-rendering: inherit;
     box-sizing: border-box;
+}
+
+/* ─── Mechanical Drum Odometer Ribbon Rules (1:1 Aspect Ratio) ────────────── */
+dx-odometer .odometer,
+dx-odometer .odometer-inside {
+    display: inline-flex;
+    align-items: baseline;
+    vertical-align: baseline;
+    position: relative;
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+}
+
+dx-odometer .odometer-digit {
+    display: inline-block;
+    position: relative;
+    overflow: hidden;
+    vertical-align: baseline;
+    line-height: 1;
+    height: 1em;
+}
+
+dx-odometer .odometer-digit-spacer {
+    visibility: hidden;
+    display: block;
+    line-height: 1;
+    height: 1em;
+}
+
+dx-odometer .odometer-digit-inner {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    overflow: hidden;
+    line-height: 1;
+    height: 1em;
+}
+
+dx-odometer .odometer-ribbon {
+    display: block;
+    height: 100%;
+    line-height: 1;
+}
+
+dx-odometer .odometer-ribbon-inner {
+    display: block;
+    line-height: 1;
+    transform: translateY(var(--initial-pos, 0%));
+}
+
+dx-odometer .odometer-value {
+    display: block;
+    text-align: center;
+    height: 1em;
+    line-height: 1;
+}
+
+dx-odometer .odometer-formatting-mark {
+    display: inline-block;
+    vertical-align: baseline;
+    line-height: 1;
+    height: 1em;
 }
 
 dx-type,
