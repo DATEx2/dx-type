@@ -280,38 +280,38 @@ button.btn-secondary:hover {
     color: #fff;
 }
 
-/* 1. Typewriter Hero Animation (Opacity + Micro-Transform Slide) */
+/* 1. Typewriter Hero Animation (Multi-Character Wave Fade/Slide) */
 @keyframes type-in {
     0% {
         opacity: 0;
-        transform: translateY(6px) scale(0.96);
+        transform: translateY(8px);
     }
     100% {
         opacity: 1;
-        transform: translateY(0) scale(1);
+        transform: translateY(0);
     }
 }
 
 .type-ready dx-type c,
 .type-ready .type c {
     opacity: 0;
-    transform: translateY(6px) scale(0.96);
-    animation: type-in 140ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
-    animation-delay: calc(var(--d, 0ms) + var(--I, 0) * var(--u, 40ms));
+    transform: translateY(8px);
+    animation: type-in 280ms cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+    animation-delay: calc(var(--d, 0ms) + var(--I, 0) * var(--u, 45ms));
 }
 
 /* 2. Typewriter SDA (Scroll-Triggered with Time-Based Typing Duration) */
 dx-type-sda c {
     opacity: 0;
-    transform: translateY(6px) scale(0.96);
+    transform: translateY(8px);
 }
 
 dx-type-sda.type-active c,
 dx-type-sda.TYPE- c {
     opacity: 0;
-    transform: translateY(6px) scale(0.96);
-    animation: type-in 140ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
-    animation-delay: calc(var(--d, 0ms) + var(--I, 0) * var(--u, 40ms));
+    transform: translateY(8px);
+    animation: type-in 280ms cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+    animation-delay: calc(var(--d, 0ms) + var(--I, 0) * var(--u, 45ms));
 }
 
 /* 3. Reveal Hero Fade/Slide */
