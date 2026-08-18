@@ -72,11 +72,11 @@ export function cleanupTypedDOM(typeEl) {
 
         const st = typeEl.querySelector(':scope > s-t');
         const t = typeEl.querySelector(':scope > t');
+        const embeds = typeEl.querySelectorAll('dx-odometer, ui-odometer, dx-number, ui-number, .tw-embed');
 
-        if (t) {
-            // Remove <s-t> and flatten <c>/<w> in place to eliminate any kerning/raster shift
+        if (embeds.length && t) {
+            // Interactive embeds case: unwrap live components into DOM
             if (st) st.remove();
-
             const allC = Array.from(t.querySelectorAll('c'));
             for (const c of allC) {
                 if (!c.querySelector('dx-odometer, ui-odometer, dx-number, ui-number, .tw-embed')) {
@@ -91,6 +91,9 @@ export function cleanupTypedDOM(typeEl) {
             }
             t.replaceWith(...Array.from(t.childNodes));
             if (typeof typeEl.normalize === 'function') typeEl.normalize();
+        } else if (st) {
+            // Standard case: CSS .TYPED sets s-t to visible, remove temporary <t> tree
+            if (t) t.remove();
         }
 
         typeEl.removeAttribute('aria-label');
