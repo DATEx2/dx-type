@@ -34,6 +34,7 @@ dx-reveal-sda c,
 dx-reveal c {
     display: inline-block;
     will-change: opacity, transform;
+    --I: calc(var(--w, 0) + var(--i, 0));
 }
 
 dx-type-sda w,
@@ -41,6 +42,58 @@ dx-type w {
     display: inline-block;
     white-space: nowrap;
 }
+
+/* ─── Automatic Character Indexing (up to 50 characters per word) ──────────── */
+c:nth-child(1)  { --i: 0; }
+c:nth-child(2)  { --i: 1; }
+c:nth-child(3)  { --i: 2; }
+c:nth-child(4)  { --i: 3; }
+c:nth-child(5)  { --i: 4; }
+c:nth-child(6)  { --i: 5; }
+c:nth-child(7)  { --i: 6; }
+c:nth-child(8)  { --i: 7; }
+c:nth-child(9)  { --i: 8; }
+c:nth-child(10) { --i: 9; }
+c:nth-child(11) { --i: 10; }
+c:nth-child(12) { --i: 11; }
+c:nth-child(13) { --i: 12; }
+c:nth-child(14) { --i: 13; }
+c:nth-child(15) { --i: 14; }
+c:nth-child(16) { --i: 15; }
+c:nth-child(17) { --i: 16; }
+c:nth-child(18) { --i: 17; }
+c:nth-child(19) { --i: 18; }
+c:nth-child(20) { --i: 19; }
+c:nth-child(21) { --i: 20; }
+c:nth-child(22) { --i: 21; }
+c:nth-child(23) { --i: 22; }
+c:nth-child(24) { --i: 23; }
+c:nth-child(25) { --i: 24; }
+c:nth-child(26) { --i: 25; }
+c:nth-child(27) { --i: 26; }
+c:nth-child(28) { --i: 27; }
+c:nth-child(29) { --i: 28; }
+c:nth-child(30) { --i: 29; }
+c:nth-child(31) { --i: 30; }
+c:nth-child(32) { --i: 31; }
+c:nth-child(33) { --i: 32; }
+c:nth-child(34) { --i: 33; }
+c:nth-child(35) { --i: 34; }
+c:nth-child(36) { --i: 35; }
+c:nth-child(37) { --i: 36; }
+c:nth-child(38) { --i: 37; }
+c:nth-child(39) { --i: 38; }
+c:nth-child(40) { --i: 39; }
+c:nth-child(41) { --i: 40; }
+c:nth-child(42) { --i: 41; }
+c:nth-child(43) { --i: 42; }
+c:nth-child(44) { --i: 43; }
+c:nth-child(45) { --i: 44; }
+c:nth-child(46) { --i: 45; }
+c:nth-child(47) { --i: 46; }
+c:nth-child(48) { --i: 47; }
+c:nth-child(49) { --i: 48; }
+c:nth-child(50) { --i: 49; }
 
 /* ─── Search Text Hidden During Animation (SEO & In-Browser Searchable) ────── */
 :is(dx-type-sda, dx-type, dx-type-ready):not(.TYPED) > s-t {

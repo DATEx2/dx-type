@@ -20,10 +20,11 @@ export function tokenize(text) {
             html += segment;
             continue;
         }
-        // Word
-        html += '<w>';
+        // Word with start offset --w
+        const wStyle = charIndex > 0 ? ` style="--w:${charIndex}"` : '';
+        html += `<w${wStyle}>`;
         for (const char of segment) {
-            html += `<c style="--I:${charIndex}">${char}</c>`;
+            html += `<c>${char}</c>`;
             charIndex++;
         }
         html += '</w>';

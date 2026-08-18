@@ -47,7 +47,7 @@ export default async function testDist() {
     assert(typeof serverModule.VERSION === 'string', 'dist/server.js should export VERSION string');
 
     const tokenized = serverModule.tokenize('Hello world');
-    assert(tokenized.includes('<t><w><c style="--I:0">H</c>'), 'tokenize in dist/server.js should render tokenized HTML');
+    assert(tokenized.includes('<t><w><c>H</c>'), 'tokenize in dist/server.js should render tokenized HTML');
 
     // 3. Verify client build contains key classes
     const clientDist = readFileSync(join(root, 'dist/client.js'), 'utf8');

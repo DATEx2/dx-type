@@ -38,10 +38,10 @@
                 <dx-type style="--u: 35ms;">
                     <template>
                         <t>
-                            <w><c style="--I:0">B</c><c style="--I:1">u</c><c style="--I:2">i</c><c style="--I:3">l</c><c style="--I:4">d</c></w>
-                            <w><c style="--I:5">i</c><c style="--I:6">n</c><c style="--I:7">c</c><c style="--I:8">r</c><c style="--I:9">e</c><c style="--I:10">d</c><c style="--I:11">i</c><c style="--I:12">b</c><c style="--I:13">l</c><c style="--I:14">e</c></w>
-                            <w><c style="--I:15">w</c><c style="--I:16">e</c><c style="--I:17">b</c></w>
-                            <w><c style="--I:18">a</c><c style="--I:19">n</c><c style="--I:20">i</c><c style="--I:21">m</c><c style="--I:22">a</c><c style="--I:23">t</c><c style="--I:24">i</c><c style="--I:25">o</c><c style="--I:26">n</c><c style="--I:27">s</c></w>
+                            <w><c>B</c><c>u</c><c>i</c><c>l</c><c>d</c></w>
+                            <w style="--w:5"><c>i</c><c>n</c><c>c</c><c>r</c><c>e</c><c>d</c><c>i</c><c>b</c><c>l</c><c>e</c></w>
+                            <w style="--w:15"><c>w</c><c>e</c><c>b</c></w>
+                            <w style="--w:18"><c>a</c><c>n</c><c>i</c><c>m</c><c>a</c><c>t</c><c>i</c><c>o</c><c>n</c><c>s</c></w>
                         </t>
                     </template>
                     <s-t>Build incredible web animations</s-t>
@@ -68,25 +68,25 @@
         </p>
 
         <div class="preview-box">
-            <dx-number id="demo-number" type="number" percent="1299" suffix=" €" comma=","></dx-number>
+            <dx-number percent="2450" suffix=" €" comma=" "></dx-number>
         </div>
 
         <div class="controls">
-            <button onclick="document.getElementById('demo-number').val(2450, 800)">Set to 2 450 €</button>
-            <button onclick="document.getElementById('demo-number').val(1299, 800)">Set to 1 299 €</button>
-            <button onclick="document.getElementById('demo-number').val(0, 600)">Set to 0 €</button>
-            <button class="btn-secondary" onclick="document.getElementById('demo-number').val(99999, 1200)">Set to 99 999 €</button>
+            <button id="btn-num-2450">Set: 2 450 €</button>
+            <button id="btn-num-1299" class="btn-secondary">Set: 1 299 €</button>
+            <button id="btn-num-0" class="btn-secondary">Set: 0 €</button>
+            <button id="btn-num-99999" class="btn-secondary">Set: 99 999 €</button>
         </div>
     </div>
 
-    <!-- ─── 3. Mechanical Drum Odometer ─── -->
+    <!-- ─── 3. Mechanical Odometer Ribbon ─── -->
     <div class="section">
         <div class="section-title">
             <span>3. &lt;dx-odometer&gt;</span>
-            <span class="badge">Hardware Ribbon Roll</span>
+            <span class="badge">Pure CSS 3D Drum</span>
         </div>
         <p class="section-desc">
-            Mechanical rotating drum odometer with ribbon animation. Automatically freezes to static HTML upon completion.
+            3D mechanical rolling odometer with automatic digit ribbon generation and static freezing on animation end.
         </p>
 
         <div class="preview-box" id="odometer-container">
@@ -95,28 +95,28 @@
 
         <div class="controls">
             <button id="btn-replay-odo">▶ Roll Year: 2018 → 2026</button>
-            <button class="btn-secondary" id="btn-odo-price">▶ Roll Price: 0 → 1 450 €</button>
+            <button id="btn-odo-price" class="btn-secondary">▶ Roll Price: 0 → 1 450 €</button>
         </div>
     </div>
 
-    <!-- ─── 4. Typewriter with Embedded Odometer ─── -->
+    <!-- ─── 4. Composite: Typewriter with Embedded Odometer ─── -->
     <div class="section">
         <div class="section-title">
-            <span>4. Typewriter + Embedded Odometer (.tw-embed)</span>
-            <span class="badge">Composite Orchestration</span>
+            <span>4. Composite Orchestration</span>
+            <span class="badge">Typewriter + Embedded Odometer</span>
         </div>
         <p class="section-desc">
-            An odometer embedded directly inside a typewriter string. The drum rolls exactly when typewriter reaches its position!
+            Embed <code>&lt;dx-odometer class="tw-embed"&gt;</code> inside a typewriter. The typewriter waits for the drum roll before completing.
         </p>
 
         <div class="preview-box">
             <dx-type-ready class="type-ready" id="composite-orchestrator">
-                <dx-type style="--u: 35ms;">
+                <dx-type style="--u: 40ms;">
                     <template>
                         <t>
-                            <w><c style="--I:0">S</c><c style="--I:1">i</c><c style="--I:2">n</c><c style="--I:3">c</c><c style="--I:4">e</c></w>
-                            <w><c style="--I:5"><dx-odometer class="tw-embed" type="year" start="1990" percent="2026"></dx-odometer></c></w>
-                            <w><c style="--I:6">e</c><c style="--I:7">x</c><c style="--I:8">c</c><c style="--I:9">e</c><c style="--I:10">l</c><c style="--I:11">l</c><c style="--I:12">e</c><c style="--I:13">n</c><c style="--I:14">c</c><c style="--I:15">e</c></w>
+                            <w><c>S</c><c>i</c><c>n</c><c>c</c><c>e</c></w>
+                            <w style="--w:5"><c><dx-odometer class="tw-embed" type="year" start="2018" percent="2026" style="margin: 0 0.35rem; color: var(--accent-emerald);"></dx-odometer></c></w>
+                            <w style="--w:10"><c>e</c><c>x</c><c>c</c><c>e</c><c>l</c><c>l</c><c>e</c><c>n</c><c>c</c><c>e</c></w>
                         </t>
                     </template>
                     <s-t>Since 2026 excellence</s-t>
@@ -125,20 +125,11 @@
         </div>
 
         <div class="controls">
-            <button id="btn-replay-composite">▶ Replay Composite</button>
+            <button id="btn-replay-composite">▶ Replay Composite Sequence</button>
         </div>
     </div>
 
     <!-- ─── 5. Scroll-Driven Animations (SDA) ─── -->
-    <div class="section" style="margin-top: 4rem;">
-        <div class="section-title">
-            <span>5. &lt;dx-type-sda&gt; & &lt;dx-reveal-sda&gt;</span>
-            <span class="badge">Scroll-Driven Animations</span>
-        </div>
-        <p class="section-desc">
-            Scroll down to test pure CSS Scroll-Driven Animations on the compositor thread (zero JS on scroll).
-        </p>
-
         <div style="height: 120px; display: flex; align-items: center; justify-content: center; color: var(--text-muted); font-size: 0.9rem;">
             ↓ Scroll down to trigger SDA ↓
         </div>
@@ -147,11 +138,11 @@
             <dx-type-sda>
                 <template>
                     <t>
-                        <w><c style="--I:0">S</c><c style="--I:1">c</c><c style="--I:2">r</c><c style="--I:3">o</c><c style="--I:4">l</c><c style="--I:5">l</c></w>
-                        <w><c style="--I:6">t</c><c style="--I:7">o</c></w>
-                        <w><c style="--I:8">a</c><c style="--I:9">n</c><c style="--I:10">i</c><c style="--I:11">m</c><c style="--I:12">a</c><c style="--I:13">t</c><c style="--I:14">e</c></w>
-                        <w><c style="--I:15">t</c><c style="--I:16">h</c><c style="--I:17">i</c><c style="--I:18">s</c></w>
-                        <w><c style="--I:19">t</c><c style="--I:20">e</c><c style="--I:21">x</c><c style="--I:22">t</c></w>
+                        <w><c>S</c><c>c</c><c>r</c><c>o</c><c>l</c><c>l</c></w>
+                        <w style="--w:6"><c>t</c><c>o</c></w>
+                        <w style="--w:8"><c>a</c><c>n</c><c>i</c><c>m</c><c>a</c><c>t</c><c>e</c></w>
+                        <w style="--w:15"><c>t</c><c>h</c><c>i</c><c>s</c></w>
+                        <w style="--w:19"><c>t</c><c>e</c><c>x</c><c>t</c></w>
                     </t>
                 </template>
                 <s-t>Scroll to animate this text</s-t>
