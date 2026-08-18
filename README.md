@@ -5,8 +5,11 @@
 [![Bundle Size](https://img.shields.io/badge/bundle%20size-%3C%2020%20KB%20min-brightgreen)](https://github.com/DATEx2/dx-type)
 [![TypeScript Ready](https://img.shields.io/badge/TypeScript-Ready-blue?logo=typescript)](src/index.d.ts)
 [![Zero Dependencies](https://img.shields.io/badge/dependencies-0-success)](package.json)
+[![Interactive Demo](https://img.shields.io/badge/🎮%20Interactive-Live%20Demo-8b5cf6.svg)](https://datex2.github.io/dx-type/demo/)
 
-High-performance, zero-dependency **DATEx2 Web Components** for scroll-driven typewriter animations, character reveals, batched numeric counters, and mechanical rolling drum odometers.
+> 🚀 **[Open Interactive Live Demo](https://datex2.github.io/dx-type/demo/)** | **[Explore `demo/index.html`](demo/index.html)**
+>
+> High-performance, zero-dependency **DATEx2 Web Components** for scroll-triggered typewriter animations, character reveals, batched numeric counters, and mechanical rolling drum odometers.
 
 Designed for instant zero-layout-shift rendering, single-rAF batching, JIT template unpacking via singleton `IntersectionObserver`, and GPU compositor-thread animations.
 
@@ -374,41 +377,45 @@ Copy these standard keyframes into your stylesheet for production animation cont
 /* 1. Hero Typewriter character pop-in */
 .type-ready dx-type c,
 .type-ready .type c {
+/* 1. Hero Typewriter Animation */
+.type-ready dx-type c {
     opacity: 0;
-    animation: type-in 10ms steps(1) forwards;
-    animation-delay: calc(var(--I, 0) * var(--u, 40ms));
+    transform: translateY(6px) scale(0.96);
+    animation: type-in 140ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    animation-delay: calc(var(--d, 0ms) + var(--I, 0) * var(--u, 40ms));
 }
-@keyframes type-in { to { opacity: 1; } }
+@keyframes type-in { to { opacity: 1; transform: translateY(0) scale(1); } }
 
-/* 2. Scroll-Driven Typewriter */
-dx-type-sda c {
+/* 2. Scroll-Triggered Typewriter (Pure time-based typing on scroll trigger) */
+dx-type-sda.type-active c {
     opacity: 0;
-    animation: type-sda linear both;
-    animation-timeline: view();
-    animation-range: entry 20% cover 40%;
+    transform: translateY(6px) scale(0.96);
+    animation: type-in 140ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    animation-delay: calc(var(--d, 0ms) + var(--I, 0) * var(--u, 40ms));
 }
-@keyframes type-sda { to { opacity: 1; } }
 
 /* 3. Hero Reveal */
 .type-ready dx-reveal {
     opacity: 0;
     transform: translateY(12px);
-    animation: reveal-in 450ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    animation: reveal-in 1000ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
     animation-delay: var(--d, 0ms);
 }
 @keyframes reveal-in { to { opacity: 1; transform: translateY(0); } }
 
-/* 4. Scroll-Driven Reveal */
-dx-reveal-sda {
+/* 4. Scroll-Triggered Reveal (1s smooth transition with --d support) */
+dx-reveal-sda.reveal-active {
     opacity: 0;
     transform: translateY(20px);
-    animation: reveal-sda linear both;
-    animation-timeline: view();
-    animation-range: entry 10% cover 30%;
+    animation: reveal-in 1000ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    animation-delay: var(--d, 200ms);
 }
-@keyframes reveal-sda { to { opacity: 1; transform: translateY(0); } }
 
 /* 5. Mechanical Odometer Ribbon Roll */
+.odometer-ribbon-inner {
+    animation: odo-roll 1.2s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+    animation-delay: calc(var(--digit-i, 0) * 80ms + var(--d, 0ms));
+}
 @keyframes odo-roll {
     to { transform: translateY(var(--final-pos, 0%)); }
 }
@@ -430,13 +437,24 @@ dx-reveal-sda {
 
 ## 💻 Interactive Demo
 
-An interactive showcase with live controls is available in the repository:
+An interactive showcase featuring live replay controls, fold isolation, and 10 scroll-triggered animation combinations is available:
+
+* 🌐 **Live Demo (Online)**: **[https://datex2.github.io/dx-type/demo/](https://datex2.github.io/dx-type/demo/)**
+* 📁 **Demo Source**: [`demo/index.html`](demo/index.html) and [`demo/demo.css`](demo/demo.css)
+
+### Running the Demo Locally
 
 ```bash
-# Build the latest bundles
+# 1. Clone the repository
+git clone https://github.com/DATEx2/dx-type.git
+cd dx-type
+
+# 2. Build the production bundles
 npm run build
 
-# Open demo/index.html in your browser
+# 3. Open demo/index.html directly in your browser or run a local static server
+npx serve .
+# Visit http://localhost:3000/demo/ in your browser
 ```
 
 ---
