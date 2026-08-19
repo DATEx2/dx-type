@@ -61,6 +61,7 @@
   "scripts": {
     "build": "node build.js",
     "watch": "node build.js --watch",
+    "prepare": "node build.js",
     "prepublishOnly": "npm run build && npm test",
     "test": "node tests/run-tests.js"
   },
