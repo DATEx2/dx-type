@@ -123,6 +123,7 @@ export class DxNumber extends DxMeter {
 
             const abParent = this.closest('.action-bar, .action-bar-wrapper');
             const sdaParent = this.closest(SDA_PARENT_SEL);
+            const typeReadyParent = this.closest('.type-ready, dx-type-ready, ui-type-ready');
 
             if (abParent) {
                 this._triggerActionBarAnimation = trigger;
@@ -137,8 +138,10 @@ export class DxNumber extends DxMeter {
                     this._revealTriggered = true;
                 }
                 if (this._revealTriggered && !this._animationStarted) trigger();
-            } else {
+            } else if (typeReadyParent) {
                 trigger();
+            } else {
+                observeIO(this, () => trigger());
             }
         } else if (this.classList.contains('tw-embed')) {
             const startVal = parseFloat(this.getAttribute('start')) || 0;

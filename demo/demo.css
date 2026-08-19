@@ -371,28 +371,32 @@ dx-reveal.REVEALED {
 }
 
 @keyframes reveal-in {
-    to {
+    0% {
+        opacity: 0;
+        transform: translateY(28px);
+    }
+    100% {
         opacity: 1;
         transform: translateY(0);
     }
 }
 
 /* 4. Reveal SDA (Scroll-Triggered with Time-Based reveal-in Animation) */
-dx-reveal-sda {
+:is(dx-reveal-sda, ui-reveal-sda) {
     display: inline-block;
     opacity: 0;
-    transform: translateY(20px);
+    transform: translateY(28px);
 }
 
-dx-reveal-sda.reveal-active:not(.REVEALED),
-dx-reveal-sda.REVEALING {
+:is(dx-reveal-sda, ui-reveal-sda).reveal-active:not(.REVEALED),
+:is(dx-reveal-sda, ui-reveal-sda).REVEALING {
     opacity: 0;
-    transform: translateY(20px);
+    transform: translateY(28px);
     animation: reveal-in 1000ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
-    animation-delay: var(--d, 200ms);
+    animation-delay: var(--d, 0ms);
 }
 
-dx-reveal-sda.REVEALED {
+:is(dx-reveal-sda, ui-reveal-sda).REVEALED {
     opacity: 1 !important;
     transform: none !important;
     animation: none !important;

@@ -9,7 +9,7 @@
 
 import { DxMeter, parseNumParts } from '../base/dx-meter.js';
 import { rootWin, span, defCustomElement } from '../base/dx-base.js';
-import { DX_ANIM } from '../base/dx-scheduler.js';
+import { DX_ANIM, observeIO } from '../base/dx-scheduler.js';
 
 export class DxOdometer extends DxMeter {
     constructor() {
@@ -64,9 +64,19 @@ export class DxOdometer extends DxMeter {
             return;
         }
 
-        this._timeoutId = setTimeout(() => {
-            if (!this._initialized && !this.querySelector('.odometer-ribbon-inner')) this.init();
-        }, 0);
+        const typeReadyParent = this.closest('.type-ready, dx-type-ready, ui-type-ready');
+        const twEmbed = this.classList.contains('tw-embed');
+
+        if (typeReadyParent || twEmbed) {
+            this._timeoutId = setTimeout(() => {
+                if (!this._initialized && !this.querySelector('.odometer-ribbon-inner')) this.init();
+            }, 0);
+        } else {
+            // Standalone odometer: trigger on scroll via singleton IO
+            observeIO(this, () => {
+                if (!this._initialized && !this.querySelector('.odometer-ribbon-inner')) this.init();
+            });
+        }
     }
 
     init() {
