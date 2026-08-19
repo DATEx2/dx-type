@@ -115,201 +115,252 @@
             100% Zero-JavaScript timeline tracking using native CSS <code>animation-timeline: view()</code>. Scroll down smoothly to experience every combination.
         </p>
 
-        <div class="sda-grid">
-            <!-- 1. Standalone <dx-reveal-sda> -->
-            <div class="sda-card">
-                <span class="sda-card-title">&lt;dx-reveal-sda&gt;</span>
-                <div class="sda-card-value">
-                    <dx-reveal-sda style="--d: 200ms; color: var(--accent);">
-                        <span>⚡ GPU Compositor Reveal</span>
-                    </dx-reveal-sda>
-                </div>
+        <!-- ─── LEVEL 1: Standalone Primitives (Atomic Elements) ─── -->
+        <div class="level-section">
+            <div class="level-header">
+                <span class="level-badge level-badge-l1">Level 1</span>
+                <span class="level-title">Standalone Primitives</span>
+                <span class="level-desc">Atomic elements without wrappers or embedding</span>
             </div>
-
-            <!-- 2. <dx-reveal-sda> + <dx-number> -->
-            <div class="sda-card">
-                <span class="sda-card-title">&lt;dx-reveal-sda&gt; + &lt;dx-number&gt;</span>
-                <div class="sda-card-value">
-                    <dx-reveal-sda style="--d: 200ms;">
-                        <span>🚀 Throughput: <dx-number style="--d: 350ms;" start="0" percent="99999" format="int" suffix=" req/s" comma=" "></dx-number></span>
-                    </dx-reveal-sda>
-                </div>
-            </div>
-
-            <!-- 3. <dx-reveal-sda> + <dx-odometer> -->
-            <div class="sda-card">
-                <span class="sda-card-title">&lt;dx-reveal-sda&gt; + &lt;dx-odometer&gt;</span>
-                <div class="sda-card-value">
-                    <dx-reveal-sda style="--d: 200ms;">
-                        <span>💎 Since <dx-odometer style="--d: 350ms;" type="year" start="2018" percent="2026" style="color: var(--accent-emerald);"></dx-odometer> Leadership</span>
-                    </dx-reveal-sda>
-                </div>
-            </div>
-
-            <!-- 4. <dx-reveal-sda> + <dx-type-sda> -->
-            <div class="sda-card">
-                <span class="sda-card-title">&lt;dx-reveal-sda&gt; + &lt;dx-type-sda&gt;</span>
-                <div class="sda-card-value">
-                    <dx-reveal-sda style="--d: 150ms; font-size: 0.85rem; color: var(--accent); margin-bottom: 0.35rem;">
-                        <span>[SCROLL TIMELINE]</span>
-                    </dx-reveal-sda>
-                    <dx-type-sda style="--d: 300ms;">
-                        <template><t><w><c>P</c><c>r</c><c>e</c><c>c</c><c>i</c><c>s</c><c>i</c><c>o</c><c>n</c></w> <w style="--w:9"><c>t</c><c>y</c><c>p</c><c>i</c><c>n</c><c>g</c></w> <w style="--w:15"><c>o</c><c>n</c></w> <w style="--w:17"><c>s</c><c>c</c><c>r</c><c>o</c><c>l</c><c class="last-char">l</c></w></t></template>
-                        <s-t>Precision typing on scroll</s-t>
-                    </dx-type-sda>
-                </div>
-            </div>
-
-            <!-- 5. <dx-reveal-sda> + <dx-type-sda> + <dx-odometer> -->
-            <div class="sda-card">
-                <span class="sda-card-title">&lt;dx-reveal-sda&gt; + &lt;dx-type-sda&gt; + &lt;dx-odometer&gt;</span>
-                <div class="sda-card-value">
-                    <dx-reveal-sda style="--d: 150ms; font-size: 0.85rem; color: var(--accent-purple); margin-bottom: 0.35rem;">
-                        <span>🏆 Milestone Achieved</span>
-                    </dx-reveal-sda>
-                    <dx-type-sda style="--d: 300ms;">
-                        <template><t><w><c>C</c><c>e</c><c>l</c><c>e</c><c>b</c><c>r</c><c>a</c><c>t</c><c>i</c><c>n</c><c>g</c></w> <w style="--w:11"><c><dx-odometer class="tw-embed" type="year" start="2018" percent="2026" style="--d: 450ms; margin: 0 0.25rem; color: var(--accent-emerald);"></dx-odometer></c></w> <w style="--w:16"><c>v</c><c>e</c><c>r</c><c>s</c><c>i</c><c>o</c><c class="last-char">n</c></w></t></template>
-                        <s-t>Celebrating 2026 version</s-t>
-                    </dx-type-sda>
-                </div>
-            </div>
-
-            <!-- 6. <dx-reveal-sda> + <dx-reveal-sda> + <dx-type-sda> + <dx-odometer> -->
-            <div class="sda-card">
-                <span class="sda-card-title">Orchestrated Multi-Reveal + Type + Odometer</span>
-                <div class="sda-card-value">
-                    <div style="display: flex; gap: 0.5rem; margin-bottom: 0.4rem;">
-                        <dx-reveal-sda style="--d: 150ms; color: var(--accent); font-size: 0.85rem;"><span>⭐ ARCHITECTURE</span></dx-reveal-sda>
-                        <dx-reveal-sda style="--d: 300ms; color: var(--accent-emerald); font-size: 0.85rem;"><span>[VERIFIED]</span></dx-reveal-sda>
-                    </div>
-                    <dx-type-sda style="--d: 450ms;">
-                        <template><t><w><c>S</c><c>c</c><c>a</c><c>l</c><c>i</c><c>n</c><c>g</c></w> <w style="--w:7"><c>t</c><c>o</c></w> <w style="--w:9"><c><dx-odometer class="tw-embed" type="int" start="0" percent="1450" suffix=" €" comma=" " style="--d: 600ms; margin: 0 0.25rem; color: var(--accent);"></dx-odometer></c></w> <w style="--w:14"><c>v</c><c>a</c><c>l</c><c>u</c><c class="last-char">e</c></w></t></template>
-                        <s-t>Scaling to 1 450 € value</s-t>
-                    </dx-type-sda>
-                </div>
-            </div>
-
-            <!-- 7. Staggered <dx-reveal-sda> 3x4 Matrix (12 Badges Staggered Per Row) -->
-            <div class="sda-card sda-card-full">
-                <span class="sda-card-title">3x4 Staggered &lt;dx-reveal-sda&gt; Matrix (Row-by-Row Stagger)</span>
-                <div class="sda-card-value">
-                    <div class="stagger-matrix">
-                        <!-- Row 1: Core Architecture (100ms - 400ms) -->
-                        <dx-reveal-sda style="--d: 100ms;"><span class="badge" style="width: 100%; justify-content: center; font-size: 0.9rem; padding: 0.6rem 0.5rem;">⚡ Zero Layout Shift</span></dx-reveal-sda>
-                        <dx-reveal-sda style="--d: 200ms;"><span class="badge" style="width: 100%; justify-content: center; font-size: 0.9rem; padding: 0.6rem 0.5rem; color: var(--accent-emerald);">🛡️ GPU Accelerated</span></dx-reveal-sda>
-                        <dx-reveal-sda style="--d: 300ms;"><span class="badge" style="width: 100%; justify-content: center; font-size: 0.9rem; padding: 0.6rem 0.5rem; color: var(--accent-purple);">📦 &lt; 20 KB Minified</span></dx-reveal-sda>
-                        <dx-reveal-sda style="--d: 400ms;"><span class="badge" style="width: 100%; justify-content: center; font-size: 0.9rem; padding: 0.6rem 0.5rem; color: var(--accent);">💎 100% Pure ES2026</span></dx-reveal-sda>
-
-                        <!-- Row 2: Performance & Engine (250ms - 550ms) -->
-                        <dx-reveal-sda style="--d: 250ms;"><span class="badge" style="width: 100%; justify-content: center; font-size: 0.9rem; padding: 0.6rem 0.5rem; color: #fbbf24;">🚀 SSR Tokenizer Ready</span></dx-reveal-sda>
-                        <dx-reveal-sda style="--d: 350ms;"><span class="badge" style="width: 100%; justify-content: center; font-size: 0.9rem; padding: 0.6rem 0.5rem; color: #f43f5e;">🎯 Zero Dependencies</span></dx-reveal-sda>
-                        <dx-reveal-sda style="--d: 450ms;"><span class="badge" style="width: 100%; justify-content: center; font-size: 0.9rem; padding: 0.6rem 0.5rem; color: var(--accent-emerald);">⏱️ Single-rAF Batch</span></dx-reveal-sda>
-                        <dx-reveal-sda style="--d: 550ms;"><span class="badge" style="width: 100%; justify-content: center; font-size: 0.9rem; padding: 0.6rem 0.5rem; color: var(--accent-purple);">👁️ Singleton IO</span></dx-reveal-sda>
-
-                        <!-- Row 3: Component Capabilities (400ms - 700ms) -->
-                        <dx-reveal-sda style="--d: 400ms;"><span class="badge" style="width: 100%; justify-content: center; font-size: 0.9rem; padding: 0.6rem 0.5rem; color: var(--accent);">🎡 CSS Scroll Timeline</span></dx-reveal-sda>
-                        <dx-reveal-sda style="--d: 500ms;"><span class="badge" style="width: 100%; justify-content: center; font-size: 0.9rem; padding: 0.6rem 0.5rem; color: #fbbf24;">🎰 3D Odometer Drum</span></dx-reveal-sda>
-                        <dx-reveal-sda style="--d: 600ms;"><span class="badge" style="width: 100%; justify-content: center; font-size: 0.9rem; padding: 0.6rem 0.5rem; color: var(--accent-emerald);">🔢 Tabular Numeric</span></dx-reveal-sda>
-                        <dx-reveal-sda style="--d: 700ms;"><span class="badge" style="width: 100%; justify-content: center; font-size: 0.9rem; padding: 0.6rem 0.5rem; color: #f43f5e;">✨ JIT Unpack Engine</span></dx-reveal-sda>
+            <div class="sda-grid">
+                <!-- 1.1 <dx-reveal-sda> Standalone -->
+                <div class="sda-card">
+                    <span class="sda-card-title">1.1 &lt;dx-reveal-sda&gt;</span>
+                    <div class="sda-card-value">
+                        <dx-reveal-sda style="--d: 200ms; color: var(--accent);">
+                            <span>⚡ GPU Compositor Reveal</span>
+                        </dx-reveal-sda>
                     </div>
                 </div>
-            </div>
 
-            <!-- 8. Multi-Reveal Step Timeline + <dx-number> -->
-            <div class="sda-card sda-card-full">
-                <span class="sda-card-title">4x &lt;dx-reveal-sda&gt; Staggered Timeline + &lt;dx-number&gt;</span>
-                <div class="sda-card-value">
-                    <div style="display: flex; flex-direction: column; gap: 0.65rem; width: 100%; max-width: 580px; text-align: left; font-size: 1.05rem;">
-                        <dx-reveal-sda style="--d: 100ms;"><span>🔹 Step 1: Zero External Dependencies</span></dx-reveal-sda>
-                        <dx-reveal-sda style="--d: 250ms;"><span>🔹 Step 2: Native Web Components Standards</span></dx-reveal-sda>
-                        <dx-reveal-sda style="--d: 400ms;"><span>🔹 Step 3: Pure CSS scroll() / view() Timelines</span></dx-reveal-sda>
-                        <dx-reveal-sda style="--d: 550ms; color: var(--accent);"><span>🔹 Step 4: Total Operations Handled: <dx-number style="--d: 750ms;" start="0" value="48250" format="int" suffix=" ops" comma=" "></dx-number></span></dx-reveal-sda>
-                    </div>
-                </div>
-            </div>
-
-            <!-- 9. Standalone <dx-type-sda> -->
-            <div class="sda-card">
-                <span class="sda-card-title">&lt;dx-type-sda&gt; Standalone</span>
-                <div class="sda-card-value">
-                    <dx-type-sda style="--d: 200ms;">
-                        <template><t><w><c>S</c><c>c</c><c>r</c><c>o</c><c>l</c><c>l</c></w> <w style="--w:6"><c>t</c><c>o</c></w> <w style="--w:8"><c>a</c><c>n</c><c>i</c><c>m</c><c>a</c><c>t</c><c>e</c></w> <w style="--w:15"><c>t</c><c>h</c><c>i</c><c>s</c></w> <w style="--w:19"><c>t</c><c>e</c><c>x</c><c class="last-char">t</c></w></t></template>
-                        <s-t>Scroll to animate this text</s-t>
-                    </dx-type-sda>
-                </div>
-            </div>
-
-            <!-- 10. <dx-type-sda> + <dx-odometer> -->
-            <div class="sda-card">
-                <span class="sda-card-title">&lt;dx-type-sda&gt; + &lt;dx-odometer&gt; Composite</span>
-                <div class="sda-card-value">
-                    <dx-type-sda style="--d: 200ms;">
-                        <template><t><w><c>E</c><c>x</c><c>p</c><c>e</c><c>r</c><c>i</c><c>e</c><c>n</c><c>c</c><c>e</c></w> <w style="--w:10"><c><dx-odometer class="tw-embed" style="--d: 450ms;" type="year" start="2018" percent="2026" style="margin: 0 0.25rem; color: var(--accent);"></dx-odometer></c></w> <w style="--w:15"><c>p</c><c>e</c><c>r</c><c>f</c><c>o</c><c>r</c><c>m</c><c>a</c><c>n</c><c>c</c><c class="last-char">e</c></w></t></template>
-                        <s-t>Experience 2026 performance</s-t>
-                    </dx-type-sda>
-                </div>
-            </div>
-
-            <!-- 11. <dx-type-sda> + Embedded <dx-number class="tw-embed"> -->
-            <div class="sda-card">
-                <span class="sda-card-title">&lt;dx-type-sda&gt; + &lt;dx-number class="tw-embed"&gt;</span>
-                <div class="sda-card-value">
-                    <dx-reveal-sda style="--d: 150ms; font-size: 0.85rem; color: var(--accent); margin-bottom: 0.35rem;">
-                        <span>⚡ REAL-TIME THROUGHPUT</span>
-                    </dx-reveal-sda>
-                    <dx-type-sda style="--d: 300ms;">
-                        <template><t><w><c>P</c><c>r</c><c>o</c><c>c</c><c>e</c><c>s</c><c>s</c><c>e</c><c>d</c></w> <w style="--w:11"><c><dx-number class="tw-embed" start="0" percent="84250" suffix=" ops" comma=" " style="--d: 450ms; margin: 0 0.25rem; color: var(--accent-emerald);"></dx-number></c></w> <w style="--w:16"><c>t</c><c>o</c><c>d</c><c>a</c><c class="last-char">y</c></w></t></template>
-                        <s-t>Processed 84 250 ops today</s-t>
-                    </dx-type-sda>
-                </div>
-            </div>
-
-            <!-- 12. Nested <dx-reveal-sda> -> <dx-type-sda> -> <ui-number> -->
-            <div class="sda-card">
-                <span class="sda-card-title">Nested &lt;dx-reveal-sda&gt; &rarr; &lt;dx-type-sda&gt; + &lt;ui-number&gt;</span>
-                <div class="sda-card-value">
-                    <dx-reveal-sda style="--d: 200ms; width: 100%; display: flex; flex-direction: column; align-items: center;">
-                        <div style="font-size: 0.85rem; color: var(--accent-purple); margin-bottom: 0.35rem;">🔥 HIGH-CONCURRENCY BATCH</div>
-                        <dx-type-sda style="--d: 350ms;">
-                            <template><t><w><c>A</c><c>c</c><c>t</c><c>i</c><c>v</c><c>e</c></w> <w style="--w:8"><c><ui-number class="tw-embed" start="0" percent="128400" suffix=" users" comma=" " style="--d: 500ms; margin: 0 0.25rem; color: #fbbf24;"></ui-number></c></w> <w style="--w:14"><c>o</c><c>n</c><c>l</c><c>i</c><c>n</c><c class="last-char">e</c></w></t></template>
-                            <s-t>Active 128 400 users online</s-t>
+                <!-- 1.2 <dx-type-sda> Standalone -->
+                <div class="sda-card">
+                    <span class="sda-card-title">1.2 &lt;dx-type-sda&gt;</span>
+                    <div class="sda-card-value">
+                        <dx-type-sda style="--d: 200ms;">
+                            <template><t><w><c>S</c><c>c</c><c>r</c><c>o</c><c>l</c><c>l</c></w> <w style="--w:6"><c>t</c><c>o</c></w> <w style="--w:8"><c>a</c><c>n</c><c>i</c><c>m</c><c>a</c><c>t</c><c>e</c></w> <w style="--w:15"><c>t</c><c>h</c><c>i</c><c>s</c></w> <w style="--w:19"><c>t</c><c>e</c><c>x</c><c class="last-char">t</c></w></t></template>
+                            <s-t>Scroll to animate this text</s-t>
                         </dx-type-sda>
-                    </dx-reveal-sda>
+                    </div>
+                </div>
+
+                <!-- 1.3 <dx-number> Standalone -->
+                <div class="sda-card">
+                    <span class="sda-card-title">1.3 &lt;dx-number&gt;</span>
+                    <div class="sda-card-value">
+                        <dx-number style="--d: 200ms; color: var(--accent-emerald);" start="0" percent="99999" format="int" suffix=" req/s" comma=" "></dx-number>
+                    </div>
+                </div>
+
+                <!-- 1.4 <dx-odometer> Standalone -->
+                <div class="sda-card">
+                    <span class="sda-card-title">1.4 &lt;dx-odometer&gt;</span>
+                    <div class="sda-card-value">
+                        <dx-odometer style="--d: 200ms; color: #fbbf24;" type="year" start="2018" percent="2026"></dx-odometer>
+                    </div>
                 </div>
             </div>
+        </div>
 
-            <!-- 13. Nested Master <dx-reveal-sda> -> 3 Staggered Cards (<dx-reveal-sda> -> <dx-type-sda> + <ui-number>) -->
-            <div class="sda-card sda-card-full">
-                <span class="sda-card-title">Master &lt;dx-reveal-sda&gt; &rarr; 3 Staggered Cards (&lt;dx-reveal-sda&gt; &rarr; &lt;dx-type-sda&gt; + &lt;ui-number&gt;)</span>
-                <div class="sda-card-value">
-                    <dx-reveal-sda style="--d: 100ms; width: 100%;">
-                        <div class="nested-stagger-grid">
-                            <!-- Nested Staggered Card A -->
-                            <div style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); border-radius: 12px; padding: 1.2rem 1rem; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.4rem;">
-                                <dx-reveal-sda style="--d: 200ms; font-size: 0.8rem; color: var(--accent); display: block;"><span>⚡ LATENCY</span></dx-reveal-sda>
-                                <dx-type-sda style="--d: 350ms; font-size: 1.1rem; font-weight: 700; display: block;">
-                                    <template><t><w><c>P</c><c>i</c><c>n</c><c>g</c></w> <w style="--w:6"><c style="--I:5"><ui-number class="tw-embed" start="0" percent="12" suffix=" ms" style="--d: 450ms; margin: 0 0.2rem; color: var(--accent-emerald);"></ui-number></c></w> <w style="--w:10"><c>a</c><c>v</c><c class="last-char">g</c></w></t></template>
-                                    <s-t>Ping 12 ms avg</s-t>
-                                </dx-type-sda>
-                            </div>
-                            <!-- Nested Staggered Card B -->
-                            <div style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); border-radius: 12px; padding: 1.2rem 1rem; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.4rem;">
-                                <dx-reveal-sda style="--d: 350ms; font-size: 0.8rem; color: var(--accent-purple); display: block;"><span>🛡️ INTEGRITY</span></dx-reveal-sda>
-                                <dx-type-sda style="--d: 500ms; font-size: 1.1rem; font-weight: 700; display: block;">
-                                    <template><t><w><c>S</c><c>a</c><c>v</c><c>e</c><c>d</c></w> <w style="--w:7"><c style="--I:6"><ui-number class="tw-embed" start="0" percent="99" suffix=" %" style="--d: 600ms; margin: 0 0.2rem; color: var(--accent);"></ui-number></c></w> <w style="--w:11"><c>C</c><c>P</c><c class="last-char">U</c></w></t></template>
-                                    <s-t>Saved 99 % CPU</s-t>
-                                </dx-type-sda>
-                            </div>
-                            <!-- Nested Staggered Card C -->
-                            <div style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); border-radius: 12px; padding: 1.2rem 1rem; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.4rem;">
-                                <dx-reveal-sda style="--d: 500ms; font-size: 0.8rem; color: #fbbf24; display: block;"><span>💎 ECONOMY</span></dx-reveal-sda>
-                                <dx-type-sda style="--d: 650ms; font-size: 1.1rem; font-weight: 700; display: block;">
-                                    <template><t><w><c>G</c><c>a</c><c>i</c><c>n</c></w> <w style="--w:6"><c style="--I:5"><ui-number class="tw-embed" start="0" percent="45000" suffix=" €" comma=" " style="--d: 750ms; margin: 0 0.2rem; color: #f43f5e;"></ui-number></c></w> <w style="--w:12"><c>M</c><c>R</c><c class="last-char">R</c></w></t></template>
-                                    <s-t>Gain 45 000 € MRR</s-t>
-                                </dx-type-sda>
-                            </div>
+        <!-- ─── LEVEL 2: Wrappers & Inline Embeds ─── -->
+        <div class="level-section">
+            <div class="level-header">
+                <span class="level-badge level-badge-l2">Level 2</span>
+                <span class="level-title">Wrappers &amp; Inline Embeds</span>
+                <span class="level-desc">1 Container &rarr; 1 Leaf, or Typewriter &rarr; Inline .tw-embed</span>
+            </div>
+            <div class="sda-grid">
+                <!-- 2.1 <dx-reveal-sda> -> <dx-number> -->
+                <div class="sda-card">
+                    <span class="sda-card-title">2.1 &lt;dx-reveal-sda&gt; &rarr; &lt;dx-number&gt;</span>
+                    <div class="sda-card-value">
+                        <dx-reveal-sda style="--d: 200ms;">
+                            <span>🚀 Throughput: <dx-number style="--d: 350ms;" start="0" percent="99999" format="int" suffix=" req/s" comma=" "></dx-number></span>
+                        </dx-reveal-sda>
+                    </div>
+                </div>
+
+                <!-- 2.2 <dx-reveal-sda> -> <dx-odometer> -->
+                <div class="sda-card">
+                    <span class="sda-card-title">2.2 &lt;dx-reveal-sda&gt; &rarr; &lt;dx-odometer&gt;</span>
+                    <div class="sda-card-value">
+                        <dx-reveal-sda style="--d: 200ms;">
+                            <span>💎 Since <dx-odometer style="--d: 350ms; color: var(--accent-emerald);" type="year" start="2018" percent="2026"></dx-odometer> Leadership</span>
+                        </dx-reveal-sda>
+                    </div>
+                </div>
+
+                <!-- 2.3 <dx-reveal-sda> -> <dx-type-sda> (Pure text) -->
+                <div class="sda-card">
+                    <span class="sda-card-title">2.3 &lt;dx-reveal-sda&gt; &rarr; &lt;dx-type-sda&gt;</span>
+                    <div class="sda-card-value">
+                        <dx-reveal-sda style="--d: 150ms; font-size: 0.85rem; color: var(--accent); margin-bottom: 0.35rem;">
+                            <span>[SCROLL TIMELINE]</span>
+                        </dx-reveal-sda>
+                        <dx-type-sda style="--d: 300ms;">
+                            <template><t><w><c>P</c><c>r</c><c>e</c><c>c</c><c>i</c><c>s</c><c>i</c><c>o</c><c>n</c></w> <w style="--w:9"><c>t</c><c>y</c><c>p</c><c>i</c><c>n</c><c>g</c></w> <w style="--w:15"><c>o</c><c>n</c></w> <w style="--w:17"><c>s</c><c>c</c><c>r</c><c>o</c><c>l</c><c class="last-char">l</c></w></t></template>
+                            <s-t>Precision typing on scroll</s-t>
+                        </dx-type-sda>
+                    </div>
+                </div>
+
+                <!-- 2.4 <dx-type-sda> -> <dx-number class="tw-embed"> -->
+                <div class="sda-card">
+                    <span class="sda-card-title">2.4 &lt;dx-type-sda&gt; &rarr; &lt;dx-number class="tw-embed"&gt;</span>
+                    <div class="sda-card-value">
+                        <dx-type-sda style="--d: 300ms;">
+                            <template><t><w><c>P</c><c>r</c><c>o</c><c>c</c><c>e</c><c>s</c><c>s</c><c>e</c><c>d</c></w> <w style="--w:11"><c style="--I:9"><dx-number class="tw-embed" start="0" percent="84250" suffix=" ops" comma=" " style="--d: 450ms; margin: 0 0.25rem; color: var(--accent-emerald);"></dx-number></c></w> <w style="--w:16"><c>t</c><c>o</c><c>d</c><c>a</c><c class="last-char">y</c></w></t></template>
+                            <s-t>Processed 84 250 ops today</s-t>
+                        </dx-type-sda>
+                    </div>
+                </div>
+
+                <!-- 2.5 <dx-type-sda> -> <dx-odometer class="tw-embed"> -->
+                <div class="sda-card">
+                    <span class="sda-card-title">2.5 &lt;dx-type-sda&gt; &rarr; &lt;dx-odometer class="tw-embed"&gt;</span>
+                    <div class="sda-card-value">
+                        <dx-type-sda style="--d: 200ms;">
+                            <template><t><w><c>E</c><c>x</c><c>p</c><c>e</c><c>r</c><c>i</c><c>e</c><c>n</c><c>c</c><c>e</c></w> <w style="--w:10"><c style="--I:10"><dx-odometer class="tw-embed" type="year" start="2018" percent="2026" style="--d: 450ms; margin: 0 0.25rem; color: var(--accent);"></dx-odometer></c></w> <w style="--w:15"><c>p</c><c>e</c><c>r</c><c>f</c><c>o</c><c>r</c><c>m</c><c>a</c><c>n</c><c>c</c><c class="last-char">e</c></w></t></template>
+                            <s-t>Experience 2026 performance</s-t>
+                        </dx-type-sda>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ─── LEVEL 3: Composite Cards ─── -->
+        <div class="level-section">
+            <div class="level-header">
+                <span class="level-badge level-badge-l3">Level 3</span>
+                <span class="level-title">Composite Cards</span>
+                <span class="level-desc">Container &rarr; Typewriter &rarr; Inline .tw-embed</span>
+            </div>
+            <div class="sda-grid">
+                <!-- 3.1 <dx-reveal-sda> -> <dx-type-sda> -> <ui-number> -->
+                <div class="sda-card">
+                    <span class="sda-card-title">3.1 &lt;dx-reveal-sda&gt; &rarr; &lt;dx-type-sda&gt; &rarr; &lt;ui-number&gt;</span>
+                    <div class="sda-card-value">
+                        <dx-reveal-sda style="--d: 150ms; width: 100%; display: flex; flex-direction: column; align-items: center;">
+                            <div style="font-size: 0.85rem; color: var(--accent-purple); margin-bottom: 0.35rem;">🔥 HIGH-CONCURRENCY BATCH</div>
+                            <dx-type-sda style="--d: 350ms;">
+                                <template><t><w><c>A</c><c>c</c><c>t</c><c>i</c><c>v</c><c>e</c></w> <w style="--w:8"><c style="--I:7"><ui-number class="tw-embed" start="0" percent="128400" suffix=" users" comma=" " style="--d: 500ms; margin: 0 0.25rem; color: #fbbf24;"></ui-number></c></w> <w style="--w:14"><c>o</c><c>n</c><c>l</c><c>i</c><c>n</c><c class="last-char">e</c></w></t></template>
+                                <s-t>Active 128 400 users online</s-t>
+                            </dx-type-sda>
+                        </dx-reveal-sda>
+                    </div>
+                </div>
+
+                <!-- 3.2 <dx-reveal-sda> -> <dx-type-sda> -> <ui-odometer> -->
+                <div class="sda-card">
+                    <span class="sda-card-title">3.2 &lt;dx-reveal-sda&gt; &rarr; &lt;dx-type-sda&gt; &rarr; &lt;ui-odometer&gt;</span>
+                    <div class="sda-card-value">
+                        <dx-reveal-sda style="--d: 150ms; width: 100%; display: flex; flex-direction: column; align-items: center;">
+                            <div style="font-size: 0.85rem; color: var(--accent-emerald); margin-bottom: 0.35rem;">🏆 MILESTONE ACHIEVED</div>
+                            <dx-type-sda style="--d: 300ms;">
+                                <template><t><w><c>C</c><c>e</c><c>l</c><c>e</c><c>b</c><c>r</c><c>a</c><c>t</c><c>i</c><c>n</c><c>g</c></w> <w style="--w:11"><c style="--I:10"><dx-odometer class="tw-embed" type="year" start="2018" percent="2026" style="--d: 450ms; margin: 0 0.25rem; color: var(--accent-emerald);"></dx-odometer></c></w> <w style="--w:16"><c>v</c><c>e</c><c>r</c><c>s</c><c>i</c><c>o</c><c class="last-char">n</c></w></t></template>
+                                <s-t>Celebrating 2026 version</s-t>
+                            </dx-type-sda>
+                        </dx-reveal-sda>
+                    </div>
+                </div>
+
+                <!-- 3.3 Multi-Badge Reveal + <dx-type-sda> -> <ui-odometer> -->
+                <div class="sda-card">
+                    <span class="sda-card-title">3.3 Multi-Reveal &rarr; &lt;dx-type-sda&gt; &rarr; &lt;ui-odometer&gt;</span>
+                    <div class="sda-card-value">
+                        <div style="display: flex; gap: 0.5rem; margin-bottom: 0.4rem;">
+                            <dx-reveal-sda style="--d: 150ms; color: var(--accent); font-size: 0.85rem;"><span>⭐ ARCHITECTURE</span></dx-reveal-sda>
+                            <dx-reveal-sda style="--d: 300ms; color: var(--accent-emerald); font-size: 0.85rem;"><span>[VERIFIED]</span></dx-reveal-sda>
                         </div>
-                    </dx-reveal-sda>
+                        <dx-type-sda style="--d: 450ms;">
+                            <template><t><w><c>S</c><c>c</c><c>a</c><c>l</c><c>i</c><c>n</c><c>g</c></w> <w style="--w:7"><c>t</c><c>o</c></w> <w style="--w:9"><c style="--I:8"><dx-odometer class="tw-embed" type="int" start="0" percent="1450" suffix=" €" comma=" " style="--d: 600ms; margin: 0 0.25rem; color: var(--accent);"></dx-odometer></c></w> <w style="--w:14"><c>v</c><c>a</c><c>l</c><c>u</c><c class="last-char">e</c></w></t></template>
+                            <s-t>Scaling to 1 450 € value</s-t>
+                        </dx-type-sda>
+                    </div>
+                </div>
+
+                <!-- 3.4 4x Staggered Step Timeline + <dx-number> -->
+                <div class="sda-card sda-card-full">
+                    <span class="sda-card-title">3.4 4x Staggered Timeline &rarr; &lt;dx-number&gt;</span>
+                    <div class="sda-card-value">
+                        <div style="display: flex; flex-direction: column; gap: 0.65rem; width: 100%; max-width: 580px; text-align: left; font-size: 1.05rem;">
+                            <dx-reveal-sda style="--d: 100ms;"><span>🔹 Step 1: Zero External Dependencies</span></dx-reveal-sda>
+                            <dx-reveal-sda style="--d: 250ms;"><span>🔹 Step 2: Native Web Components Standards</span></dx-reveal-sda>
+                            <dx-reveal-sda style="--d: 400ms;"><span>🔹 Step 3: Pure CSS scroll() / view() Timelines</span></dx-reveal-sda>
+                            <dx-reveal-sda style="--d: 550ms; color: var(--accent);"><span>🔹 Step 4: Total Operations Handled: <dx-number style="--d: 750ms;" start="0" percent="48250" format="int" suffix=" ops" comma=" "></dx-number></span></dx-reveal-sda>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ─── LEVEL 4: Master Orchestrated Cascades ─── -->
+        <div class="level-section">
+            <div class="level-header">
+                <span class="level-badge level-badge-l4">Level 4</span>
+                <span class="level-title">Master Orchestrated Cascades</span>
+                <span class="level-desc">Master Container &rarr; Staggered Cards &rarr; Typewriter &rarr; Inline .tw-embed</span>
+            </div>
+            <div class="sda-grid">
+                <!-- 4.1 Master <dx-reveal-sda> -> 3 Staggered Cards (<dx-reveal-sda> -> <dx-type-sda> + <ui-number>) -->
+                <div class="sda-card sda-card-full">
+                    <span class="sda-card-title">4.1 Master &lt;dx-reveal-sda&gt; &rarr; 3 Staggered Cards (&lt;dx-reveal-sda&gt; &rarr; &lt;dx-type-sda&gt; + &lt;ui-number&gt;)</span>
+                    <div class="sda-card-value">
+                        <dx-reveal-sda style="--d: 100ms; width: 100%;">
+                            <div class="nested-stagger-grid">
+                                <!-- Nested Staggered Card A -->
+                                <div style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); border-radius: 12px; padding: 1.2rem 1rem; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.4rem;">
+                                    <dx-reveal-sda style="--d: 200ms; font-size: 0.8rem; color: var(--accent); display: block;"><span>⚡ LATENCY</span></dx-reveal-sda>
+                                    <dx-type-sda style="--d: 350ms; font-size: 1.1rem; font-weight: 700; display: block;">
+                                        <template><t><w><c>P</c><c>i</c><c>n</c><c>g</c></w> <w style="--w:6"><c style="--I:5"><ui-number class="tw-embed" start="0" percent="12" suffix=" ms" style="--d: 450ms; margin: 0 0.2rem; color: var(--accent-emerald);"></ui-number></c></w> <w style="--w:10"><c>a</c><c>v</c><c class="last-char">g</c></w></t></template>
+                                        <s-t>Ping 12 ms avg</s-t>
+                                    </dx-type-sda>
+                                </div>
+                                <!-- Nested Staggered Card B -->
+                                <div style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); border-radius: 12px; padding: 1.2rem 1rem; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.4rem;">
+                                    <dx-reveal-sda style="--d: 350ms; font-size: 0.8rem; color: var(--accent-purple); display: block;"><span>🛡️ INTEGRITY</span></dx-reveal-sda>
+                                    <dx-type-sda style="--d: 500ms; font-size: 1.1rem; font-weight: 700; display: block;">
+                                        <template><t><w><c>S</c><c>a</c><c>v</c><c>e</c><c>d</c></w> <w style="--w:7"><c style="--I:6"><ui-number class="tw-embed" start="0" percent="99" suffix=" %" style="--d: 600ms; margin: 0 0.2rem; color: var(--accent);"></ui-number></c></w> <w style="--w:11"><c>C</c><c>P</c><c class="last-char">U</c></w></t></template>
+                                        <s-t>Saved 99 % CPU</s-t>
+                                    </dx-type-sda>
+                                </div>
+                                <!-- Nested Staggered Card C -->
+                                <div style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); border-radius: 12px; padding: 1.2rem 1rem; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.4rem;">
+                                    <dx-reveal-sda style="--d: 500ms; font-size: 0.8rem; color: #fbbf24; display: block;"><span>💎 ECONOMY</span></dx-reveal-sda>
+                                    <dx-type-sda style="--d: 650ms; font-size: 1.1rem; font-weight: 700; display: block;">
+                                        <template><t><w><c>G</c><c>a</c><c>i</c><c>n</c></w> <w style="--w:6"><c style="--I:5"><ui-number class="tw-embed" start="0" percent="45000" suffix=" €" comma=" " style="--d: 750ms; margin: 0 0.2rem; color: #f43f5e;"></ui-number></c></w> <w style="--w:12"><c>M</c><c>R</c><c class="last-char">R</c></w></t></template>
+                                        <s-t>Gain 45 000 € MRR</s-t>
+                                    </dx-type-sda>
+                                </div>
+                            </div>
+                        </dx-reveal-sda>
+                    </div>
+                </div>
+
+                <!-- 4.2 Master 3x4 Staggered Matrix (12 Badges Row-by-Row) -->
+                <div class="sda-card sda-card-full">
+                    <span class="sda-card-title">4.2 Master 3x4 Staggered &lt;dx-reveal-sda&gt; Matrix (Row-by-Row Stagger)</span>
+                    <div class="sda-card-value">
+                        <div class="stagger-matrix">
+                            <!-- Row 1: Core Architecture (100ms - 400ms) -->
+                            <dx-reveal-sda style="--d: 100ms;"><span class="badge" style="width: 100%; justify-content: center; font-size: 0.9rem; padding: 0.6rem 0.5rem;">⚡ Zero Layout Shift</span></dx-reveal-sda>
+                            <dx-reveal-sda style="--d: 200ms;"><span class="badge" style="width: 100%; justify-content: center; font-size: 0.9rem; padding: 0.6rem 0.5rem; color: var(--accent-emerald);">🛡️ GPU Accelerated</span></dx-reveal-sda>
+                            <dx-reveal-sda style="--d: 300ms;"><span class="badge" style="width: 100%; justify-content: center; font-size: 0.9rem; padding: 0.6rem 0.5rem; color: var(--accent-purple);">📦 &lt; 20 KB Minified</span></dx-reveal-sda>
+                            <dx-reveal-sda style="--d: 400ms;"><span class="badge" style="width: 100%; justify-content: center; font-size: 0.9rem; padding: 0.6rem 0.5rem; color: var(--accent);">💎 100% Pure ES2026</span></dx-reveal-sda>
+
+                            <!-- Row 2: Performance & Engine (250ms - 550ms) -->
+                            <dx-reveal-sda style="--d: 250ms;"><span class="badge" style="width: 100%; justify-content: center; font-size: 0.9rem; padding: 0.6rem 0.5rem; color: #fbbf24;">🚀 SSR Tokenizer Ready</span></dx-reveal-sda>
+                            <dx-reveal-sda style="--d: 350ms;"><span class="badge" style="width: 100%; justify-content: center; font-size: 0.9rem; padding: 0.6rem 0.5rem; color: #f43f5e;">🎯 Zero Dependencies</span></dx-reveal-sda>
+                            <dx-reveal-sda style="--d: 450ms;"><span class="badge" style="width: 100%; justify-content: center; font-size: 0.9rem; padding: 0.6rem 0.5rem; color: var(--accent-emerald);">⏱️ Single-rAF Batch</span></dx-reveal-sda>
+                            <dx-reveal-sda style="--d: 550ms;"><span class="badge" style="width: 100%; justify-content: center; font-size: 0.9rem; padding: 0.6rem 0.5rem; color: var(--accent-purple);">👁️ Singleton IO</span></dx-reveal-sda>
+
+                            <!-- Row 3: Component Capabilities (400ms - 700ms) -->
+                            <dx-reveal-sda style="--d: 400ms;"><span class="badge" style="width: 100%; justify-content: center; font-size: 0.9rem; padding: 0.6rem 0.5rem; color: var(--accent);">🎡 CSS Scroll Timeline</span></dx-reveal-sda>
+                            <dx-reveal-sda style="--d: 500ms;"><span class="badge" style="width: 100%; justify-content: center; font-size: 0.9rem; padding: 0.6rem 0.5rem; color: #fbbf24;">🎰 3D Odometer Drum</span></dx-reveal-sda>
+                            <dx-reveal-sda style="--d: 600ms;"><span class="badge" style="width: 100%; justify-content: center; font-size: 0.9rem; padding: 0.6rem 0.5rem; color: var(--accent-emerald);">🔢 Tabular Numeric</span></dx-reveal-sda>
+                            <dx-reveal-sda style="--d: 700ms;"><span class="badge" style="width: 100%; justify-content: center; font-size: 0.9rem; padding: 0.6rem 0.5rem; color: #f43f5e;">✨ JIT Unpack Engine</span></dx-reveal-sda>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
