@@ -9,7 +9,7 @@
 
 import { DxMeter, parseNumParts } from '../base/dx-meter.js';
 import { rootWin, span, defCustomElement } from '../base/dx-base.js';
-import { registerRAF, unregisterRAF, DX_ANIM } from '../base/dx-scheduler.js';
+import { registerRAF, unregisterRAF, DX_ANIM, observeIO } from '../base/dx-scheduler.js';
 
 // ─── Action Bar Visibility Gate (Singleton Observer) ─────────────────────────
 const actionBarSubscribers = new Set();

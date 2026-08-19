@@ -137,7 +137,7 @@ function getIO() {
   }
   return ioInstance;
 }
-function observeIO2(el2, callback) {
+function observeIO(el2, callback) {
   if (!el2) return;
   const obs = getIO();
   if (obs) {
@@ -214,7 +214,7 @@ function unpackTemplate(el2) {
 function observeTypewriter2(el2) {
   if (!el2) return;
   if (el2.classList && el2.classList.contains(DX_ANIM.TYPED)) return;
-  observeIO2(el2, unpackTemplate);
+  observeIO(el2, unpackTemplate);
 }
 function mountTypewriter(el2, e) {
   if (e && e.animationName && e.animationName !== DX_ANIM.KF_TYPE_SDA) return;
@@ -437,12 +437,10 @@ var uiNum = class {
     const isNegative = numVal < 0;
     const absValue = Math.abs(numVal);
     let decimals = 0;
-    if (type.includes("number-1dec") || type.includes("1dec")) {
+    if (type.includes("number-1dec")) {
       decimals = 1;
-    } else if (type.includes("number-2dec") || type.includes("currency")) {
-      decimals = 2;
     } else if (type.includes("number")) {
-      decimals = absValue % 1 !== 0 ? 2 : 0;
+      decimals = 2;
     } else if (type.includes("percent")) {
       decimals = absValue % 1 !== 0 ? 2 : 0;
     } else {
@@ -553,7 +551,7 @@ var DxTypeSda = class extends DxTyping {
   connectedCallback() {
     if (this.isTyped) return;
     this.addEventListener("animationend", this._onAnimEnd);
-    observeIO2(this, (el2) => {
+    observeIO(this, (el2) => {
       unpackTemplate(el2);
       el2.classList.add("type-active");
     });
@@ -594,7 +592,7 @@ var DxReveal = class extends DxRevealing {
     }
     const typeReady = this.closest(".type-ready, dx-type-ready, ui-type-ready");
     if (!typeReady) {
-      observeIO2(this, (el2) => {
+      observeIO(this, (el2) => {
         el2.classList.add("reveal-active");
         const tpl = el2.querySelector(":scope > template");
         if (tpl && tpl.content) tpl.replaceWith(tpl.content);
@@ -620,7 +618,7 @@ defCustomElement("ui-reveal", DxReveal);
 var DxRevealSda = class extends DxRevealing {
   connectedCallback() {
     if (this.isRevealed) return;
-    observeIO2(this, (el2) => {
+    observeIO(this, (el2) => {
       el2.classList.add("reveal-active");
       const tpl = el2.querySelector(":scope > template");
       if (tpl && tpl.content) tpl.replaceWith(tpl.content);
@@ -1029,7 +1027,7 @@ var DxOdometer = class extends DxMeter {
         if (!this._initialized && !this.querySelector(".odometer-ribbon-inner")) this.init();
       }, 0);
     } else {
-      observeIO2(this, () => {
+      observeIO(this, () => {
         if (!this._initialized && !this.querySelector(".odometer-ribbon-inner")) this.init();
       });
     }
@@ -1195,7 +1193,7 @@ export {
   getIO,
   getSdaGaps,
   mountTypewriter,
-  observeIO2 as observeIO,
+  observeIO,
   observeTypewriter2 as observeTypewriter,
   onTypewriterEnd,
   registerRAF,
