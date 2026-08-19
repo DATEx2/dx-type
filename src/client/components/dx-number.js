@@ -278,7 +278,8 @@ export class DxNumber extends DxMeter {
 
         const p = parseNumParts(this.formatValue(this._value));
         let digitPadHtml = '';
-        if (targetVal !== undefined && !isNaN(targetVal) && this._value !== targetVal) {
+        const shouldPad = this.hasAttribute('pad') || this.classList.contains('pad');
+        if (shouldPad && targetVal !== undefined && !isNaN(targetVal) && this._value !== targetVal) {
             const tp = parseNumParts(this.formatValue(targetVal));
             const missing = tp.digits.replace(/\s/g, '').length - p.digits.replace(/\s/g, '').length;
             if (missing > 0) digitPadHtml = span('ui-pad', '0'.repeat(missing));
@@ -294,7 +295,8 @@ export class DxNumber extends DxMeter {
         let pfxPadHtml = '';
         let digitPadHtml = '';
 
-        if (!this.isStatic && targetVal !== undefined && !isNaN(targetVal) && this._value !== targetVal) {
+        const shouldPad = this.hasAttribute('pad') || this.classList.contains('pad');
+        if (!this.isStatic && shouldPad && targetVal !== undefined && !isNaN(targetVal) && this._value !== targetVal) {
             const tp = parseNumParts(this.formatValue(targetVal));
             if (this._value === 0 && targetVal > 0 && tp.pfx.includes('+') && !p.pfx.includes('+')) {
                 pfxPadHtml = span('ui-pfx ui-pfx-pad', `${tp.pfx}${tp.pfxSpace}`);
