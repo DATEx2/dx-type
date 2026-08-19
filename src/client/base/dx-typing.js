@@ -81,23 +81,25 @@ export function cleanupTypedDOM(typeEl) {
         if (st) st.remove();
 
         const t = typeEl.querySelector(':scope > t');
-        if (t) {
-            // Unwrap in-place: convert all <c> and <w> into normal text nodes in exact same position
-            const allC = Array.from(t.querySelectorAll('c'));
-            for (const c of allC) {
-                if (!c.querySelector('dx-odometer, ui-odometer, dx-number, ui-number, .tw-embed')) {
-                    c.replaceWith(doc.createTextNode(c.textContent || ''));
-                } else {
-                    c.replaceWith(...Array.from(c.childNodes));
-                }
+        const scope = t || typeEl;
+
+        // Unwrap in-place: convert all <c> and <w> into normal text nodes in exact same position
+        const allC = Array.from(scope.querySelectorAll('c'));
+        for (const c of allC) {
+            if (!c.querySelector('dx-odometer, ui-odometer, dx-number, ui-number, .tw-embed')) {
+                c.replaceWith(doc.createTextNode(c.textContent || ''));
+            } else {
+                c.replaceWith(...Array.from(c.childNodes));
             }
-            const allW = Array.from(t.querySelectorAll('w'));
-            for (const w of allW) {
-                w.replaceWith(...Array.from(w.childNodes));
-            }
-            t.replaceWith(...Array.from(t.childNodes));
-            if (typeof typeEl.normalize === 'function') typeEl.normalize();
         }
+        const allW = Array.from(scope.querySelectorAll('w'));
+        for (const w of allW) {
+            w.replaceWith(...Array.from(w.childNodes));
+        }
+        if (t) {
+            t.replaceWith(...Array.from(t.childNodes));
+        }
+        if (typeof typeEl.normalize === 'function') typeEl.normalize();
 
         typeEl.removeAttribute('aria-label');
     });
