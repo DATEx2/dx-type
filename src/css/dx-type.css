@@ -328,7 +328,7 @@ c:nth-child(50) { --i: 49; }
 }
 
 /* ─── 7. Hero Domain (<dx-type>, <dx-reveal>, <dx-type-ready>) ───────────── */
-dx-type c {
+:is(dx-type, ui-type) c {
     opacity: 0;
     visibility: hidden;
     display: inline-block;
@@ -342,7 +342,7 @@ dx-type c {
     animation-play-state: paused;
 }
 
-dx-reveal {
+:is(dx-reveal, ui-reveal) {
     opacity: 0;
     transform: translate3d(0, 15px, 0);
     visibility: hidden;
@@ -350,20 +350,21 @@ dx-reveal {
     backface-visibility: hidden;
     -webkit-backface-visibility: hidden;
     animation-name: reveal-in;
-    animation-duration: calc(var(--t, 400ms) * var(--A, 1));
+    animation-duration: calc(var(--t, 400) * 1ms * var(--A, 1));
     animation-timing-function: ease-out;
     animation-fill-mode: both !important;
     animation-delay: calc(var(--d, 0) * 1ms * var(--A, 1));
     animation-play-state: paused;
 }
 
-:is(dx-type-ready.dx-type-ready, .dx-type-ready) :is(dx-type c, dx-reveal) {
+:is(dx-type-ready.dx-type-ready, .dx-type-ready, dx-type-ready.type-ready, .type-ready, [class*="dx-type-ready"]) :is(dx-type c, ui-type c, dx-reveal, ui-reveal),
+:is(dx-reveal.dx-type-ready, dx-reveal.type-ready, ui-reveal.dx-type-ready, ui-reveal.type-ready, .ga.dx-type-ready, .ga.type-ready) {
     animation-play-state: running !important;
     visibility: visible !important;
 }
 
 /* ─── 8. SDA Domain (<dx-type-sda>, <dx-reveal-sda>) ─────────────────────── */
-dx-type-sda c {
+:is(dx-type-sda, ui-type-sda) c {
     opacity: 0;
     display: inline-block;
     will-change: transform, opacity;
@@ -376,20 +377,20 @@ dx-type-sda c {
     animation-play-state: paused;
 }
 
-dx-type-sda:has(> template) {
+:is(dx-type-sda, ui-type-sda):has(> template) {
     opacity: 0.001;
 }
 
 @supports (animation-timeline: view()) {
-    dx-type-sda,
-    :is(section, [class*="-section"], [class*="-grid"], [class*="-card"]):not(dx-reveal-sda, #product-hero, #product-hero *) {
+    :is(dx-type-sda, ui-type-sda),
+    :is(section, [class*="-section"], [class*="-grid"], [class*="-card"]):not(dx-reveal-sda, ui-reveal-sda, #product-hero, #product-hero *) {
         container-type: normal;
         animation: dx-type-sda linear;
         animation-timeline: view(block 0px var(--footer--height, 60px));
         animation-range: cover 0% cover 100%;
     }
 
-    dx-reveal-sda {
+    :is(dx-reveal-sda, ui-reveal-sda) {
         opacity: 0.001;
         transform: translateY(15px);
         will-change: transform, opacity;
@@ -399,10 +400,10 @@ dx-type-sda:has(> template) {
     }
 
     @container style(--play-state: running) {
-        dx-type-sda c {
+        :is(dx-type-sda, ui-type-sda) c {
             animation-play-state: running !important;
         }
-        dx-reveal-sda {
+        :is(dx-reveal-sda, ui-reveal-sda) {
             animation: dx-reveal-sda calc(var(--t, 360) * 1ms) cubic-bezier(0.16, 1, 0.3, 1) calc(var(--d, 0) * 1ms) both !important;
             animation-timeline: auto !important;
         }
@@ -410,10 +411,10 @@ dx-type-sda:has(> template) {
 }
 
 @supports not (animation-timeline: view()) {
-    dx-type-sda c {
+    :is(dx-type-sda, ui-type-sda) c {
         animation-play-state: running !important;
     }
-    dx-reveal-sda {
+    :is(dx-reveal-sda, ui-reveal-sda) {
         opacity: 1 !important;
         transform: none !important;
     }
@@ -421,7 +422,7 @@ dx-type-sda:has(> template) {
 
 /* ─── 9. Odometer Embedded & Standalone Animations ───────────────────────── */
 @supports (animation-timeline: view()) {
-    :is(dx-number, dx-odometer).tw-embed .odometer-ribbon-inner {
+    :is(dx-number, dx-odometer, ui-number, ui-odometer).tw-embed .odometer-ribbon-inner {
         animation-name: run-odometer !important;
         animation-duration: calc(600ms * var(--A, 1)) !important;
         animation-timing-function: ease-in-out !important;
@@ -431,19 +432,19 @@ dx-type-sda:has(> template) {
     }
 
     @container style(--play-state: running) {
-        :is(dx-number, dx-odometer).tw-embed .odometer-ribbon-inner,
+        :is(dx-number, dx-odometer, ui-number, ui-odometer).tw-embed .odometer-ribbon-inner,
         .odometer-ribbon-inner {
             animation-play-state: running !important;
         }
     }
 
-    :is(dx-type-ready.dx-type-ready, .dx-type-ready) :is(dx-number, dx-odometer).tw-embed .odometer-ribbon-inner {
+    :is(dx-type-ready.dx-type-ready, .dx-type-ready, dx-type-ready.type-ready, .type-ready, [class*="dx-type-ready"]) :is(dx-number, dx-odometer, ui-number, ui-odometer) .odometer-ribbon-inner {
         animation-play-state: running !important;
     }
 }
 
 @supports not (animation-timeline: view()) {
-    :is(dx-number, dx-odometer).tw-embed .odometer-ribbon-inner {
+    :is(dx-number, dx-odometer, ui-number, ui-odometer).tw-embed .odometer-ribbon-inner {
         animation-name: run-odometer !important;
         animation-duration: calc(600ms * var(--A, 1)) !important;
         animation-timing-function: ease-in-out !important;
