@@ -114,12 +114,10 @@ export class DxOdometer extends DxMeter {
                     if (isNaN(startDigitVal)) startDigitVal = 0;
                 }
 
-                if (digitVal === 0 && formattedNumberStr.length > 1 && !startAttr) {
-                    for (let j = 0; j <= 10; j++) ribbonValuesHtml += makeVal(j % 10, j === 0, j === 10);
-                    totalItems = 11;
-                    finalIndex = 10;
-                } else if (startAttr) {
-                    if (startDigitVal === digitVal && type === 'year') {
+                const isYear = (type === 'year');
+
+                if (isYear && startAttr) {
+                    if (startDigitVal === digitVal) {
                         ribbonValuesHtml = makeVal(digitVal, true, true);
                         totalItems = 1;
                         finalIndex = 0;
@@ -138,9 +136,22 @@ export class DxOdometer extends DxMeter {
                         finalIndex = count - 1;
                     }
                 } else {
-                    for (let j = 0; j <= digitVal; j++) ribbonValuesHtml += makeVal(j, j === 0, j === digitVal);
-                    totalItems = digitVal + 1;
-                    finalIndex = digitVal;
+                    // Multi-rotation mechanical drum cascade (0-1-2-3-4-5-6-7-8-9-0):
+                    // Each digit ribbon spins through at least 1-2 full sets of 0-9 before locking on target!
+                    const digitFromRight = formattedNumberStr.length - 1 - i;
+                    const fullSpins = Math.min(3, Math.max(1, digitFromRight + 1));
+                    const diff = (digitVal - startDigitVal + 10) % 10;
+                    let totalSteps = (fullSpins * 10) + diff;
+                    if (totalSteps === 0) totalSteps = 10;
+
+                    for (let step = 0; step <= totalSteps; step++) {
+                        const val = (startDigitVal + step) % 10;
+                        const isFirst = (step === 0);
+                        const isLast = (step === totalSteps);
+                        ribbonValuesHtml += makeVal(val, isFirst, isLast);
+                    }
+                    totalItems = totalSteps + 1;
+                    finalIndex = totalSteps;
                 }
 
                 const finalPosPercent = -((finalIndex / totalItems) * 100).toFixed(4);
