@@ -189,16 +189,28 @@
                 </div>
             </div>
 
-            <!-- 7. Staggered <dx-reveal-sda> Badge Sequence Set -->
+            <!-- 7. Staggered <dx-reveal-sda> 3x4 Matrix (12 Badges Staggered Per Row) -->
             <div class="sda-card sda-card-full">
-                <span class="sda-card-title">Staggered &lt;dx-reveal-sda&gt; Sequence (--d: 100ms → 700ms)</span>
+                <span class="sda-card-title">3x4 Staggered &lt;dx-reveal-sda&gt; Matrix (Row-by-Row Stagger)</span>
                 <div class="sda-card-value">
-                    <div style="display: flex; gap: 0.75rem; flex-wrap: wrap; justify-content: center;">
-                        <dx-reveal-sda style="--d: 100ms;"><span class="badge" style="font-size: 0.95rem; padding: 0.5rem 1rem;">⚡ Zero Layout Shift</span></dx-reveal-sda>
-                        <dx-reveal-sda style="--d: 250ms;"><span class="badge" style="font-size: 0.95rem; padding: 0.5rem 1rem; color: var(--accent-emerald);">🛡️ GPU Accelerated</span></dx-reveal-sda>
-                        <dx-reveal-sda style="--d: 400ms;"><span class="badge" style="font-size: 0.95rem; padding: 0.5rem 1rem; color: var(--accent-purple);">📦 &lt; 20 KB Minified</span></dx-reveal-sda>
-                        <dx-reveal-sda style="--d: 550ms;"><span class="badge" style="font-size: 0.95rem; padding: 0.5rem 1rem; color: var(--accent);">💎 100% Pure ES2026</span></dx-reveal-sda>
-                        <dx-reveal-sda style="--d: 700ms;"><span class="badge" style="font-size: 0.95rem; padding: 0.5rem 1rem; color: #fbbf24;">🚀 SSR Tokenizer Ready</span></dx-reveal-sda>
+                    <div class="stagger-matrix">
+                        <!-- Row 1: Core Architecture (100ms - 400ms) -->
+                        <dx-reveal-sda style="--d: 100ms;"><span class="badge" style="width: 100%; justify-content: center; font-size: 0.9rem; padding: 0.6rem 0.5rem;">⚡ Zero Layout Shift</span></dx-reveal-sda>
+                        <dx-reveal-sda style="--d: 200ms;"><span class="badge" style="width: 100%; justify-content: center; font-size: 0.9rem; padding: 0.6rem 0.5rem; color: var(--accent-emerald);">🛡️ GPU Accelerated</span></dx-reveal-sda>
+                        <dx-reveal-sda style="--d: 300ms;"><span class="badge" style="width: 100%; justify-content: center; font-size: 0.9rem; padding: 0.6rem 0.5rem; color: var(--accent-purple);">📦 &lt; 20 KB Minified</span></dx-reveal-sda>
+                        <dx-reveal-sda style="--d: 400ms;"><span class="badge" style="width: 100%; justify-content: center; font-size: 0.9rem; padding: 0.6rem 0.5rem; color: var(--accent);">💎 100% Pure ES2026</span></dx-reveal-sda>
+
+                        <!-- Row 2: Performance & Engine (250ms - 550ms) -->
+                        <dx-reveal-sda style="--d: 250ms;"><span class="badge" style="width: 100%; justify-content: center; font-size: 0.9rem; padding: 0.6rem 0.5rem; color: #fbbf24;">🚀 SSR Tokenizer Ready</span></dx-reveal-sda>
+                        <dx-reveal-sda style="--d: 350ms;"><span class="badge" style="width: 100%; justify-content: center; font-size: 0.9rem; padding: 0.6rem 0.5rem; color: #f43f5e;">🎯 Zero Dependencies</span></dx-reveal-sda>
+                        <dx-reveal-sda style="--d: 450ms;"><span class="badge" style="width: 100%; justify-content: center; font-size: 0.9rem; padding: 0.6rem 0.5rem; color: var(--accent-emerald);">⏱️ Single-rAF Batch</span></dx-reveal-sda>
+                        <dx-reveal-sda style="--d: 550ms;"><span class="badge" style="width: 100%; justify-content: center; font-size: 0.9rem; padding: 0.6rem 0.5rem; color: var(--accent-purple);">👁️ Singleton IO</span></dx-reveal-sda>
+
+                        <!-- Row 3: Component Capabilities (400ms - 700ms) -->
+                        <dx-reveal-sda style="--d: 400ms;"><span class="badge" style="width: 100%; justify-content: center; font-size: 0.9rem; padding: 0.6rem 0.5rem; color: var(--accent);">🎡 CSS Scroll Timeline</span></dx-reveal-sda>
+                        <dx-reveal-sda style="--d: 500ms;"><span class="badge" style="width: 100%; justify-content: center; font-size: 0.9rem; padding: 0.6rem 0.5rem; color: #fbbf24;">🎰 3D Odometer Drum</span></dx-reveal-sda>
+                        <dx-reveal-sda style="--d: 600ms;"><span class="badge" style="width: 100%; justify-content: center; font-size: 0.9rem; padding: 0.6rem 0.5rem; color: var(--accent-emerald);">🔢 Tabular Numeric</span></dx-reveal-sda>
+                        <dx-reveal-sda style="--d: 700ms;"><span class="badge" style="width: 100%; justify-content: center; font-size: 0.9rem; padding: 0.6rem 0.5rem; color: #f43f5e;">✨ JIT Unpack Engine</span></dx-reveal-sda>
                     </div>
                 </div>
             </div>
