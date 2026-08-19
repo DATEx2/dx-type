@@ -403,6 +403,19 @@ dx-reveal-sda.REVEALED {
     }
 }
 
+.nested-stagger-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1rem;
+    width: 100%;
+}
+
+@media (max-width: 768px) {
+    .nested-stagger-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
 @media (max-width: 640px) {
     .preview-box {
         font-size: 1.3rem;

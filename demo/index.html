@@ -249,6 +249,69 @@
                     </dx-type-sda>
                 </div>
             </div>
+
+            <!-- 11. <dx-type-sda> + Embedded <dx-number class="tw-embed"> -->
+            <div class="sda-card">
+                <span class="sda-card-title">&lt;dx-type-sda&gt; + &lt;dx-number class="tw-embed"&gt;</span>
+                <div class="sda-card-value">
+                    <dx-reveal-sda style="--d: 150ms; font-size: 0.85rem; color: var(--accent); margin-bottom: 0.35rem;">
+                        <span>⚡ REAL-TIME THROUGHPUT</span>
+                    </dx-reveal-sda>
+                    <dx-type-sda style="--d: 300ms;">
+                        <template><t><w><c>P</c><c>r</c><c>o</c><c>c</c><c>e</c><c>s</c><c>s</c><c>e</c><c>d</c></w> <w style="--w:11"><c><dx-number class="tw-embed" start="0" percent="84250" suffix=" ops" comma=" " style="--d: 450ms; margin: 0 0.25rem; color: var(--accent-emerald);"></dx-number></c></w> <w style="--w:16"><c>t</c><c>o</c><c>d</c><c>a</c><c class="last-char">y</c></w></t></template>
+                        <s-t>Processed 84 250 ops today</s-t>
+                    </dx-type-sda>
+                </div>
+            </div>
+
+            <!-- 12. Nested <dx-reveal-sda> -> <dx-type-sda> -> <ui-number> -->
+            <div class="sda-card">
+                <span class="sda-card-title">Nested &lt;dx-reveal-sda&gt; &rarr; &lt;dx-type-sda&gt; + &lt;ui-number&gt;</span>
+                <div class="sda-card-value">
+                    <dx-reveal-sda style="--d: 200ms; width: 100%; display: flex; flex-direction: column; align-items: center;">
+                        <div style="font-size: 0.85rem; color: var(--accent-purple); margin-bottom: 0.35rem;">🔥 HIGH-CONCURRENCY BATCH</div>
+                        <dx-type-sda style="--d: 350ms;">
+                            <template><t><w><c>A</c><c>c</c><c>t</c><c>i</c><c>v</c><c>e</c></w> <w style="--w:8"><c><ui-number class="tw-embed" start="0" percent="128400" suffix=" users" comma=" " style="--d: 500ms; margin: 0 0.25rem; color: #fbbf24;"></ui-number></c></w> <w style="--w:14"><c>o</c><c>n</c><c>l</c><c>i</c><c>n</c><c class="last-char">e</c></w></t></template>
+                            <s-t>Active 128 400 users online</s-t>
+                        </dx-type-sda>
+                    </dx-reveal-sda>
+                </div>
+            </div>
+
+            <!-- 13. Nested Master <dx-reveal-sda> -> 3 Staggered Cards (<dx-reveal-sda> -> <dx-type-sda> + <ui-number>) -->
+            <div class="sda-card sda-card-full">
+                <span class="sda-card-title">Master &lt;dx-reveal-sda&gt; &rarr; 3 Staggered Cards (&lt;dx-reveal-sda&gt; &rarr; &lt;dx-type-sda&gt; + &lt;ui-number&gt;)</span>
+                <div class="sda-card-value">
+                    <dx-reveal-sda style="--d: 100ms; width: 100%;">
+                        <div class="nested-stagger-grid">
+                            <!-- Nested Staggered Card A -->
+                            <div style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); border-radius: 12px; padding: 1.2rem 1rem; text-align: center;">
+                                <dx-reveal-sda style="--d: 200ms; font-size: 0.8rem; color: var(--accent); margin-bottom: 0.4rem;"><span>⚡ LATENCY</span></dx-reveal-sda>
+                                <dx-type-sda style="--d: 350ms; font-size: 1.1rem; font-weight: 700;">
+                                    <template><t><w><c>P</c><c>i</c><c>n</c><c>g</c></w> <w style="--w:6"><c><ui-number class="tw-embed" start="0" percent="12" suffix=" ms" style="--d: 450ms; margin: 0 0.2rem; color: var(--accent-emerald);"></ui-number></c></w> <w style="--w:10"><c>a</c><c>v</c><c class="last-char">g</c></w></t></template>
+                                    <s-t>Ping 12 ms avg</s-t>
+                                </dx-type-sda>
+                            </div>
+                            <!-- Nested Staggered Card B -->
+                            <div style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); border-radius: 12px; padding: 1.2rem 1rem; text-align: center;">
+                                <dx-reveal-sda style="--d: 350ms; font-size: 0.8rem; color: var(--accent-purple); margin-bottom: 0.4rem;"><span>🛡️ INTEGRITY</span></dx-reveal-sda>
+                                <dx-type-sda style="--d: 500ms; font-size: 1.1rem; font-weight: 700;">
+                                    <template><t><w><c>S</c><c>a</c><c>v</c><c>e</c><c>d</c></w> <w style="--w:7"><c><ui-number class="tw-embed" start="0" percent="99" suffix=" %" style="--d: 600ms; margin: 0 0.2rem; color: var(--accent);"></ui-number></c></w> <w style="--w:11"><c>C</c><c>P</c><c class="last-char">U</c></w></t></template>
+                                    <s-t>Saved 99 % CPU</s-t>
+                                </dx-type-sda>
+                            </div>
+                            <!-- Nested Staggered Card C -->
+                            <div style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); border-radius: 12px; padding: 1.2rem 1rem; text-align: center;">
+                                <dx-reveal-sda style="--d: 500ms; font-size: 0.8rem; color: #fbbf24; margin-bottom: 0.4rem;"><span>💎 ECONOMY</span></dx-reveal-sda>
+                                <dx-type-sda style="--d: 650ms; font-size: 1.1rem; font-weight: 700;">
+                                    <template><t><w><c>G</c><c>a</c><c>i</c><c>n</c></w> <w style="--w:6"><c><ui-number class="tw-embed" start="0" percent="45000" suffix=" €" comma=" " style="--d: 750ms; margin: 0 0.2rem; color: #f43f5e;"></ui-number></c></w> <w style="--w:12"><c>M</c><c>R</c><c class="last-char">R</c></w></t></template>
+                                    <s-t>Gain 45 000 € MRR</s-t>
+                                </dx-type-sda>
+                            </div>
+                        </div>
+                    </dx-reveal-sda>
+                </div>
+            </div>
         </div>
     </div>
 

@@ -52,3 +52,4 @@ export class DxTypeSda extends DxTyping {
 }
 
 defCustomElement('dx-type-sda', DxTypeSda);
+defCustomElement('ui-type-sda', DxTypeSda);

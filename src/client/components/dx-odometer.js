@@ -231,3 +231,4 @@ if (rootWin) {
     rootWin.DxOdometer = rootWin.uiOdometer = rootWin.UiOdometer = DxOdometer;
 }
 defCustomElement('dx-odometer', DxOdometer);
+defCustomElement('ui-odometer', DxOdometer);

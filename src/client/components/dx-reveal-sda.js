@@ -39,3 +39,4 @@ export class DxRevealSda extends DxRevealing {
 }
 
 defCustomElement('dx-reveal-sda', DxRevealSda);
+defCustomElement('ui-reveal-sda', DxRevealSda);

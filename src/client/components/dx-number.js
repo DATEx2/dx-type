@@ -327,9 +327,25 @@ export class DxNumber extends DxMeter {
         }
         if (!this.getAttribute('aria-label')) this.setAccessibility(targetVal);
     }
+
+    replay() {
+        if (this._twDelayId) clearTimeout(this._twDelayId);
+        if (this._timeoutId) clearTimeout(this._timeoutId);
+        this._animationStarted = false;
+        this.classList.remove('ui-number-running');
+        this.removeAttribute('data-static');
+        const startVal = parseFloat(this.getAttribute('start')) || 0;
+        this._value = startVal;
+        this.render();
+        const targetVal = (this._targetValue !== undefined && !isNaN(this._targetValue)) ? this._targetValue : this.getNumericValue();
+        const d = parseFloat(this.style.getPropertyValue('--d')) || 0;
+        setTimeout(() => this.val(targetVal, 800), Math.max(50, d));
+        return true;
+    }
 }
 
 if (rootWin) {
     rootWin.DxNumber = rootWin.UiNumber = rootWin.uiNumber = DxNumber;
 }
 defCustomElement('dx-number', DxNumber);
+defCustomElement('ui-number', DxNumber);
