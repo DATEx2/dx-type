@@ -9,53 +9,53 @@
  */
 
 /* ─── Layout Safety ──────────────────────────────────────── */
-dx-type,
-dx-type-sda {
+:is(dx-type, ui-type),
+:is(dx-type-sda, ui-type-sda) {
     display: inline-block;
     position: relative;
     vertical-align: baseline;
 }
 
-dx-type-ready {
+:is(dx-type-ready, ui-type-ready) {
     display: inline-flex;
     align-items: baseline;
     justify-content: center;
 }
 
-dx-reveal,
-dx-reveal-sda {
+:is(dx-reveal, ui-reveal),
+:is(dx-reveal-sda, ui-reveal-sda) {
     display: inline-block;
     vertical-align: baseline;
 }
 
 /* dx-number and dx-odometer are inline-level (rendered content) */
-dx-number {
+:is(dx-number, ui-number) {
     display: inline-block;
     vertical-align: baseline;
 }
 
-dx-odometer {
+:is(dx-odometer, ui-odometer) {
     display: inline-block;
     vertical-align: baseline;
     line-height: inherit;
 }
 
 .tw-embed,
-dx-odometer.tw-embed,
-dx-number.tw-embed {
+:is(dx-odometer, ui-odometer).tw-embed,
+:is(dx-number, ui-number).tw-embed {
     display: inline-block;
     vertical-align: baseline;
     line-height: inherit;
 }
 
 /* ─── Typography & Alignment Inheritance Contract ─────────────────────────── */
-dx-type,
-dx-type-sda,
-dx-reveal,
-dx-reveal-sda,
-dx-type-ready,
-dx-number,
-dx-odometer,
+:is(dx-type, ui-type),
+:is(dx-type-sda, ui-type-sda),
+:is(dx-reveal, ui-reveal),
+:is(dx-reveal-sda, ui-reveal-sda),
+:is(dx-type-ready, ui-type-ready),
+:is(dx-number, ui-number),
+:is(dx-odometer, ui-odometer),
 t,
 s-t,
 w,
@@ -78,8 +78,8 @@ c,
 }
 
 /* ─── Mechanical Drum Odometer Ribbon Rules (1:1 Aspect Ratio) ────────────── */
-dx-odometer .odometer,
-dx-odometer .odometer-inside {
+:is(dx-odometer, ui-odometer) .odometer,
+:is(dx-odometer, ui-odometer) .odometer-inside {
     display: inline-flex;
     align-items: baseline;
     vertical-align: baseline;
@@ -88,7 +88,7 @@ dx-odometer .odometer-inside {
     font-variant-numeric: tabular-nums;
 }
 
-dx-odometer .odometer-digit {
+:is(dx-odometer, ui-odometer) .odometer-digit {
     display: inline-block;
     position: relative;
     overflow: hidden;
@@ -97,14 +97,14 @@ dx-odometer .odometer-digit {
     height: 1em;
 }
 
-dx-odometer .odometer-digit-spacer {
+:is(dx-odometer, ui-odometer) .odometer-digit-spacer {
     visibility: hidden;
     display: block;
     line-height: 1;
     height: 1em;
 }
 
-dx-odometer .odometer-digit-inner {
+:is(dx-odometer, ui-odometer) .odometer-digit-inner {
     position: absolute;
     top: 0;
     left: 0;
@@ -115,26 +115,26 @@ dx-odometer .odometer-digit-inner {
     height: 1em;
 }
 
-dx-odometer .odometer-ribbon {
+:is(dx-odometer, ui-odometer) .odometer-ribbon {
     display: block;
     height: 100%;
     line-height: 1;
 }
 
-dx-odometer .odometer-ribbon-inner {
+:is(dx-odometer, ui-odometer) .odometer-ribbon-inner {
     display: block;
     line-height: 1;
     transform: translateY(var(--initial-pos, 0%));
 }
 
-dx-odometer .odometer-value {
+:is(dx-odometer, ui-odometer) .odometer-value {
     display: block;
     text-align: center;
     height: 1em;
     line-height: 1;
 }
 
-dx-odometer .odometer-formatting-mark {
+:is(dx-odometer, ui-odometer) .odometer-formatting-mark {
     display: inline-block;
     vertical-align: baseline;
     line-height: 1;
