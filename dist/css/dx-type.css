@@ -4,7 +4,7 @@ dx-type-sda {
   display: contents;
 }
 dx-type-ready {
-  display: block;
+  display: contents;
 }
 dx-reveal,
 dx-reveal-sda {

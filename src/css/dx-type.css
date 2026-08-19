@@ -11,7 +11,7 @@ dx-type-sda {
 }
 
 dx-type-ready {
-    display: block;
+    display: contents;
 }
 
 dx-reveal,
