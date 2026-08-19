@@ -236,36 +236,16 @@ c:nth-child(48) { --i: 47; }
 c:nth-child(49) { --i: 48; }
 c:nth-child(50) { --i: 49; }
 
-/* ─── Search Text in Document Flow: Reserves Full Width & Searchable ───────── */
-:is(dx-type, dx-type-sda, dx-type-ready):not(.TYPED) > s-t {
-    visibility: hidden !important;
-    display: inline-block;
-    white-space: nowrap;
+/* ─── Search Text: Accessible & Searchable (Hidden from visual rendering) ──── */
+:is(dx-type, dx-type-sda, dx-type-ready) > s-t {
+    display: none !important;
 }
 
-/* ─── Animated <t> Tree: Overlaid on top of reserved <s-t> space ──────────── */
-:is(dx-type, dx-type-sda, dx-type-ready):not(.TYPED) > t {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    white-space: nowrap;
-    display: inline-block;
-    pointer-events: none;
-}
-
-/* ─── On .TYPED: <s-t> becomes visible in the exact same reserved space ────── */
-:is(dx-type, dx-type-sda, dx-type-ready).TYPED > s-t {
-    visibility: visible !important;
+/* ─── Animated <t> Tree in Normal Document Flow (Zero-Shift Contract) ─────── */
+:is(dx-type, dx-type-sda, dx-type-ready) > t {
     display: inline-block;
     position: static;
     white-space: nowrap;
-}
-
-/* ─── Hide Animated Template & Tree After Typed ────────────────────────────── */
-:is(dx-type, dx-type-sda, dx-type-ready, .TYPED).TYPED > :is(t, template) {
-    display: none !important;
 }
 
 :is(dx-type, dx-type-sda, dx-type-ready) > template {
