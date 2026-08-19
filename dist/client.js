@@ -299,6 +299,23 @@ function onTypewriterEnd(cEl, event) {
   return false;
 }
 var DxTyping = class extends DxBase {
+  static get observedAttributes() {
+    return ["delay", "d", "duration", "t"];
+  }
+  attributeChangedCallback(name, oldVal, newVal) {
+    if (oldVal === newVal) return;
+    this._syncTimingAttributes();
+  }
+  _syncTimingAttributes() {
+    const delay = this.getAttribute("delay") ?? this.getAttribute("d");
+    if (delay !== null) {
+      this.style.setProperty("--d", String(parseInt(delay, 10) || 0));
+    }
+    const duration = this.getAttribute("duration") ?? this.getAttribute("t");
+    if (duration !== null) {
+      this.style.setProperty("--t", String(parseInt(duration, 10) || 0));
+    }
+  }
   get isTyped() {
     return this.classList.contains(DX_ANIM.TYPED);
   }
@@ -398,6 +415,23 @@ function startReveal(el2, e) {
   }
 }
 var DxRevealing = class extends DxBase {
+  static get observedAttributes() {
+    return ["delay", "d", "duration", "t"];
+  }
+  attributeChangedCallback(name, oldVal, newVal) {
+    if (oldVal === newVal) return;
+    this._syncTimingAttributes();
+  }
+  _syncTimingAttributes() {
+    const delay = this.getAttribute("delay") ?? this.getAttribute("d");
+    if (delay !== null) {
+      this.style.setProperty("--d", String(parseInt(delay, 10) || 0));
+    }
+    const duration = this.getAttribute("duration") ?? this.getAttribute("t");
+    if (duration !== null) {
+      this.style.setProperty("--t", String(parseInt(duration, 10) || 0));
+    }
+  }
   get isRevealed() {
     return this.classList.contains(DX_ANIM.REVEALED);
   }
@@ -520,9 +554,7 @@ if (rootWin) {
 // src/client/components/dx-type.js
 var DxType = class extends DxTyping {
   connectedCallback() {
-    if (!this.classList.contains("type")) {
-      this.classList.add("type");
-    }
+    this._syncTimingAttributes();
     if (!this.isTyped) {
       this.unpackTemplate();
       this.addEventListener("animationend", this._onAnimEnd);
@@ -552,6 +584,7 @@ defCustomElement("ui-type", DxType);
 var DxTypeSda = class extends DxTyping {
   connectedCallback() {
     if (this.isTyped) return;
+    this._syncTimingAttributes();
     this.addEventListener("animationend", this._onAnimEnd);
     observeIO(this, (el2) => {
       unpackTemplate(el2);
@@ -589,9 +622,7 @@ defCustomElement("ui-type-sda", DxTypeSda);
 var DxReveal = class extends DxRevealing {
   connectedCallback() {
     if (this.isRevealed) return;
-    if (!this.classList.contains("reveal")) {
-      this.classList.add("reveal");
-    }
+    this._syncTimingAttributes();
     const typeReady = this.closest(".type-ready, dx-type-ready, ui-type-ready");
     if (!typeReady) {
       observeIO(this, (el2) => {
@@ -620,6 +651,7 @@ defCustomElement("ui-reveal", DxReveal);
 var DxRevealSda = class extends DxRevealing {
   connectedCallback() {
     if (this.isRevealed) return;
+    this._syncTimingAttributes();
     observeIO(this, (el2) => {
       el2.classList.add("reveal-active");
       const tpl = el2.querySelector(":scope > template");

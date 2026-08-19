@@ -14,6 +14,7 @@ import { DX_ANIM, observeIO } from '../base/dx-scheduler.js';
 export class DxTypeSda extends DxTyping {
     connectedCallback() {
         if (this.isTyped) return;
+        this._syncTimingAttributes();
 
         this.addEventListener('animationend', this._onAnimEnd);
 

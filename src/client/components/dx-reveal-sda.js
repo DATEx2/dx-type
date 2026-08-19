@@ -14,6 +14,7 @@ import { observeIO } from '../base/dx-scheduler.js';
 export class DxRevealSda extends DxRevealing {
     connectedCallback() {
         if (this.isRevealed) return;
+        this._syncTimingAttributes();
 
         // When scrolled into view, trigger time-based reveal animation
         observeIO(this, (el) => {

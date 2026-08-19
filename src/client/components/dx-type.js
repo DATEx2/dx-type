@@ -4,9 +4,7 @@ import { DX_ANIM } from '../base/dx-scheduler.js';
 
 export class DxType extends DxTyping {
     connectedCallback() {
-        if (!this.classList.contains('type')) {
-            this.classList.add('type');
-        }
+        this._syncTimingAttributes();
         if (!this.isTyped) {
             this.unpackTemplate();
             this.addEventListener('animationend', this._onAnimEnd);

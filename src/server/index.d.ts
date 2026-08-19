@@ -30,9 +30,21 @@ export interface SsrDxTypeOptions extends TokenizeOptions {
     className?: string;
 }
 
+export interface SsrDxRevealOptions {
+    duration?: number;
+    t?: number;
+    time?: number;
+    delay?: number;
+    d?: number;
+    tagName?: string;
+    isSda?: boolean;
+    className?: string;
+}
+
 export function formatNumber(val: number | string, type?: string, comma?: string, prefix?: string, suffix?: string): string;
 export function generateRibbonHtml(numericValue: number | string, type?: string, comma?: string, prefix?: string, suffix?: string): string;
 export function ssrDxNumber(numericValue: number | string, formattedText?: string, cls?: string, type?: string): string;
 export function ssrDxOdometer(numericValue: number | string, options?: object): string;
 export function tokenize(html: string, options?: TokenizeOptions): TokenizeResult;
 export function ssrDxType(content: string, options?: SsrDxTypeOptions): string;
+export function ssrDxReveal(content: string, options?: SsrDxRevealOptions): string;

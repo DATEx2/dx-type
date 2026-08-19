@@ -1,5 +1,5 @@
 // tests/test-server-tokenizer.js — Verify SSR tokenizer & SSR generators
-import { tokenize, ssrDxType, ssrDxNumber, ssrDxOdometer, generateRibbonHtml } from '../src/server/index.js';
+import { tokenize, ssrDxType, ssrDxReveal, ssrDxNumber, ssrDxOdometer, generateRibbonHtml } from '../src/server/index.js';
 
 function assert(condition, msg) {
     if (!condition) throw new Error(`ASSERT FAILED: ${msg}`);
@@ -42,6 +42,12 @@ export default function testServerTokenizer() {
     assert(odoHtml.includes('odometer-ribbon-inner'), 'Should contain mechanical ribbon inner');
     assert(odoHtml.includes('data-final-pos='), 'Should have data-final-pos');
 
-    // 6. Empty input
+    // 6. ssrDxReveal test
+    const revealHtml = ssrDxReveal('|', { delay: 600, duration: 50, className: 'hero-specs-separator' });
+    assert(revealHtml.startsWith('<dx-reveal class="hero-specs-separator" style="--d:600;--t:50"'), 'Should generate <dx-reveal> with delay and duration style');
+    assert(revealHtml.includes('onanimationstart="startReveal(this, event)"'), 'Should include animationstart handler');
+    assert(revealHtml.includes('onanimationend="finishReveal(this, event)"'), 'Should include animationend handler');
+
+    // 7. Empty input
     assert(tokenize('').html === '', 'Empty input should return empty string');
 }

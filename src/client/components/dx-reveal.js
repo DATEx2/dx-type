@@ -13,9 +13,7 @@ import { observeIO } from '../base/dx-scheduler.js';
 export class DxReveal extends DxRevealing {
     connectedCallback() {
         if (this.isRevealed) return;
-        if (!this.classList.contains('reveal')) {
-            this.classList.add('reveal');
-        }
+        this._syncTimingAttributes();
 
         const typeReady = this.closest('.type-ready, dx-type-ready, ui-type-ready');
         if (!typeReady) {

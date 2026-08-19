@@ -40,6 +40,26 @@ export function startReveal(el, e) {
 
 // ─── Base Class DxRevealing ──────────────────────────────────────────────────
 export class DxRevealing extends DxBase {
+    static get observedAttributes() {
+        return ['delay', 'd', 'duration', 't'];
+    }
+
+    attributeChangedCallback(name, oldVal, newVal) {
+        if (oldVal === newVal) return;
+        this._syncTimingAttributes();
+    }
+
+    _syncTimingAttributes() {
+        const delay = this.getAttribute('delay') ?? this.getAttribute('d');
+        if (delay !== null) {
+            this.style.setProperty('--d', String(parseInt(delay, 10) || 0));
+        }
+        const duration = this.getAttribute('duration') ?? this.getAttribute('t');
+        if (duration !== null) {
+            this.style.setProperty('--t', String(parseInt(duration, 10) || 0));
+        }
+    }
+
     get isRevealed() {
         return this.classList.contains(DX_ANIM.REVEALED);
     }

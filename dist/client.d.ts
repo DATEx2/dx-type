@@ -28,10 +28,10 @@ export function span(cls?: string, content?: string | number, extra?: string): s
 export function defCustomElement(tag: string, cls: CustomElementConstructor): void;
 
 export const DX_ANIM: {
-    readonly TYPED: 'TYPED';
-    readonly TYPING: 'TYPING';
-    readonly REVEALED: 'REVEALED';
-    readonly REVEALING: 'REVEALING';
+    readonly TYPED: 'dx-typed';
+    readonly TYPING: 'dx-typing';
+    readonly REVEALED: 'dx-revealed';
+    readonly REVEALING: 'dx-revealing';
     readonly TYPE_GUARD: 'TYPE-';
     readonly REVEAL_GUARD: 'REVEAL-';
     readonly KF_TYPE_SDA: 'type-sda';

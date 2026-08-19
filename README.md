@@ -123,31 +123,44 @@ Or via `<link>` in HTML:
 
 ### 1. `<dx-type>` (Hero Typewriter)
 
-Animates text character-by-character on document timeline. The animation is triggered when an ancestor (or `<dx-type-ready>`) receives the `.type-ready` class.
+Animates text character-by-character on document timeline. The animation is triggered when `<dx-type-ready class="dx-type-ready">` is ready.
 
-#### HTML Syntax
+#### Declarative HTML Syntax (Recommended)
 ```html
-<dx-type style="--u: 40ms;">
-  <template>
-    <t>
-      <w><c style="--I:0">H</c><c style="--I:1">e</c><c style="--I:2">l</c><c style="--I:3">l</c><c style="--I:4">o</c></w>
-      <w><c style="--I:5">W</c><c style="--I:6">o</c><c style="--I:7">r</c><c style="--I:8">l</c><c style="--I:9">d</c></w>
-    </t>
-  </template>
-  <s-t>Hello World</s-t>
+<dx-type delay="110" duration="540">600W Triple-Voltage Smart Chargers</dx-type>
+```
+
+#### SSR Output Syntax
+```html
+<dx-type style="--b:0;--a:37;--d:110;--t:540;--u:14.595" aria-label="600W Triple-Voltage Smart Chargers">
+  <t aria-hidden="true">
+    <w style="--w:0;--N:4"><c>6</c><c>0</c><c>0</c><c>W</c></w>
+    <w class="word" style="--w:5;--N:14"><c>T</c><c>r</c><c>i</c><c>p</c><c>l</c><c>e</c><c>-</c><c>V</c><c>o</c><c>l</c><c>t</c><c>a</c><c>g</c><c>e</c></w>
+    <w style="--w:20;--N:5"><c>S</c><c>m</c><c>a</c><c>r</c><c>t</c></w>
+    <w style="--w:26;--N:8"><c>C</c><c>h</c><c>a</c><c>r</c><c>g</c><c>e</c><c>r</c><c data-last="true" onanimationend="onTypewriterEnd(this)">s</c></w>
+  </t>
 </dx-type>
 ```
 
-#### CSS Variables & Options
-| Variable | Default | Description |
+#### Attributes & Parameters
+| Attribute | Alias | Default | Description |
+| :--- | :--- | :--- | :--- |
+| `delay` | `d` | `0` | Delay in milliseconds before typing begins (e.g. `110`). |
+| `duration` | `t` | `580` | Total duration in milliseconds for typing the full text. |
+
+#### Internal CSS Variables (Computed automatically by `@datex2/dx-type`)
+| Variable | Formula / Source | Description |
 | :--- | :--- | :--- |
-| `--u` | `40ms` | Unit delay per character. Lower value = faster typing. |
-| `--I` | `0, 1, 2...` | Character index injected on each `<c>` tag for sequential delay. |
+| `--a` | Total characters | Total units in string. |
+| `--b` | Start offset | Sub-range beginning index. |
+| `--d` | `delay` attribute | Starting delay in ms. |
+| `--t` | `duration` attribute | Total allocated duration in ms. |
+| `--u` | `--t / --a` | Duration allocated per character in ms. |
 
 #### Lifecycle & States
-* **Initial**: Displays search text `<s-t>` for SEO and zero CLS.
-* **On `.type-ready`**: Unpacks `<template>`, steps through characters via `animation-delay: calc(var(--I) * var(--u))`.
-* **On Complete**: Adds `.TYPED` class, cleans up DOM into clean text, removes temporary tags, and removes layout constraints.
+* **Initial**: Renders accessible text with `aria-label`.
+* **On `.dx-type-ready`**: Steps through characters on GPU via `animation-delay: calc((var(--d) * 1ms) + (var(--I) * var(--u) * 1ms))`.
+* **On Complete**: Adds `.dx-typed` class, runs zero-reflow DOM cleanup, releasing GPU layers.
 
 ---
 
@@ -155,17 +168,9 @@ Animates text character-by-character on document timeline. The animation is trig
 
 Typewriter animation driven purely by the user's scroll position via CSS Scroll-Driven Animations (`animation-timeline: view()`). 
 
-#### HTML Syntax
+#### Declarative HTML Syntax
 ```html
-<dx-type-sda>
-  <template>
-    <t>
-      <w><c style="--I:0">S</c><c style="--I:1">c</c><c style="--I:2">r</c><c style="--I:3">o</c><c style="--I:4">l</c><c style="--I:5">l</c></w>
-      <w><c style="--I:6">m</c><c style="--I:7">e</c></w>
-    </t>
-  </template>
-  <s-t>Scroll me</s-t>
-</dx-type-sda>
+<dx-type-sda delay="50" duration="400">Scroll into view to type me</dx-type-sda>
 ```
 
 #### Features
@@ -178,17 +183,18 @@ Typewriter animation driven purely by the user's scroll position via CSS Scroll-
 
 Fade-in / slide-up reveal on document timeline, coordinated with hero typewriter elements.
 
-#### HTML Syntax
+#### Declarative HTML Syntax
 ```html
-<dx-reveal style="--d: 300ms;">
-  <h2>Subheading revealed after typewriter starts</h2>
+<dx-reveal delay="600" duration="50">
+  <span class="separator">|</span>
 </dx-reveal>
 ```
 
-#### CSS Variables & Options
-| Variable | Default | Description |
-| :--- | :--- | :--- |
-| `--d` | `0ms` | Delay before reveal animation begins (e.g. `250ms`). |
+#### Attributes & Parameters
+| Attribute | Alias | Default | Description |
+| :--- | :--- | :--- | :--- |
+| `delay` | `d` | `0` | Delay in milliseconds before reveal begins. |
+| `duration` | `t` | `300` | Duration in milliseconds of the reveal transition. |
 
 ---
 
@@ -196,9 +202,9 @@ Fade-in / slide-up reveal on document timeline, coordinated with hero typewriter
 
 Fade-in / slide-up reveal attached to scroll timeline. Progresses smoothly as the element enters the viewport.
 
-#### HTML Syntax
+#### Declarative HTML Syntax
 ```html
-<dx-reveal-sda>
+<dx-reveal-sda delay="100" duration="360">
   <div class="card">Reveals smoothly when scrolled into view</div>
 </dx-reveal-sda>
 ```
@@ -207,16 +213,16 @@ Fade-in / slide-up reveal attached to scroll timeline. Progresses smoothly as th
 
 ### 5. `<dx-type-ready>` (Hero Orchestrator)
 
-A `display: contents` wrapper that coordinates simultaneous start of hero typewriter, reveal, and counter elements. When `.type-ready` is set, all descendant animations start in unison with their respective delays.
+A `display: contents` wrapper that coordinates simultaneous start of hero typewriter, reveal, and counter elements. When `.dx-type-ready` is set, all descendant animations start in unison with their respective delays.
 
 #### HTML Syntax
 ```html
-<dx-type-ready class="type-ready">
+<dx-type-ready class="dx-type-ready hero-header">
   <h1>
-    <dx-type><!-- characters --></dx-type>
+    <dx-type delay="0" duration="580">DATE BCx3</dx-type>
   </h1>
-  <dx-reveal style="--d: 500ms;">
-    <p>Subtitle fades in after 500ms</p>
+  <dx-reveal delay="550" duration="300">
+    <button>View Specs</button>
   </dx-reveal>
 </dx-type-ready>
 ```

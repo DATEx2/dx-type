@@ -308,3 +308,22 @@ export function ssrDxType(content, options = {}) {
     }
     return `<${tagName}${classAttr} style="${res.style}"${ariaAttr}><t aria-hidden="true">${res.html}</t></${tagName}>`;
 }
+
+/**
+ * Generate full SSR markup for <dx-reveal> or <dx-reveal-sda>.
+ * @param {string} content — Raw HTML or plain text
+ * @param {object} options — { duration, delay, tagName, isSda, className }
+ * @returns {string} Fully formatted HTML string
+ */
+export function ssrDxReveal(content, options = {}) {
+    const tagName = options.tagName || (options.isSda ? 'dx-reveal-sda' : 'dx-reveal');
+    const isSda = tagName === 'dx-reveal-sda' || !!options.isSda;
+    const duration = Number(options.duration ?? options.t ?? options.time ?? 300);
+    const delay = Number(options.delay ?? options.d ?? 0);
+    const classAttr = options.className ? ` class="${options.className}"` : '';
+    const styleAttr = ` style="--d:${delay};--t:${duration}"`;
+    const animStart = ' onanimationstart="startReveal(this, event)"';
+    const animEnd = ' onanimationend="finishReveal(this, event)"';
+
+    return `<${tagName}${classAttr}${styleAttr}${animStart}${animEnd}>${content}</${tagName}>`;
+}
