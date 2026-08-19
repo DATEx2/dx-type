@@ -61,7 +61,14 @@ export const span = (cls, content, extra) => el('span', cls, content, extra);
 export const defCustomElement = (tag, cls) => {
     if (rootWin?.customElements && typeof rootWin.HTMLElement !== 'undefined') {
         if (!rootWin.customElements.get(tag)) {
-            rootWin.customElements.define(tag, cls);
+            try {
+                rootWin.customElements.define(tag, cls);
+            } catch (e) {
+                // If constructor is already registered under a primary tag, subclass it for the alias tag
+                try {
+                    rootWin.customElements.define(tag, class extends cls {});
+                } catch {}
+            }
         }
     }
 };
