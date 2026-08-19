@@ -328,61 +328,47 @@ The embedded odometer/number will **pause its animation** until the typewriter s
 
 ---
 
-### 🏛️ 3-Level Nesting Architecture (Scroll-Driven Cascades)
+### 🏛️ 4-Level Nesting Hierarchy (Scroll-Driven Composition)
 
-Components support clean 3-level hierarchical composition for complex dashboards and landing pages:
+Components support clean 4-tier hierarchical composition for complex dashboards and landing pages:
 
 ```
-Level 1 (Master Container):     <dx-reveal-sda>
-                                      │
-Level 2 (Staggered Cards):      <dx-reveal-sda style="--d: 200ms"> ... <dx-reveal-sda style="--d: 400ms">
-                                      │                                      │
-Level 3 (Text & Meter Leaves):  <dx-type-sda>                          <dx-type-sda>
-                                  └── <dx-number class="tw-embed">       └── <dx-odometer class="tw-embed">
+Level 1 [Primitives]:       <dx-reveal-sda>  |  <dx-type-sda>  |  <dx-number>  |  <dx-odometer>
+                                  │
+Level 2 [Wrappers / Embeds]: <dx-reveal-sda> ──► (<dx-number> / <dx-odometer> / <dx-type-sda>)
+                             <dx-type-sda>   ──► .tw-embed (<dx-number> / <dx-odometer>)
+                                  │
+Level 3 [Composite Cards]:   <dx-reveal-sda> ──► <dx-type-sda> ──► .tw-embed (<dx-number> / <dx-odometer>)
+                                  │
+Level 4 [Master Cascades]:   Master <dx-reveal-sda>
+                               └──► 3x Staggered <dx-reveal-sda>
+                                      └──► <dx-type-sda>
+                                             └──► .tw-embed (<dx-number> / <dx-odometer>)
 ```
 
 > [!IMPORTANT]
 > **Containment Rule**: `<dx-type>` and `<dx-type-sda>` are inline text animation engines. They must contain **only** letters (`<w>`, `<c>`) and/or embedded meters (`<dx-number class="tw-embed">`, `<dx-odometer class="tw-embed">`). Never place `<dx-reveal>` or `<dx-reveal-sda>` inside a typewriter element.
 
-```html
-<!-- Master Reveal Container (Level 1) -->
-<dx-reveal-sda style="--d: 100ms;">
-  <div class="cards-grid">
-    
-    <!-- Sub-card A (Level 2) -->
-    <dx-reveal-sda style="--d: 200ms;">
-      <span class="badge">⚡ LATENCY</span>
-      <!-- Typewriter + Embedded Counter (Level 3) -->
-      <dx-type-sda style="--d: 350ms;">
-        <template><t><w><c>P</c><c>i</c><c>n</c><c>g</c></w> <w><c><dx-number class="tw-embed" start="0" percent="12" suffix=" ms"></dx-number></c></w> <w><c class="last-char">a</c><c>v</c><c>g</c></w></t></template>
-        <s-t>Ping 12 ms avg</s-t>
-      </dx-type-sda>
-    </dx-reveal-sda>
+---
 
-    <!-- Sub-card B (Level 2) -->
-    <dx-reveal-sda style="--d: 350ms;">
-      <span class="badge">🛡️ INTEGRITY</span>
-      <!-- Typewriter + Embedded Odometer (Level 3) -->
-      <dx-type-sda style="--d: 500ms;">
-        <template><t><w><c>S</c><c>a</c><c>v</c><c>e</c><c>d</c></w> <w><c><dx-odometer class="tw-embed" type="int" start="0" percent="99" suffix=" %"></dx-odometer></c></w> <w><c class="last-char">C</c><c>P</c><c>U</c></w></t></template>
-        <s-t>Saved 99 % CPU</s-t>
-      </dx-type-sda>
-    </dx-reveal-sda>
+### ⚙️ SDA Viewport Trigger Configuration (`sdaTopGap` / `sdaBottomGap`)
 
-  </div>
-</dx-reveal-sda>
+By default, scroll-driven animations trigger when entering the viewport boundaries (`sdaTopGap: '0%'`, `sdaBottomGap: '0%'`). If your application has sticky headers, navigation bars, or footers, you can customize the trigger gap offsets globally or dynamically:
+
+```javascript
+import { setSdaGaps, getSdaGaps } from '@datex2/dx-type/client';
+
+// Example: Offset trigger for an 80px sticky header and 60px bottom footer
+setSdaGaps('80px', '60px');
+
+console.log(getSdaGaps());
+// { sdaTopGap: '80px', sdaBottomGap: '60px' }
 ```
-          <dx-number percent="99.9" suffix="%" type="number-1dec"></dx-number>
-          <span>Uptime</span>
-        </div>
-        <div class="stat">
-          <dx-odometer start="2010" percent="2026" type="year"></dx-odometer>
-          <span>Founded</span>
-        </div>
-      </div>
-    </dx-reveal>
-  </dx-type-ready>
-</header>
+
+Or via global window config:
+```javascript
+window.sdaTopGap = '10%';
+window.sdaBottomGap = '5%';
 ```
 
 ---
@@ -392,44 +378,41 @@ Level 3 (Text & Meter Leaves):  <dx-type-sda>                          <dx-type-
 Copy these standard keyframes into your stylesheet for production animation control:
 
 ```css
-/* 1. Hero Typewriter character pop-in */
+/* 1. Hero Typewriter Animation */
 .type-ready dx-type c,
 .type-ready .type c {
-/* 1. Hero Typewriter Animation */
-.type-ready dx-type c {
     opacity: 0;
-    transform: translateY(6px) scale(0.96);
-    animation: type-in 140ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
-    animation-delay: calc(var(--d, 0ms) + var(--I, 0) * var(--u, 40ms));
+    transform: translateY(8px);
+    animation: type-in 280ms cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+    animation-delay: calc(var(--d, 0ms) + var(--I, 0) * var(--u, 45ms));
 }
-@keyframes type-in { to { opacity: 1; transform: translateY(0) scale(1); } }
+@keyframes type-in { to { opacity: 1; transform: translateY(0); } }
 
 /* 2. Scroll-Triggered Typewriter (Pure time-based typing on scroll trigger) */
 dx-type-sda.type-active c {
     opacity: 0;
-    transform: translateY(6px) scale(0.96);
-    animation: type-in 140ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
-    animation-delay: calc(var(--d, 0ms) + var(--I, 0) * var(--u, 40ms));
+    transform: translateY(8px);
+    animation: type-in 280ms cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+    animation-delay: calc(var(--d, 0ms) + var(--I, 0) * var(--u, 45ms));
 }
 
-/* 3. Hero Reveal */
-.type-ready dx-reveal {
+/* 3. Reveal Animation (~1s smooth GPU slide & fade) */
+:is(dx-reveal, ui-reveal, dx-reveal-sda, ui-reveal-sda):not(.REVEALED) {
+    display: inline-block;
     opacity: 0;
-    transform: translateY(12px);
+    transform: translateY(28px);
+}
+.type-ready :is(dx-reveal, ui-reveal):not(.REVEALED),
+:is(dx-reveal, ui-reveal, dx-reveal-sda, ui-reveal-sda).reveal-active:not(.REVEALED) {
     animation: reveal-in 1000ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
     animation-delay: var(--d, 0ms);
 }
-@keyframes reveal-in { to { opacity: 1; transform: translateY(0); } }
-
-/* 4. Scroll-Triggered Reveal (1s smooth transition with --d support) */
-dx-reveal-sda.reveal-active {
-    opacity: 0;
-    transform: translateY(20px);
-    animation: reveal-in 1000ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
-    animation-delay: var(--d, 200ms);
+@keyframes reveal-in {
+    0% { opacity: 0; transform: translateY(28px); }
+    100% { opacity: 1; transform: translateY(0); }
 }
-
-/* 5. Mechanical Odometer Ribbon Roll */
+    animation: type-in 140ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+/* 4. Mechanical Odometer Ribbon Roll */
 .odometer-ribbon-inner {
     animation: odo-roll 1.2s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
     animation-delay: calc(var(--digit-i, 0) * 80ms + var(--d, 0ms));

@@ -33,9 +33,40 @@ export const DX_ANIM = Object.freeze({
     TYPE_DURATION:   40,
 });
 
-// ─── Singleton IntersectionObserver (Zero-Reflow JIT Template Unpack) ────────
+// ─── Singleton IntersectionObserver (Zero-Reflow JIT Template Unpack & SDA) ──
 let ioInstance = null;
 const ioCallbacks = new WeakMap();
+
+let _sdaTopGap = '0%';
+let _sdaBottomGap = '0%';
+
+export function formatMarginValue(v) {
+    if (!v || v === '0' || v === '0%' || v === '0px' || v === 0) return '0px';
+    if (typeof v === 'number') return `-${v}px`;
+    if (typeof v === 'string') {
+        const trimmed = v.trim();
+        return trimmed.startsWith('-') ? trimmed : `-${trimmed}`;
+    }
+    return '0px';
+}
+
+export function setSdaGaps(top = '0%', bottom = '0%') {
+    _sdaTopGap = top;
+    _sdaBottomGap = bottom;
+    if (ioInstance) {
+        ioInstance.disconnect();
+        ioInstance = null;
+    }
+}
+
+export function getSdaGaps() {
+    const winTop = rootWin?.sdaTopGap ?? rootWin?.__dxTypeConfig?.sdaTopGap;
+    const winBottom = rootWin?.sdaBottomGap ?? rootWin?.__dxTypeConfig?.sdaBottomGap;
+    return {
+        sdaTopGap: winTop !== undefined ? winTop : _sdaTopGap,
+        sdaBottomGap: winBottom !== undefined ? winBottom : _sdaBottomGap
+    };
+}
 
 function ioHandler(entries) {
     for (let i = 0; i < entries.length; i++) {
@@ -56,7 +87,13 @@ export function getIO() {
     if (ioInstance) return ioInstance;
     const IO = rootWin?.IntersectionObserver;
     if (typeof IO === 'function') {
-        ioInstance = new IO(ioHandler, { rootMargin: '100px 0px', threshold: 0 });
+        const gaps = getSdaGaps();
+        const topMargin = formatMarginValue(gaps.sdaTopGap);
+        const bottomMargin = formatMarginValue(gaps.sdaBottomGap);
+        ioInstance = new IO(ioHandler, {
+            rootMargin: `${topMargin} 0px ${bottomMargin} 0px`,
+            threshold: 0
+        });
     }
     return ioInstance;
 }
@@ -80,6 +117,13 @@ export function unobserveIO(el) {
     if (!el) return;
     ioCallbacks.delete(el);
     if (ioInstance) ioInstance.unobserve(el);
+}
+
+if (rootWin) {
+    Object.assign(rootWin, {
+        setSdaGaps,
+        getSdaGaps
+    });
 }
 
 // ─── Centralized rAF Batch Ticker ────────────────────────────────────────────

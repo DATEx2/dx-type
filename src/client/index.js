@@ -4,7 +4,7 @@
 
 // Base classes & lifecycle functions
 export { DxBase, rootWin } from './base/dx-base.js';
-export { DX_ANIM, getIO, observeIO, unobserveIO, registerRAF, unregisterRAF } from './base/dx-scheduler.js';
+export { DX_ANIM, getIO, observeIO, unobserveIO, registerRAF, unregisterRAF, setSdaGaps, getSdaGaps } from './base/dx-scheduler.js';
 export { DxTyping, unpackTemplate, observeTypewriter, mountTypewriter, ensureElementsUpToTarget, onTypewriterEnd, cleanupTypedDOM, bootstrapTypewriterObserver } from './base/dx-typing.js';
 export { DxRevealing, finishReveal, startReveal } from './base/dx-revealing.js';
 export { DxMeter, uiNum } from './base/dx-meter.js';
