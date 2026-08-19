@@ -413,7 +413,7 @@ c:nth-child(50) {
   animation-play-state: paused;
 }
 :is(dx-type-ready.dx-type-ready, .dx-type-ready, dx-type-ready.type-ready, .type-ready, [class*=dx-type-ready]) :is(dx-type c, ui-type c, dx-reveal, ui-reveal),
-:is(dx-reveal.dx-type-ready, dx-reveal.type-ready, ui-reveal.dx-type-ready, ui-reveal.type-ready, .ga.dx-type-ready, .ga.type-ready) {
+:is(dx-reveal.dx-type-ready, dx-reveal.type-ready, ui-reveal.dx-type-ready, ui-reveal.type-ready, .ga.dx-type-ready, .ga.type-ready, dx-reveal.dx-reveal-active, ui-reveal.dx-reveal-active) {
   animation-play-state: running !important;
   visibility: visible !important;
 }

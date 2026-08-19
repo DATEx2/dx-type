@@ -588,7 +588,7 @@ var DxTypeSda = class extends DxTyping {
     this.addEventListener("animationend", this._onAnimEnd);
     observeIO(this, (el2) => {
       unpackTemplate(el2);
-      el2.classList.add("type-active");
+      el2.classList.add("dx-type-active");
     });
   }
   _onAnimStart = (e) => {
@@ -626,7 +626,7 @@ var DxReveal = class extends DxRevealing {
     const typeReady = this.closest(".type-ready, dx-type-ready, ui-type-ready");
     if (!typeReady) {
       observeIO(this, (el2) => {
-        el2.classList.add("reveal-active");
+        el2.classList.add("dx-reveal-active");
         const tpl = el2.querySelector(":scope > template");
         if (tpl && tpl.content) tpl.replaceWith(tpl.content);
       });
@@ -653,7 +653,7 @@ var DxRevealSda = class extends DxRevealing {
     if (this.isRevealed) return;
     this._syncTimingAttributes();
     observeIO(this, (el2) => {
-      el2.classList.add("reveal-active");
+      el2.classList.add("dx-reveal-active");
       const tpl = el2.querySelector(":scope > template");
       if (tpl && tpl.content) tpl.replaceWith(tpl.content);
     });

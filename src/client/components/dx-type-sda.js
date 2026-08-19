@@ -21,7 +21,7 @@ export class DxTypeSda extends DxTyping {
         // When scrolled into view, IO unpacks template and triggers time-based typing animation
         observeIO(this, (el) => {
             unpackTemplate(el);
-            el.classList.add('type-active');
+            el.classList.add('dx-type-active');
         });
     }
 

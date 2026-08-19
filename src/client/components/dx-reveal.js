@@ -19,7 +19,7 @@ export class DxReveal extends DxRevealing {
         if (!typeReady) {
             // Standalone <dx-reveal>: trigger on scroll via singleton IO
             observeIO(this, (el) => {
-                el.classList.add('reveal-active');
+                el.classList.add('dx-reveal-active');
                 const tpl = el.querySelector(':scope > template');
                 if (tpl && tpl.content) tpl.replaceWith(tpl.content);
             });

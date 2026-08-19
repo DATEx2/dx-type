@@ -18,7 +18,7 @@ export class DxRevealSda extends DxRevealing {
 
         // When scrolled into view, trigger time-based reveal animation
         observeIO(this, (el) => {
-            el.classList.add('reveal-active');
+            el.classList.add('dx-reveal-active');
             const tpl = el.querySelector(':scope > template');
             if (tpl && tpl.content) tpl.replaceWith(tpl.content);
         });
