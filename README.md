@@ -328,36 +328,50 @@ The embedded odometer/number will **pause its animation** until the typewriter s
 
 ---
 
-### 🏛️ Hero Banner Orchestration
+### 🏛️ 3-Level Nesting Architecture (Scroll-Driven Cascades)
 
-Combine typewriter, reveals, and counters in a unified Hero section:
+Components support clean 3-level hierarchical composition for complex dashboards and landing pages:
+
+```
+Level 1 (Master Container):     <dx-reveal-sda>
+                                      │
+Level 2 (Staggered Cards):      <dx-reveal-sda style="--d: 200ms"> ... <dx-reveal-sda style="--d: 400ms">
+                                      │                                      │
+Level 3 (Text & Meter Leaves):  <dx-type-sda>                          <dx-type-sda>
+                                  └── <dx-number class="tw-embed">       └── <dx-odometer class="tw-embed">
+```
+
+> [!IMPORTANT]
+> **Containment Rule**: `<dx-type>` and `<dx-type-sda>` are inline text animation engines. They must contain **only** letters (`<w>`, `<c>`) and/or embedded meters (`<dx-number class="tw-embed">`, `<dx-odometer class="tw-embed">`). Never place `<dx-reveal>` or `<dx-reveal-sda>` inside a typewriter element.
 
 ```html
-<header class="hero">
-  <dx-type-ready class="type-ready">
-    <!-- 1. Headline types first -->
-    <h1>
-      <dx-type style="--u: 30ms;">
-        <template>
-          <t>
-            <w><c style="--I:0">N</c><c style="--I:1">e</c><c style="--I:2">x</c><c style="--I:3">t</c></w>
-            <w><c style="--I:4">G</c><c style="--I:5">e</c><c style="--I:6">n</c></w>
-            <w><c style="--I:7">P</c><c style="--I:8">e</c><c style="--I:9">r</c><c style="--I:10">f</c><c style="--I:11">o</c><c style="--I:12">r</c><c style="--I:13">m</c><c style="--I:14">a</c><c style="--I:15">n</c><c style="--I:16">c</c><c style="--I:17">e</c></w>
-          </t>
-        </template>
-        <s-t>Next Gen Performance</s-t>
-      </dx-type>
-    </h1>
+<!-- Master Reveal Container (Level 1) -->
+<dx-reveal-sda style="--d: 100ms;">
+  <div class="cards-grid">
+    
+    <!-- Sub-card A (Level 2) -->
+    <dx-reveal-sda style="--d: 200ms;">
+      <span class="badge">⚡ LATENCY</span>
+      <!-- Typewriter + Embedded Counter (Level 3) -->
+      <dx-type-sda style="--d: 350ms;">
+        <template><t><w><c>P</c><c>i</c><c>n</c><c>g</c></w> <w><c><dx-number class="tw-embed" start="0" percent="12" suffix=" ms"></dx-number></c></w> <w><c class="last-char">a</c><c>v</c><c>g</c></w></t></template>
+        <s-t>Ping 12 ms avg</s-t>
+      </dx-type-sda>
+    </dx-reveal-sda>
 
-    <!-- 2. Subtitle reveals at 600ms -->
-    <dx-reveal style="--d: 600ms;">
-      <p class="subtitle">Experience fluid scroll-driven animations at 120fps.</p>
-    </dx-reveal>
+    <!-- Sub-card B (Level 2) -->
+    <dx-reveal-sda style="--d: 350ms;">
+      <span class="badge">🛡️ INTEGRITY</span>
+      <!-- Typewriter + Embedded Odometer (Level 3) -->
+      <dx-type-sda style="--d: 500ms;">
+        <template><t><w><c>S</c><c>a</c><c>v</c><c>e</c><c>d</c></w> <w><c><dx-odometer class="tw-embed" type="int" start="0" percent="99" suffix=" %"></dx-odometer></c></w> <w><c class="last-char">C</c><c>P</c><c>U</c></w></t></template>
+        <s-t>Saved 99 % CPU</s-t>
+      </dx-type-sda>
+    </dx-reveal-sda>
 
-    <!-- 3. Stat counters count up at 800ms -->
-    <dx-reveal style="--d: 800ms;">
-      <div class="stats-row">
-        <div class="stat">
+  </div>
+</dx-reveal-sda>
+```
           <dx-number percent="99.9" suffix="%" type="number-1dec"></dx-number>
           <span>Uptime</span>
         </div>
