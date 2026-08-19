@@ -2,9 +2,37 @@
 
 export const VERSION: string;
 
-/**
- * Tokenize text into `<t><w><c style="--I:index">char</c></w></t>` structure for SSR typewriter rendering.
- * @param text Raw text content
- * @returns HTML string with `<t><w><c>...</c></w></t>` structure
- */
-export function tokenize(text: string): string;
+export interface TokenizeOptions {
+    duration?: number;
+    t?: number;
+    time?: number;
+    delay?: number;
+    d?: number;
+    offset?: number;
+    b?: number;
+}
+
+export interface TokenizeResult {
+    html: string;
+    cleanText: string;
+    totalUnits: number;
+    speed: number;
+    duration: number;
+    delay: number;
+    offset: number;
+    style: string;
+}
+
+export interface SsrDxTypeOptions extends TokenizeOptions {
+    tagName?: string;
+    isSda?: boolean;
+    ariaLabel?: string;
+    className?: string;
+}
+
+export function formatNumber(val: number | string, type?: string, comma?: string, prefix?: string, suffix?: string): string;
+export function generateRibbonHtml(numericValue: number | string, type?: string, comma?: string, prefix?: string, suffix?: string): string;
+export function ssrDxNumber(numericValue: number | string, formattedText?: string, cls?: string, type?: string): string;
+export function ssrDxOdometer(numericValue: number | string, options?: object): string;
+export function tokenize(html: string, options?: TokenizeOptions): TokenizeResult;
+export function ssrDxType(content: string, options?: SsrDxTypeOptions): string;

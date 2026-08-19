@@ -111,12 +111,32 @@ function ssrDxOdometer(numericValue, options = {}) {
   const ariaLabel = `${safePrefix ? safePrefix + " " : ""}${cleanNumber}${safeSuffix ? " " + safeSuffix : ""}`.trim().replace(/"/g, "&quot;");
   return `<dx-odometer${classAttr}${typeAttr} percent="${numericValue}"${prefixAttr}${suffixAttr}${commaAttr} aria-label="${ariaLabel}" aria-hidden="true">${innerHtml}</dx-odometer>`;
 }
-function tokenize(html) {
-  if (!html) return { html: "", totalUnits: 0, speed: 40, totalDur: 0 };
+function wrapHyphenatedWords(html) {
+  if (!html || typeof html !== "string") return "";
+  return html.split(/(<[^>]+>)/g).map((part) => {
+    if (part.startsWith("<")) return part;
+    return part.replace(/(?:^|\s)([\p{L}\p{N}]+-[\p{L}\p{N}-]+)(?=\s|$|[.,;:!?])/gu, (match, word) => {
+      return match.replace(word, `<span class="word">${word}</span>`);
+    });
+  }).join("");
+}
+function splitChars(str) {
+  return str.match(/&[a-z0-9]+;|./gu) || [];
+}
+function tokenize(html, options = {}) {
+  if (!html) return { html: "", cleanText: "", totalUnits: 0, speed: 40, duration: 0, delay: 0, style: "" };
+  const duration = Number(options.duration ?? options.t ?? options.time ?? 580);
+  const delay = Number(options.delay ?? options.d ?? 0);
+  const offset = Number(options.offset ?? options.b ?? 0);
+  let processed = html.replace(/(<[^>]+>)|(\s*·\s*)/g, (match, tag) => {
+    if (tag) return tag;
+    return ' <span class="bullet-dot">\xB7</span> ';
+  });
+  const cleanText = processed.replace(/<(?:ui|dx)-odometer[^>]*aria-label="([^"]*)"[^>]*>[\s\S]*?<\/(?:ui|dx)-odometer>/gi, "$1").replace(/<(?:ui|dx)-number[^>]*aria-label="([^"]*)"[^>]*>[\s\S]*?<\/(?:ui|dx)-number>/gi, "$1").replace(/<(?:ui|dx)-number[^>]*>([\s\S]*?)<\/(?:ui|dx)-number>/gi, "$1").replace(/<[^>]+>/g, "").replace(/&amp;/gi, "&").replace(/&lt;/gi, "<").replace(/&gt;/gi, ">").replace(/&quot;/gi, '"').trim().replace(/\s+/g, " ");
   const tokens = [];
   const tokenRegex = /(<[^>]+>)|(&[a-z0-9]+;)|([^<&]+)/gi;
   let tokenMatch;
-  while ((tokenMatch = tokenRegex.exec(html)) !== null) {
+  while ((tokenMatch = tokenRegex.exec(processed)) !== null) {
     if (tokenMatch[1]) tokens.push({ type: "tag", value: tokenMatch[1] });
     else if (tokenMatch[2]) tokens.push({ type: "entity", value: tokenMatch[2] });
     else if (tokenMatch[3]) tokens.push({ type: "text", value: tokenMatch[3] });
@@ -147,35 +167,70 @@ function tokenize(html) {
       result += `<w style="--w:${charIdx - 1};--N:1"><c>${token.value}</c></w>`;
       charIdx++;
     } else {
-      const words = token.value.split(/(\s+)/);
-      for (let j = 0; j < words.length; j++) {
-        const w = words[j];
-        if (!w) continue;
-        if (/^\s+$/.test(w)) {
-          result += w;
-          continue;
+      const parts = token.value.split(/(\s+)/);
+      for (let j = 0; j < parts.length; j++) {
+        const part = parts[j];
+        if (/^\s+$/.test(part)) {
+          result += part;
+          charIdx += 1;
+        } else if (part.length > 0) {
+          let punct = "";
+          if (i + 1 < tokens.length && tokens[i + 1].type === "text") {
+            const nextText = tokens[i + 1].value;
+            const punctMatch = nextText.match(/^[.,;:!?\\"'"']+/);
+            if (punctMatch) {
+              punct = punctMatch[0];
+              tokens[i + 1].value = nextText.substring(punct.length);
+            }
+          }
+          const wordStart = charIdx;
+          const wordChars = splitChars(part);
+          const punctChars = splitChars(punct);
+          const n = wordChars.length + punctChars.length;
+          const cTags = wordChars.map(() => {
+            charIdx++;
+            return `<c>${wordChars[charIdx - wordStart - 1]}</c>`;
+          }).join("");
+          const pTags = punctChars.map((ch) => {
+            charIdx++;
+            return `<c>${ch}</c>`;
+          }).join("");
+          const wClass = part.includes("-") || punct.includes("-") ? ' class="word"' : "";
+          result += `<w${wClass} style="--w:${wordStart - 1};--N:${n}">${cTags}${pTags}</w>`;
         }
-        const wordStart = charIdx;
-        const chars = Array.from(w);
-        const wCount = chars.length;
-        let wordInner = "";
-        for (let k = 0; k < wCount; k++) {
-          wordInner += `<c>${chars[k]}</c>`;
-          charIdx++;
-        }
-        result += `<w style="--w:${wordStart - 1};--N:${wCount}">${wordInner}</w>`;
       }
     }
   }
-  const totalUnits = Math.max(1, charIdx - 1);
-  const speed = 40;
-  const totalDur = totalUnits * speed;
+  const lastC = result.lastIndexOf("<c");
+  if (lastC !== -1) {
+    result = result.slice(0, lastC + 2) + ' data-last="true" onanimationend="onTypewriterEnd(this)"' + result.slice(lastC + 2);
+  }
+  const totalUnits = charIdx + 2;
+  const speed = duration / Math.max(1, totalUnits);
+  const style = `--b:${offset};--a:${totalUnits};--d:${delay};--t:${duration};--u:${speed.toFixed(3)}`;
   return {
-    html: `<t>${result}</t>`,
+    html: result,
+    cleanText,
     totalUnits,
     speed,
-    totalDur
+    duration,
+    delay,
+    offset,
+    style
   };
+}
+function ssrDxType(content, options = {}) {
+  const tagName = options.tagName || (options.isSda ? "dx-type-sda" : "dx-type");
+  const isSda = tagName === "dx-type-sda" || !!options.isSda;
+  const res = tokenize(content, options);
+  const safeAria = (options.ariaLabel || res.cleanText || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+  const ariaAttr = safeAria ? ` aria-label="${safeAria}"` : "";
+  const classAttr = options.className ? ` class="${options.className}"` : "";
+  const animStartAttr = isSda ? ' onanimationstart="mountTypewriter(this, event)"' : "";
+  if (isSda) {
+    return `<${tagName}${classAttr} style="${res.style}"${ariaAttr}${animStartAttr}><s-t>${wrapHyphenatedWords(content)}</s-t><template><t aria-hidden="true">${res.html}</t></template></${tagName}>`;
+  }
+  return `<${tagName}${classAttr} style="${res.style}"${ariaAttr}><t aria-hidden="true">${res.html}</t></${tagName}>`;
 }
 export {
   VERSION,
@@ -183,6 +238,7 @@ export {
   generateRibbonHtml,
   ssrDxNumber,
   ssrDxOdometer,
+  ssrDxType,
   tokenize
 };
 //# sourceMappingURL=server.js.map
