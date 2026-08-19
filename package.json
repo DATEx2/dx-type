@@ -6,7 +6,7 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/DATEx2/dx-type.git"
+    "url": "git+https://github.com/DATEx2/dx-type.git"
   },
   "homepage": "https://github.com/DATEx2/dx-type#readme",
   "bugs": {
