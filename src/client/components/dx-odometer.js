@@ -48,10 +48,12 @@ export class DxOdometer extends DxMeter {
         };
 
         // Suppress animation/transition events from bubbling to parent typewriter
-        this.addEventListener('animationstart', (e) => { if (e?.stopPropagation) e.stopPropagation(); }, { passive: true });
-        this.addEventListener('transitionstart', (e) => { if (e?.stopPropagation) e.stopPropagation(); }, { passive: true });
-        this.addEventListener('animationend', handleRibbonDone);
-        this.addEventListener('transitionend', handleRibbonDone);
+        if (typeof this.addEventListener === 'function') {
+            this.addEventListener('animationstart', (e) => { if (e?.stopPropagation) e.stopPropagation(); }, { passive: true });
+            this.addEventListener('transitionstart', (e) => { if (e?.stopPropagation) e.stopPropagation(); }, { passive: true });
+            this.addEventListener('animationend', handleRibbonDone);
+            this.addEventListener('transitionend', handleRibbonDone);
+        }
     }
 
     connectedCallback() {
