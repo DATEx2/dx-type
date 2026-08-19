@@ -33,3 +33,4 @@ export class DxType extends DxTyping {
 }
 
 defCustomElement('dx-type', DxType);
+defCustomElement('ui-type', DxType);

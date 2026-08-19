@@ -546,6 +546,7 @@ var DxType = class extends DxTyping {
   }
 };
 defCustomElement("dx-type", DxType);
+defCustomElement("ui-type", DxType);
 
 // src/client/components/dx-type-sda.js
 var DxTypeSda = class extends DxTyping {
