@@ -1,14 +1,10 @@
-/* dx-type.css — Core CSS for @datex2/dx-type Web Components.
+/* dx-type.css — Complete Authoritative CSS for @datex2/dx-type Web Components.
  *
- * All dx-* wrapper elements use display: contents to avoid
- * disrupting parent Grid/Flexbox layouts.
- *
- * This file provides the foundational rules. Product-specific
- * animation keyframes (type-sda, reveal-sda, type-in, reveal-in)
- * remain in the consuming project's CSS (e.g. sda.css, type.css).
+ * Encapsulates all layout safety, mechanical ribbon drum odometers,
+ * dynamic numbers, typewriter characters, accessibility layers and animations.
  */
 
-/* ─── Layout Safety ──────────────────────────────────────── */
+/* ─── 1. Layout Safety & Display Modes ───────────────────────────────────── */
 :is(dx-type, ui-type),
 :is(dx-type-sda, ui-type-sda) {
     display: inline-block;
@@ -28,27 +24,39 @@
     vertical-align: baseline;
 }
 
-/* dx-number and dx-odometer are inline-level (rendered content) */
 :is(dx-number, ui-number) {
-    display: inline-block;
-    vertical-align: baseline;
+    contain: style;
+    display: inline-block !important;
+    vertical-align: baseline !important;
+    position: relative !important;
+    white-space: nowrap !important;
+    word-break: keep-all !important;
+    overflow-wrap: normal !important;
+    flex-shrink: 0 !important;
+    min-width: max-content !important;
 }
 
 :is(dx-odometer, ui-odometer) {
-    display: inline-block;
-    vertical-align: baseline;
+    contain: none !important;
+    display: inline-block !important;
+    vertical-align: baseline !important;
+    position: relative !important;
+    white-space: nowrap !important;
+    word-break: keep-all !important;
+    overflow-wrap: normal !important;
+    flex-shrink: 0 !important;
     line-height: inherit;
 }
 
 .tw-embed,
 :is(dx-odometer, ui-odometer).tw-embed,
 :is(dx-number, ui-number).tw-embed {
-    display: inline-block;
-    vertical-align: baseline;
+    display: inline-block !important;
+    vertical-align: baseline !important;
     line-height: inherit;
 }
 
-/* ─── Typography & Alignment Inheritance Contract ─────────────────────────── */
+/* ─── 2. Typography & Alignment Inheritance ─────────────────────────────── */
 :is(dx-type, ui-type),
 :is(dx-type-sda, ui-type-sda),
 :is(dx-reveal, ui-reveal),
@@ -73,118 +81,136 @@ c,
     word-spacing: inherit;
     text-transform: inherit;
     text-rendering: inherit;
-    font-kerning: none;
+    font-kerning: none !important;
     box-sizing: border-box;
 }
 
-/* ─── Mechanical Drum Odometer Ribbon Rules (1:1 Aspect Ratio) ────────────── */
+/* ─── 3. Mechanical Drum Odometer Ribbon Structure ───────────────────────── */
 :is(dx-odometer, ui-odometer) .odometer,
 :is(dx-odometer, ui-odometer) .odometer-inside {
-    display: inline-flex;
-    align-items: baseline;
-    vertical-align: baseline;
-    position: relative;
-    line-height: 1;
-    font-variant-numeric: tabular-nums;
+    display: inline-flex !important;
+    align-items: baseline !important;
+    vertical-align: baseline !important;
+    position: relative !important;
+    line-height: 1 !important;
+    font-variant-numeric: tabular-nums !important;
 }
 
 :is(dx-odometer, ui-odometer) .odometer-digit {
-    display: inline-block;
-    position: relative;
-    overflow: hidden;
-    vertical-align: baseline;
-    line-height: 1;
-    height: 1em;
+    display: inline-block !important;
+    position: relative !important;
+    overflow: hidden !important;
+    vertical-align: baseline !important;
+    line-height: 1 !important;
+    height: 1em !important;
 }
 
 :is(dx-odometer, ui-odometer) .odometer-digit-spacer {
-    visibility: hidden;
-    display: block;
-    line-height: 1;
-    height: 1em;
+    visibility: hidden !important;
+    display: block !important;
+    line-height: 1 !important;
+    height: 1em !important;
+    pointer-events: none !important;
+    user-select: none !important;
 }
 
 :is(dx-odometer, ui-odometer) .odometer-digit-inner {
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    overflow: hidden;
-    line-height: 1;
-    height: 1em;
+    position: absolute !important;
+    top: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    overflow: hidden !important;
+    line-height: 1 !important;
+    height: 1em !important;
+    text-align: left !important;
 }
 
 :is(dx-odometer, ui-odometer) .odometer-ribbon {
-    display: block;
-    height: 100%;
-    line-height: 1;
+    display: block !important;
+    height: 100% !important;
+    line-height: 1 !important;
 }
 
 :is(dx-odometer, ui-odometer) .odometer-ribbon-inner {
-    display: block;
-    line-height: 1;
+    display: block !important;
+    line-height: 1 !important;
     transform: translateY(var(--initial-pos, 0%));
 }
 
 :is(dx-odometer, ui-odometer) .odometer-value {
-    display: block;
-    text-align: center;
-    height: 1em;
-    line-height: 1;
+    display: block !important;
+    text-align: center !important;
+    height: 1em !important;
+    line-height: 1 !important;
 }
 
 :is(dx-odometer, ui-odometer) .odometer-formatting-mark {
-    display: inline-block;
-    vertical-align: baseline;
-    line-height: 1;
-    height: 1em;
-    white-space: pre;
+    display: inline-block !important;
+    vertical-align: baseline !important;
+    line-height: 1 !important;
+    height: 1em !important;
+    white-space: pre !important;
 }
 
-dx-type,
-dx-type-sda,
-dx-reveal,
-dx-reveal-sda,
-dx-number,
-dx-odometer,
-s-t,
-t,
-w,
-c,
-.odometer,
-.odometer-digit,
-.odometer-digit-spacer,
-.odometer-formatting-mark,
-.ui-num,
-.ui-pfx,
-.ui-sfx {
-    vertical-align: baseline;
+:is(dx-odometer, ui-odometer) :is(.ui-pfx, .ui-sfx) {
+    display: inline-block !important;
+    white-space: pre !important;
+    vertical-align: baseline !important;
 }
 
-.odometer-inside {
-    display: inline-flex;
-    align-items: baseline;
-    vertical-align: baseline;
+/* ─── 4. Dynamic Number (<dx-number>) Structure ──────────────────────────── */
+:is(dx-number, ui-number) .ui-num-wrap {
+    display: inline-block !important;
+    position: relative !important;
+    vertical-align: baseline !important;
+    white-space: nowrap !important;
 }
 
-/* ─── Typewriter Character & Word Elements ─────────────────────────────────── */
-dx-type-sda c,
-dx-type c,
-dx-reveal-sda c,
-dx-reveal c {
+:is(dx-number, ui-number) .ui-num {
+    display: inline !important;
+    vertical-align: baseline !important;
+    width: auto !important;
+    height: auto !important;
+    overflow: visible !important;
+    font-size: inherit !important;
+    line-height: inherit !important;
+    color: inherit !important;
+    -webkit-text-fill-color: currentColor !important;
+    text-shadow: none !important;
+    position: relative !important;
+    pointer-events: auto !important;
+    user-select: text !important;
+}
+
+:is(dx-number, ui-number) .ui-pad,
+:is(dx-number, ui-number) .ui-pfx-pad {
+    display: inline !important;
+    visibility: hidden !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+    user-select: none !important;
+}
+
+:is(dx-number, ui-number) :is(.ui-pfx, .ui-sfx) {
+    display: inline-block !important;
+    white-space: pre !important;
+    vertical-align: baseline !important;
+}
+
+/* ─── 5. Typewriter Character & Word Nodes ───────────────────────────────── */
+:is(dx-type-sda, dx-type, dx-reveal-sda, dx-reveal) c {
     display: inline-block;
     will-change: opacity, transform;
     --I: calc(var(--w, 0) + var(--i, 0));
 }
 
-dx-type-sda w,
-dx-type w {
+:is(dx-type-sda, dx-type) w {
     display: inline-block;
     white-space: nowrap;
 }
 
-/* ─── Automatic Character Indexing (up to 50 characters per word) ──────────── */
+/* Sibling index fallback for characters within word <w> (1..50) */
 c:nth-child(1)  { --i: 0; }
 c:nth-child(2)  { --i: 1; }
 c:nth-child(3)  { --i: 2; }
@@ -236,67 +262,81 @@ c:nth-child(48) { --i: 47; }
 c:nth-child(49) { --i: 48; }
 c:nth-child(50) { --i: 49; }
 
-/* ─── Search Text: Accessible & Searchable (Hidden from visual rendering) ──── */
-:is(dx-type, dx-type-sda, dx-type-ready) > s-t {
-    visibility: hidden !important;
-    display: none !important;
+/* ─── 6. Odometer Animation & Keyframes ──────────────────────────────────── */
+@keyframes run-odometer {
+    0% {
+        transform: translateY(var(--initial-pos, 0%));
+    }
+    100% {
+        transform: translateY(var(--final-pos, 0%));
+    }
 }
 
-/* ─── Animated <t> Tree in Normal Document Flow (Zero-Shift Contract) ─────── */
-:is(dx-type, dx-type-sda, dx-type-ready) > t {
-    display: inline-block;
-    position: static;
-    white-space: nowrap;
+@supports (animation-timeline: view()) {
+    :is(dx-number, dx-odometer).tw-embed .odometer-ribbon-inner {
+        animation-name: run-odometer !important;
+        animation-duration: calc(600ms * var(--A, 1)) !important;
+        animation-timing-function: ease-in-out !important;
+        animation-fill-mode: both !important;
+        animation-delay: calc((var(--d, 0) * 1ms) + (var(--i, calc(var(--w, 0) + var(--I, 1))) * var(--u, 40) * 1ms) + (var(--digit-i, 0) * 50ms) + (var(--u, 40) * 0.35 * 1ms)) !important;
+        animation-play-state: paused;
+    }
+
+    @container style(--play-state: running) {
+        :is(dx-number, dx-odometer).tw-embed .odometer-ribbon-inner,
+        .odometer-ribbon-inner {
+            animation-play-state: running !important;
+        }
+    }
+
+    :is(dx-type-ready, .type-ready) :is(dx-number, dx-odometer).tw-embed .odometer-ribbon-inner,
+    :is(dx-type-ready, .type-ready) * :is(dx-number, dx-odometer).tw-embed .odometer-ribbon-inner {
+        animation-play-state: running !important;
+    }
 }
 
-:is(dx-type, dx-type-sda, dx-type-ready) > template {
-    display: none !important;
+@supports not (animation-timeline: view()) {
+    :is(dx-number, dx-odometer).tw-embed .odometer-ribbon-inner {
+        animation-name: run-odometer !important;
+        animation-duration: calc(600ms * var(--A, 1)) !important;
+        animation-timing-function: ease-in-out !important;
+        animation-fill-mode: both !important;
+        animation-delay: calc((var(--d, 0) * 1ms) + (var(--i, calc(var(--w, 0) + var(--I, 1))) * var(--u, 40) * 1ms) + (var(--digit-i, 0) * 50ms) + (var(--u, 40) * 0.35 * 1ms)) !important;
+        animation-play-state: running !important;
+    }
 }
 
-/* ─── Final State Cleanup ───────────────────────────────────────────────────── */
-dx-type-sda.TYPED,
-dx-type.TYPED,
-dx-reveal-sda.REVEALED,
-dx-reveal.REVEALED {
-    will-change: auto;
+/* Standalone / Hero Odometers */
+:is(dx-type-ready, .type-ready) dx-type dx-odometer .odometer-ribbon-inner {
+    animation-name: run-odometer !important;
+    animation-duration: calc(600ms * var(--A, 1)) !important;
+    animation-timing-function: ease-in-out !important;
+    animation-fill-mode: both !important;
+    animation-play-state: running !important;
 }
 
-dx-type-sda.TYPED c,
-dx-type.TYPED c {
-    opacity: 1 !important;
-    transform: none !important;
-    will-change: auto;
-}
-
-dx-reveal-sda.REVEALED,
-dx-reveal.REVEALED {
-    opacity: 1 !important;
-    transform: none !important;
-}
-
-/* ─── Odometer Static State ─────────────────────────────────────────────────── */
-dx-odometer[data-static] .odometer-ribbon-inner {
+/* ─── 7. Final State & Static Cleanup ────────────────────────────────────── */
+:is(dx-odometer, ui-odometer)[data-static="true"] .odometer-ribbon-inner,
+:is(dx-odometer, ui-odometer)[data-static] .odometer-ribbon-inner,
+.TYPED :is(dx-odometer, ui-odometer) .odometer-ribbon-inner {
     animation: none !important;
     transition: none !important;
+    transform: translateY(var(--final-pos, 0%)) !important;
 }
 
-/* ─── Number Tabular State (Always active to prevent width snapping) ──────── */
-dx-number,
-dx-number .ui-num,
-dx-number .ui-pad,
-dx-odometer {
-    font-variant-numeric: tabular-nums;
+:is(dx-type-sda, dx-type).TYPED c {
+    opacity: 1 !important;
+    transform: none !important;
+    will-change: auto !important;
 }
 
-dx-number .ui-pad {
-    opacity: 0;
+:is(dx-reveal-sda, dx-reveal).REVEALED {
+    opacity: 1 !important;
+    transform: none !important;
+    will-change: auto !important;
 }
 
-dx-number .ui-pfx-pad {
-    opacity: 0;
-}
-
-/* ─── Accessibility: Reduced Motion Support ───────────────────────────────── */
+/* ─── 8. Accessibility: Reduced Motion ───────────────────────────────────── */
 @media (prefers-reduced-motion: reduce) {
     dx-type c,
     dx-type-sda c,
@@ -306,7 +346,6 @@ dx-number .ui-pfx-pad {
         animation: none !important;
         transition: none !important;
         opacity: 1 !important;
-        transform: none !important;
+        transform: translateY(var(--final-pos, 0%)) !important;
     }
 }
-
