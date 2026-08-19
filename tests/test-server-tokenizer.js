@@ -44,9 +44,8 @@ export default function testServerTokenizer() {
 
     // 6. ssrDxReveal test
     const revealHtml = ssrDxReveal('|', { delay: 600, duration: 50, className: 'hero-specs-separator' });
-    assert(revealHtml.startsWith('<dx-reveal class="hero-specs-separator" style="--d:600;--t:50"'), 'Should generate <dx-reveal> with delay and duration style');
-    assert(revealHtml.includes('onanimationstart="startReveal(this, event)"'), 'Should include animationstart handler');
-    assert(revealHtml.includes('onanimationend="finishReveal(this, event)"'), 'Should include animationend handler');
+    assert(revealHtml.startsWith('<dx-reveal class="hero-specs-separator" style="--d:600;--t:50">|'), 'Should generate clean <dx-reveal> with delay and duration style');
+    assert(!revealHtml.includes('onanimationstart='), 'Should NOT include verbose inline handlers');
 
     // 7. Empty input
     assert(tokenize('').html === '', 'Empty input should return empty string');

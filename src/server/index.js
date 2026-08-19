@@ -264,7 +264,7 @@ export function tokenize(html, options = {}) {
 
     const lastC = result.lastIndexOf('<c');
     if (lastC !== -1) {
-        result = result.slice(0, lastC + 2) + ' data-last="true" onanimationend="onTypewriterEnd(this)"' + result.slice(lastC + 2);
+        result = result.slice(0, lastC + 2) + ' data-last="true"' + result.slice(lastC + 2);
     }
 
     const totalUnits = charIdx + 2;
@@ -301,10 +301,9 @@ export function ssrDxType(content, options = {}) {
         .replace(/"/g, '&quot;');
     const ariaAttr = safeAria ? ` aria-label="${safeAria}"` : '';
     const classAttr = options.className ? ` class="${options.className}"` : '';
-    const animStartAttr = isSda ? ' onanimationstart="mountTypewriter(this, event)"' : '';
 
     if (isSda) {
-        return `<${tagName}${classAttr} style="${res.style}"${ariaAttr}${animStartAttr}><s-t>${wrapHyphenatedWords(content)}</s-t><template><t aria-hidden="true">${res.html}</t></template></${tagName}>`;
+        return `<${tagName}${classAttr} style="${res.style}"${ariaAttr}><s-t>${wrapHyphenatedWords(content)}</s-t><template><t aria-hidden="true">${res.html}</t></template></${tagName}>`;
     }
     return `<${tagName}${classAttr} style="${res.style}"${ariaAttr}><t aria-hidden="true">${res.html}</t></${tagName}>`;
 }
@@ -317,13 +316,10 @@ export function ssrDxType(content, options = {}) {
  */
 export function ssrDxReveal(content, options = {}) {
     const tagName = options.tagName || (options.isSda ? 'dx-reveal-sda' : 'dx-reveal');
-    const isSda = tagName === 'dx-reveal-sda' || !!options.isSda;
     const duration = Number(options.duration ?? options.t ?? options.time ?? 300);
     const delay = Number(options.delay ?? options.d ?? 0);
     const classAttr = options.className ? ` class="${options.className}"` : '';
     const styleAttr = ` style="--d:${delay};--t:${duration}"`;
-    const animStart = ' onanimationstart="startReveal(this, event)"';
-    const animEnd = ' onanimationend="finishReveal(this, event)"';
 
-    return `<${tagName}${classAttr}${styleAttr}${animStart}${animEnd}>${content}</${tagName}>`;
+    return `<${tagName}${classAttr}${styleAttr}>${content}</${tagName}>`;
 }
