@@ -10,8 +10,8 @@ import { DxBase, defCustomElement } from '../base/dx-base.js';
 
 export class DxTypeReady extends DxBase {
     connectedCallback() {
-        if (!this.classList.contains('type-ready')) {
-            this.classList.add('type-ready');
+        if (!this.classList.contains('dx-type-ready')) {
+            this.classList.add('dx-type-ready');
         }
         if (!this._pristineHTML && typeof document !== 'undefined' && document.body?.classList?.contains('dx-type-record')) {
             this._pristineHTML = this.innerHTML;

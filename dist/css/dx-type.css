@@ -1,14 +1,10 @@
 /* src/css/dx-type.css */
 :is(dx-type, ui-type),
 :is(dx-type-sda, ui-type-sda) {
-  display: inline-block;
-  position: relative;
-  vertical-align: baseline;
+  display: contents;
 }
 :is(dx-type-ready, ui-type-ready) {
-  display: inline-flex;
-  align-items: baseline;
-  justify-content: center;
+  display: block;
 }
 :is(dx-reveal, ui-reveal),
 :is(dx-reveal-sda, ui-reveal-sda) {
@@ -169,7 +165,7 @@ c,
   white-space: pre !important;
   vertical-align: baseline !important;
 }
-:is(dx-type-sda, dx-type, dx-reveal-sda, dx-reveal) c {
+:is(dx-type-sda, dx-type) c {
   display: inline-block;
   will-change: opacity, transform;
   --I: calc(var(--w, 0) + var(--i, 0));
@@ -177,6 +173,13 @@ c,
 :is(dx-type-sda, dx-type) w {
   display: inline-block;
   white-space: nowrap;
+}
+:is(dx-type-sda, dx-type, dx-type-ready) > s-t,
+s-t {
+  display: inline !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+  user-select: none !important;
 }
 c:nth-child(1) {
   --i: 0;
@@ -328,6 +331,40 @@ c:nth-child(49) {
 c:nth-child(50) {
   --i: 49;
 }
+@keyframes type-in {
+  0% {
+    opacity: 0.001;
+    transform: translateY(2px);
+    visibility: visible;
+  }
+  60%, 100% {
+    opacity: 1;
+    transform: translateY(0);
+    visibility: visible;
+  }
+}
+@keyframes reveal-in {
+  0% {
+    opacity: 0.001;
+    transform: translate3d(0, 15px, 0);
+    visibility: visible;
+  }
+  100% {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+    visibility: visible;
+  }
+}
+@keyframes dx-reveal-sda {
+  0% {
+    opacity: 0.001;
+    transform: translateY(15px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
 @keyframes run-odometer {
   0% {
     transform: translateY(var(--initial-pos, 0%));
@@ -336,13 +373,106 @@ c:nth-child(50) {
     transform: translateY(var(--final-pos, 0%));
   }
 }
+@property --play-state { syntax: "<custom-ident>"; inherits: true; initial-value: paused; }
+@keyframes dx-type-sda {
+  0% {
+    --play-state: paused;
+  }
+  0.001%, 99.999% {
+    --play-state: running;
+  }
+  100% {
+    --play-state: paused;
+  }
+}
+dx-type c {
+  opacity: 0;
+  visibility: hidden;
+  display: inline-block;
+  will-change: transform, opacity;
+  transition: none !important;
+  animation-name: type-in;
+  animation-duration: calc(clamp(100ms, calc(var(--u, 40) * 2.5 * 1ms), 160ms) * var(--A, 1));
+  animation-timing-function: ease-out;
+  animation-fill-mode: both !important;
+  animation-delay: calc(((var(--d, 0) * 1ms) + (var(--I, 0) * (var(--u, 40) * 1ms + var(--c, 0ms)))) * var(--A, 1));
+  animation-play-state: paused;
+}
+dx-reveal {
+  opacity: 0;
+  transform: translate3d(0, 15px, 0);
+  visibility: hidden;
+  will-change: opacity, transform !important;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  animation-name: reveal-in;
+  animation-duration: calc(var(--t, 400ms) * var(--A, 1));
+  animation-timing-function: ease-out;
+  animation-fill-mode: both !important;
+  animation-delay: calc(var(--d, 0) * 1ms * var(--A, 1));
+  animation-play-state: paused;
+}
+:is(dx-type-ready.dx-type-ready, .dx-type-ready) :is(dx-type c, dx-reveal) {
+  animation-play-state: running !important;
+  visibility: visible !important;
+}
+dx-type-sda c {
+  opacity: 0;
+  display: inline-block;
+  will-change: transform, opacity;
+  transition: none !important;
+  animation-name: type-in;
+  animation-duration: calc(clamp(100ms, calc(var(--u, 40) * 2.5 * 1ms), 160ms) * var(--A, 1));
+  animation-timing-function: ease-out;
+  animation-fill-mode: both !important;
+  animation-delay: calc(((var(--d, 0) * 1ms) + (var(--I, 0) * (var(--u, 40) * 1ms + var(--c, 0ms)))) * var(--A, 1));
+  animation-play-state: paused;
+}
+dx-type-sda:has(> template) {
+  opacity: 0.001;
+}
+@supports (animation-timeline: view()) {
+  dx-type-sda,
+  :is(section, [class*=-section], [class*=-grid], [class*=-card]):not(dx-reveal-sda, #product-hero, #product-hero *) {
+    container-type: normal;
+    animation: dx-type-sda linear;
+    animation-timeline: view(block 0px var(--footer--height, 60px));
+    animation-range: cover 0% cover 100%;
+  }
+  dx-reveal-sda {
+    opacity: 0.001;
+    transform: translateY(15px);
+    will-change: transform, opacity;
+    animation: dx-type-sda linear;
+    animation-timeline: view(block 0px var(--footer--height, 60px));
+    animation-range: cover 0% cover 100%;
+  }
+  @container style(--play-state: running) {
+    dx-type-sda c {
+      animation-play-state: running !important;
+    }
+    dx-reveal-sda {
+      animation: dx-reveal-sda calc(var(--t, 360) * 1ms) cubic-bezier(0.16, 1, 0.3, 1) calc(var(--d, 0) * 1ms) both !important;
+      animation-timeline: auto !important;
+    }
+  }
+}
+@supports not (animation-timeline: view()) {
+  dx-type-sda c {
+    animation-play-state: running !important;
+  }
+  dx-reveal-sda {
+    opacity: 1 !important;
+    transform: none !important;
+  }
+}
 @supports (animation-timeline: view()) {
   :is(dx-number, dx-odometer).tw-embed .odometer-ribbon-inner {
     animation-name: run-odometer !important;
     animation-duration: calc(600ms * var(--A, 1)) !important;
     animation-timing-function: ease-in-out !important;
     animation-fill-mode: both !important;
-    animation-delay: calc((var(--d, 0) * 1ms) + (var(--i, calc(var(--w, 0) + var(--I, 1))) * var(--u, 40) * 1ms) + (var(--digit-i, 0) * 50ms) + (var(--u, 40) * 0.35 * 1ms)) !important;
+    animation-delay: calc((var(--d, 0) * 1ms) + (var(--I, 0) * var(--u, 40) * 1ms) + (var(--digit-i, 0) * 50ms) + (var(--u, 40) * 0.35 * 1ms)) !important;
     animation-play-state: paused;
   }
   @container style(--play-state: running) {
@@ -351,8 +481,7 @@ c:nth-child(50) {
       animation-play-state: running !important;
     }
   }
-  :is(dx-type-ready, .type-ready) :is(dx-number, dx-odometer).tw-embed .odometer-ribbon-inner,
-  :is(dx-type-ready, .type-ready) * :is(dx-number, dx-odometer).tw-embed .odometer-ribbon-inner {
+  :is(dx-type-ready.dx-type-ready, .dx-type-ready) :is(dx-number, dx-odometer).tw-embed .odometer-ribbon-inner {
     animation-play-state: running !important;
   }
 }
@@ -362,31 +491,46 @@ c:nth-child(50) {
     animation-duration: calc(600ms * var(--A, 1)) !important;
     animation-timing-function: ease-in-out !important;
     animation-fill-mode: both !important;
-    animation-delay: calc((var(--d, 0) * 1ms) + (var(--i, calc(var(--w, 0) + var(--I, 1))) * var(--u, 40) * 1ms) + (var(--digit-i, 0) * 50ms) + (var(--u, 40) * 0.35 * 1ms)) !important;
+    animation-delay: calc((var(--d, 0) * 1ms) + (var(--I, 0) * var(--u, 40) * 1ms) + (var(--digit-i, 0) * 50ms) + (var(--u, 40) * 0.35 * 1ms)) !important;
     animation-play-state: running !important;
   }
 }
-:is(dx-type-ready, .type-ready) dx-type dx-odometer .odometer-ribbon-inner {
+:is(dx-type-ready.dx-type-ready, .dx-type-ready) dx-type dx-odometer .odometer-ribbon-inner {
   animation-name: run-odometer !important;
   animation-duration: calc(600ms * var(--A, 1)) !important;
   animation-timing-function: ease-in-out !important;
   animation-fill-mode: both !important;
+  animation-delay: calc((var(--d, 0) * 1ms) + (var(--I, 0) * var(--u, 40) * 1ms) + (var(--digit-i, 0) * 50ms) + (var(--u, 40) * 0.35 * 1ms)) !important;
+  animation-play-state: running !important;
+}
+:is(#tile-footer-MNure7 > footer, footer, .ins-tile--footer):is(.show-footer, .showing-footer, .footer-visible) :is(dx-odometer, ui-odometer) .odometer-ribbon-inner {
+  animation-name: run-odometer !important;
+  animation-duration: calc(4000ms * var(--A, 1)) !important;
+  animation-timing-function: cubic-bezier(0.1, 0.9, 0.2, 1) !important;
+  animation-fill-mode: both !important;
+  animation-delay: var(--year-base-delay, 500ms) !important;
   animation-play-state: running !important;
 }
 :is(dx-odometer, ui-odometer)[data-static=true] .odometer-ribbon-inner,
 :is(dx-odometer, ui-odometer)[data-static] .odometer-ribbon-inner,
-.TYPED :is(dx-odometer, ui-odometer) .odometer-ribbon-inner {
+:is(.dx-typed, .TYPED) :is(dx-odometer, ui-odometer) .odometer-ribbon-inner {
   animation: none !important;
   transition: none !important;
   transform: translateY(var(--final-pos, 0%)) !important;
 }
-:is(dx-type-sda, dx-type).TYPED c {
+:is(dx-type-sda, dx-type):is(.dx-typed, .TYPED) c,
+:is(.dx-typed, .TYPED) c {
+  animation: none !important;
   opacity: 1 !important;
+  visibility: visible !important;
   transform: none !important;
   will-change: auto !important;
 }
-:is(dx-reveal-sda, dx-reveal).REVEALED {
+:is(dx-reveal-sda, dx-reveal):is(.dx-revealed, .REVEALED),
+:is(.dx-revealed, .REVEALED) {
+  animation: none !important;
   opacity: 1 !important;
+  visibility: visible !important;
   transform: none !important;
   will-change: auto !important;
 }

@@ -196,8 +196,8 @@ export class DxOdometer extends DxMeter {
                 const wVal = cW.style.getPropertyValue('--w');
                 if (wVal) this.style.setProperty('--w', wVal);
             }
-            const iVal = parentC.style.getPropertyValue('--I');
-            if (iVal) this.style.setProperty('--I', iVal);
+            const iVal = parentC.style.getPropertyValue('--i');
+            if (iVal) this.style.setProperty('--i', iVal);
         }
         const parentType = this.closest('.TYPE, .type, .TYPE-, dx-type, dx-type-sda, ui-type, ui-type-sda');
         if (parentType) {

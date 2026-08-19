@@ -247,7 +247,8 @@ function cleanupTypedDOM(typeEl) {
     const st = typeEl.querySelector(":scope > s-t");
     if (st) st.remove();
     const t = typeEl.querySelector(":scope > t");
-    const scope = t || typeEl;
+    const scope = t || (typeEl && typeof typeEl.querySelectorAll === "function" ? typeEl : null);
+    if (!scope) return;
     const allC = Array.from(scope.querySelectorAll("c"));
     for (const c of allC) {
       if (!c.querySelector("dx-odometer, ui-odometer, dx-number, ui-number, .tw-embed")) {
@@ -643,8 +644,8 @@ defCustomElement("ui-reveal-sda", DxRevealSda);
 // src/client/components/dx-type-ready.js
 var DxTypeReady = class extends DxBase {
   connectedCallback() {
-    if (!this.classList.contains("type-ready")) {
-      this.classList.add("type-ready");
+    if (!this.classList.contains("dx-type-ready")) {
+      this.classList.add("dx-type-ready");
     }
     if (!this._pristineHTML && typeof document !== "undefined" && document.body?.classList?.contains("dx-type-record")) {
       this._pristineHTML = this.innerHTML;
@@ -1131,8 +1132,8 @@ var DxOdometer = class extends DxMeter {
         const wVal = cW.style.getPropertyValue("--w");
         if (wVal) this.style.setProperty("--w", wVal);
       }
-      const iVal = parentC.style.getPropertyValue("--I");
-      if (iVal) this.style.setProperty("--I", iVal);
+      const iVal = parentC.style.getPropertyValue("--i");
+      if (iVal) this.style.setProperty("--i", iVal);
     }
     const parentType = this.closest(".TYPE, .type, .TYPE-, dx-type, dx-type-sda, ui-type, ui-type-sda");
     if (parentType) {

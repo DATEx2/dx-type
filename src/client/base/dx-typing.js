@@ -79,9 +79,9 @@ export function cleanupTypedDOM(typeEl) {
         if (directTpl) directTpl.remove();
         const st = typeEl.querySelector(':scope > s-t');
         if (st) st.remove();
-
         const t = typeEl.querySelector(':scope > t');
-        const scope = t || typeEl;
+        const scope = t || (typeEl && typeof typeEl.querySelectorAll === 'function' ? typeEl : null);
+        if (!scope) return;
 
         // Unwrap in-place: convert all <c> and <w> into normal text nodes in exact same position
         const allC = Array.from(scope.querySelectorAll('c'));
