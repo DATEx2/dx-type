@@ -5,22 +5,22 @@
  */
 
 /* ─── 1. Layout Safety & Display Modes ───────────────────────────────────── */
-:is(dx-type, ui-type),
-:is(dx-type-sda, ui-type-sda) {
+dx-type,
+dx-type-sda {
     display: contents;
 }
 
-:is(dx-type-ready, ui-type-ready) {
+dx-type-ready {
     display: block;
 }
 
-:is(dx-reveal, ui-reveal),
-:is(dx-reveal-sda, ui-reveal-sda) {
+dx-reveal,
+dx-reveal-sda {
     display: inline-block;
     vertical-align: baseline;
 }
 
-:is(dx-number, ui-number) {
+dx-number {
     contain: style;
     display: inline-block !important;
     vertical-align: baseline !important;
@@ -32,7 +32,7 @@
     min-width: max-content !important;
 }
 
-:is(dx-odometer, ui-odometer) {
+dx-odometer {
     contain: none !important;
     display: inline-block !important;
     vertical-align: baseline !important;
@@ -45,21 +45,21 @@
 }
 
 .tw-embed,
-:is(dx-odometer, ui-odometer).tw-embed,
-:is(dx-number, ui-number).tw-embed {
+dx-odometer.tw-embed,
+dx-number.tw-embed {
     display: inline-block !important;
     vertical-align: baseline !important;
     line-height: inherit;
 }
 
 /* ─── 2. Typography & Alignment Inheritance ─────────────────────────────── */
-:is(dx-type, ui-type),
-:is(dx-type-sda, ui-type-sda),
-:is(dx-reveal, ui-reveal),
-:is(dx-reveal-sda, ui-reveal-sda),
-:is(dx-type-ready, ui-type-ready),
-:is(dx-number, ui-number),
-:is(dx-odometer, ui-odometer),
+dx-type,
+dx-type-sda,
+dx-reveal,
+dx-reveal-sda,
+dx-type-ready,
+dx-number,
+dx-odometer,
 t,
 s-t,
 w,
@@ -67,7 +67,11 @@ c,
 .ui-num,
 .ui-pfx,
 .ui-sfx,
-.ui-pad {
+.ui-pad,
+.dx-num,
+.dx-pfx,
+.dx-sfx,
+.dx-pad {
     font-family: inherit;
     font-size: inherit;
     font-weight: inherit;
@@ -82,8 +86,8 @@ c,
 }
 
 /* ─── 3. Mechanical Drum Odometer Ribbon Structure ───────────────────────── */
-:is(dx-odometer, ui-odometer) .odometer,
-:is(dx-odometer, ui-odometer) .odometer-inside {
+dx-odometer .odometer,
+dx-odometer .odometer-inside {
     display: inline-flex !important;
     align-items: baseline !important;
     vertical-align: baseline !important;
@@ -92,7 +96,7 @@ c,
     font-variant-numeric: tabular-nums !important;
 }
 
-:is(dx-odometer, ui-odometer) .odometer-digit {
+dx-odometer .odometer-digit {
     display: inline-block !important;
     position: relative !important;
     overflow: hidden !important;
@@ -101,7 +105,7 @@ c,
     height: 1em !important;
 }
 
-:is(dx-odometer, ui-odometer) .odometer-digit-spacer {
+dx-odometer .odometer-digit-spacer {
     visibility: hidden !important;
     display: block !important;
     line-height: 1 !important;
@@ -110,7 +114,7 @@ c,
     user-select: none !important;
 }
 
-:is(dx-odometer, ui-odometer) .odometer-digit-inner {
+dx-odometer .odometer-digit-inner {
     position: absolute !important;
     top: 0 !important;
     left: 0 !important;
@@ -122,26 +126,26 @@ c,
     text-align: left !important;
 }
 
-:is(dx-odometer, ui-odometer) .odometer-ribbon {
+dx-odometer .odometer-ribbon {
     display: block !important;
     height: 100% !important;
     line-height: 1 !important;
 }
 
-:is(dx-odometer, ui-odometer) .odometer-ribbon-inner {
+dx-odometer .odometer-ribbon-inner {
     display: block !important;
     line-height: 1 !important;
     transform: translateY(var(--initial-pos, 0%));
 }
 
-:is(dx-odometer, ui-odometer) .odometer-value {
+dx-odometer .odometer-value {
     display: block !important;
     text-align: center !important;
     height: 1em !important;
     line-height: 1 !important;
 }
 
-:is(dx-odometer, ui-odometer) .odometer-formatting-mark {
+dx-odometer .odometer-formatting-mark {
     display: inline-block !important;
     vertical-align: baseline !important;
     line-height: 1 !important;
@@ -149,21 +153,21 @@ c,
     white-space: pre !important;
 }
 
-:is(dx-odometer, ui-odometer) :is(.ui-pfx, .ui-sfx) {
+dx-odometer :is(.ui-pfx, .ui-sfx, .dx-pfx, .dx-sfx) {
     display: inline-block !important;
     white-space: pre !important;
     vertical-align: baseline !important;
 }
 
 /* ─── 4. Dynamic Number (<dx-number>) Structure ──────────────────────────── */
-:is(dx-number, ui-number) .ui-num-wrap {
+dx-number .ui-num-wrap {
     display: inline-block !important;
     position: relative !important;
     vertical-align: baseline !important;
     white-space: nowrap !important;
 }
 
-:is(dx-number, ui-number) .ui-num {
+dx-number :is(.ui-num, .dx-num) {
     display: inline !important;
     vertical-align: baseline !important;
     width: auto !important;
@@ -179,8 +183,7 @@ c,
     user-select: text !important;
 }
 
-:is(dx-number, ui-number) .ui-pad,
-:is(dx-number, ui-number) .ui-pfx-pad {
+dx-number :is(.ui-pad, .ui-pfx-pad, .dx-pad, .dx-pfx-pad) {
     display: inline !important;
     visibility: hidden !important;
     opacity: 0 !important;
@@ -188,26 +191,26 @@ c,
     user-select: none !important;
 }
 
-:is(dx-number, ui-number) :is(.ui-pfx, .ui-sfx) {
+dx-number :is(.ui-pfx, .ui-sfx, .dx-pfx, .dx-sfx) {
     display: inline-block !important;
     white-space: pre !important;
     vertical-align: baseline !important;
 }
 
 /* ─── 5. Typewriter Character & Word Nodes ───────────────────────────────── */
-:is(dx-type-sda, dx-type) c {
+dx-type-sda c, dx-type c {
     display: inline-block;
     will-change: opacity, transform;
     --I: calc(var(--w, 0) + var(--i, 0));
 }
 
-:is(dx-type-sda, dx-type) w {
+dx-type-sda w, dx-type w {
     display: inline-block;
     white-space: nowrap;
 }
 
 /* Search & Accessibility Text: preserves exact layout geometry prior to JIT mount (zero CLS) */
-:is(dx-type-sda, dx-type, dx-type-ready) > s-t,
+dx-type-sda > s-t, dx-type > s-t, dx-type-ready > s-t,
 s-t {
     display: inline !important;
     visibility: hidden !important;
@@ -328,7 +331,7 @@ c:nth-child(50) { --i: 49; }
 }
 
 /* ─── 7. Hero Domain (<dx-type>, <dx-reveal>, <dx-type-ready>) ───────────── */
-:is(dx-type, ui-type) c {
+dx-type c {
     opacity: 0;
     visibility: hidden;
     display: inline-block;
@@ -342,7 +345,7 @@ c:nth-child(50) { --i: 49; }
     animation-play-state: paused;
 }
 
-:is(dx-reveal, ui-reveal) {
+dx-reveal {
     opacity: 0;
     transform: translate3d(0, 15px, 0);
     visibility: hidden;
@@ -357,14 +360,14 @@ c:nth-child(50) { --i: 49; }
     animation-play-state: paused;
 }
 
-:is(dx-type-ready.dx-type-ready, .dx-type-ready) :is(dx-type c, ui-type c, dx-reveal, ui-reveal),
-:is(dx-reveal.dx-type-ready, ui-reveal.dx-type-ready, dx-reveal.dx-reveal-active, ui-reveal.dx-reveal-active) {
+dx-type-ready.dx-type-ready :is(dx-type c, dx-reveal),
+:is(dx-reveal.dx-type-ready, dx-reveal.dx-reveal-active) {
     animation-play-state: running !important;
     visibility: visible !important;
 }
 
 /* ─── 8. SDA Domain (<dx-type-sda>, <dx-reveal-sda>) ─────────────────────── */
-:is(dx-type-sda, ui-type-sda) c {
+dx-type-sda c {
     opacity: 0;
     display: inline-block;
     will-change: transform, opacity;
@@ -377,20 +380,20 @@ c:nth-child(50) { --i: 49; }
     animation-play-state: paused;
 }
 
-:is(dx-type-sda, ui-type-sda):has(> template) {
+dx-type-sda:has(> template) {
     opacity: 0.001;
 }
 
 @supports (animation-timeline: view()) {
-    :is(dx-type-sda, ui-type-sda),
-    :is(section, [class*="-section"], [class*="-grid"], [class*="-card"]):not(dx-reveal-sda, ui-reveal-sda, #product-hero, #product-hero *) {
+    dx-type-sda,
+    :is(section, [class*="-section"], [class*="-grid"], [class*="-card"]):not(dx-reveal-sda, #product-hero, #product-hero *) {
         container-type: normal;
         animation: dx-type-sda linear;
         animation-timeline: view(block 0px var(--footer--height, 60px));
         animation-range: cover 0% cover 100%;
     }
 
-    :is(dx-reveal-sda, ui-reveal-sda) {
+    dx-reveal-sda {
         opacity: 0.001;
         transform: translateY(15px);
         will-change: transform, opacity;
@@ -400,10 +403,10 @@ c:nth-child(50) { --i: 49; }
     }
 
     @container style(--play-state: running) {
-        :is(dx-type-sda, ui-type-sda) c {
+        dx-type-sda c {
             animation-play-state: running !important;
         }
-        :is(dx-reveal-sda, ui-reveal-sda) {
+        dx-reveal-sda {
             animation: dx-reveal-sda calc(var(--t, 360) * 1ms) cubic-bezier(0.16, 1, 0.3, 1) calc(var(--d, 0) * 1ms) both !important;
             animation-timeline: auto !important;
         }
@@ -411,10 +414,10 @@ c:nth-child(50) { --i: 49; }
 }
 
 @supports not (animation-timeline: view()) {
-    :is(dx-type-sda, ui-type-sda) c {
+    dx-type-sda c {
         animation-play-state: running !important;
     }
-    :is(dx-reveal-sda, ui-reveal-sda) {
+    dx-reveal-sda {
         opacity: 1 !important;
         transform: none !important;
     }
@@ -422,7 +425,7 @@ c:nth-child(50) { --i: 49; }
 
 /* ─── 9. Odometer Embedded & Standalone Animations ───────────────────────── */
 @supports (animation-timeline: view()) {
-    :is(dx-number, dx-odometer, ui-number, ui-odometer).tw-embed .odometer-ribbon-inner {
+    :is(dx-number, dx-odometer).tw-embed .odometer-ribbon-inner {
         animation-name: run-odometer !important;
         animation-duration: calc(600ms * var(--A, 1)) !important;
         animation-timing-function: ease-in-out !important;
@@ -432,19 +435,19 @@ c:nth-child(50) { --i: 49; }
     }
 
     @container style(--play-state: running) {
-        :is(dx-number, dx-odometer, ui-number, ui-odometer).tw-embed .odometer-ribbon-inner,
+        :is(dx-number, dx-odometer).tw-embed .odometer-ribbon-inner,
         .odometer-ribbon-inner {
             animation-play-state: running !important;
         }
     }
 
-    :is(dx-type-ready.dx-type-ready, .dx-type-ready) :is(dx-number, dx-odometer, ui-number, ui-odometer) .odometer-ribbon-inner {
+    dx-type-ready.dx-type-ready :is(dx-number, dx-odometer) .odometer-ribbon-inner {
         animation-play-state: running !important;
     }
 }
 
 @supports not (animation-timeline: view()) {
-    :is(dx-number, dx-odometer, ui-number, ui-odometer).tw-embed .odometer-ribbon-inner {
+    :is(dx-number, dx-odometer).tw-embed .odometer-ribbon-inner {
         animation-name: run-odometer !important;
         animation-duration: calc(600ms * var(--A, 1)) !important;
         animation-timing-function: ease-in-out !important;
@@ -455,7 +458,7 @@ c:nth-child(50) { --i: 49; }
 }
 
 /* Standalone / Hero Odometers */
-:is(dx-type-ready.dx-type-ready, .dx-type-ready) dx-type dx-odometer .odometer-ribbon-inner {
+dx-type-ready.dx-type-ready dx-type dx-odometer .odometer-ribbon-inner {
     animation-name: run-odometer !important;
     animation-duration: calc(600ms * var(--A, 1)) !important;
     animation-timing-function: ease-in-out !important;
@@ -465,7 +468,7 @@ c:nth-child(50) { --i: 49; }
 }
 
 /* Footer Year Odometers */
-:is(#tile-footer-MNure7 > footer, footer, .ins-tile--footer):is(.show-footer, .showing-footer, .footer-visible) :is(dx-odometer, ui-odometer) .odometer-ribbon-inner {
+:is(#tile-footer-MNure7 > footer, footer, .ins-tile--footer):is(.show-footer, .showing-footer, .footer-visible) dx-odometer .odometer-ribbon-inner {
     animation-name: run-odometer !important;
     animation-duration: calc(4000ms * var(--A, 1)) !important;
     animation-timing-function: cubic-bezier(0.1, 0.9, 0.2, 1) !important;
@@ -475,15 +478,15 @@ c:nth-child(50) { --i: 49; }
 }
 
 /* ─── 10. Final State & Static Cleanup ───────────────────────────────────── */
-:is(dx-odometer, ui-odometer)[data-static="true"] .odometer-ribbon-inner,
-:is(dx-odometer, ui-odometer)[data-static] .odometer-ribbon-inner,
-:is(.dx-typed, .TYPED) :is(dx-odometer, ui-odometer) .odometer-ribbon-inner {
+dx-odometer[data-static="true"] .odometer-ribbon-inner,
+dx-odometer[data-static] .odometer-ribbon-inner,
+:is(.dx-typed, .TYPED) dx-odometer .odometer-ribbon-inner {
     animation: none !important;
     transition: none !important;
     transform: translateY(var(--final-pos, 0%)) !important;
 }
 
-:is(dx-type-sda, dx-type):is(.dx-typed, .TYPED) c,
+dx-type-sda:is(.dx-typed, .TYPED) c, dx-type:is(.dx-typed, .TYPED) c,
 :is(.dx-typed, .TYPED) c {
     animation: none !important;
     opacity: 1 !important;
