@@ -31,10 +31,12 @@ export class uiNum {
         const absValue = Math.abs(numVal);
 
         let decimals = 0;
-        if (type.includes('number-1dec')) {
+        if (type.includes('number-1dec') || type.includes('1dec')) {
             decimals = 1;
-        } else if (type.includes('number')) {
+        } else if (type.includes('number-2dec') || type.includes('currency')) {
             decimals = 2;
+        } else if (type.includes('number')) {
+            decimals = (absValue % 1 !== 0) ? 2 : 0;
         } else if (type.includes('percent')) {
             decimals = (absValue % 1 !== 0) ? 2 : 0;
         } else {
