@@ -15,7 +15,7 @@ export class DxReveal extends DxRevealing {
         if (this.isRevealed) return;
         this._syncTimingAttributes();
 
-        const typeReady = this.closest('.type-ready, dx-type-ready, ui-type-ready');
+        const typeReady = this.closest('dx-type-ready, .dx-type-ready');
         if (!typeReady) {
             // Standalone <dx-reveal>: trigger on scroll via singleton IO
             observeIO(this, (el) => {

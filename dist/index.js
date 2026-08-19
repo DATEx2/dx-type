@@ -623,7 +623,7 @@ var DxReveal = class extends DxRevealing {
   connectedCallback() {
     if (this.isRevealed) return;
     this._syncTimingAttributes();
-    const typeReady = this.closest(".type-ready, dx-type-ready, ui-type-ready");
+    const typeReady = this.closest("dx-type-ready, .dx-type-ready");
     if (!typeReady) {
       observeIO(this, (el2) => {
         el2.classList.add("dx-reveal-active");
