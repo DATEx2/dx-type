@@ -238,6 +238,7 @@ c:nth-child(50) { --i: 49; }
 
 /* ─── Search Text: Accessible & Searchable (Hidden from visual rendering) ──── */
 :is(dx-type, dx-type-sda, dx-type-ready) > s-t {
+    visibility: hidden !important;
     display: none !important;
 }
 

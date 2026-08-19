@@ -12,7 +12,15 @@ export function unpackTemplate(el) {
     if (el.classList && el.classList.contains(DX_ANIM.TYPED)) return false;
     const tpl = el.querySelector(':scope > template');
     if (tpl && tpl.content) {
+        if (!el.getAttribute('role')) el.setAttribute('role', 'text');
+        const st = el.querySelector(':scope > s-t');
+        if (st && !el.getAttribute('aria-label')) {
+            const raw = (st.textContent || '').replace(/\s+/g, ' ').trim();
+            if (raw) el.setAttribute('aria-label', raw);
+        }
         tpl.replaceWith(tpl.content);
+        const t = el.querySelector(':scope > t');
+        if (t) t.setAttribute('aria-hidden', 'true');
         el.classList.add('type-active');
         return true;
     }
