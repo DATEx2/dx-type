@@ -278,11 +278,16 @@ export class DxNumber extends DxMeter {
 
         const p = parseNumParts(this.formatValue(this._value));
         let digitPadHtml = '';
-        const shouldPad = this.hasAttribute('pad') || this.classList.contains('pad');
-        if (shouldPad && targetVal !== undefined && !isNaN(targetVal) && this._value !== targetVal) {
-            const tp = parseNumParts(this.formatValue(targetVal));
-            const missing = tp.digits.replace(/\s/g, '').length - p.digits.replace(/\s/g, '').length;
-            if (missing > 0) digitPadHtml = span('ui-pad', '0'.repeat(missing));
+        const effectiveTarget = (targetVal !== undefined && !isNaN(targetVal)) ? targetVal : this.getNumericValue();
+        if (effectiveTarget !== undefined && !isNaN(effectiveTarget) && this._value !== effectiveTarget) {
+            const tp = parseNumParts(this.formatValue(effectiveTarget));
+            const targetDigits = tp.digits;
+            const currentDigits = p.digits;
+            if (targetDigits.length > currentDigits.length) {
+                const padLen = targetDigits.length - currentDigits.length;
+                const padPrefix = targetDigits.slice(0, padLen).replace(/\d/g, '0');
+                digitPadHtml = span('ui-pad', padPrefix);
+            }
         }
 
         const newInner = `${digitPadHtml}${p.digits}${p.radix}${p.decimals}`;
@@ -291,20 +296,24 @@ export class DxNumber extends DxMeter {
 
     render() {
         const p = parseNumParts(this.formatValue(this._value));
-        const targetVal = (this._targetValue !== undefined && !isNaN(this._targetValue)) ? this._targetValue : (parseFloat(this.getAttribute('percent')) || 0);
+        const targetVal = (this._targetValue !== undefined && !isNaN(this._targetValue)) ? this._targetValue : this.getNumericValue();
         let pfxPadHtml = '';
         let digitPadHtml = '';
 
-        const shouldPad = this.hasAttribute('pad') || this.classList.contains('pad');
-        if (!this.isStatic && shouldPad && targetVal !== undefined && !isNaN(targetVal) && this._value !== targetVal) {
+        if (!this.isStatic && targetVal !== undefined && !isNaN(targetVal) && this._value !== targetVal) {
             const tp = parseNumParts(this.formatValue(targetVal));
             if (this._value === 0 && targetVal > 0 && tp.pfx.includes('+') && !p.pfx.includes('+')) {
                 pfxPadHtml = span('ui-pfx ui-pfx-pad', `${tp.pfx}${tp.pfxSpace}`);
             } else if (!p.pfx && tp.pfx) {
                 pfxPadHtml = span('ui-pfx ui-pfx-pad', `${tp.pfx}${tp.pfxSpace}`);
             }
-            const missing = tp.digits.replace(/\s/g, '').length - p.digits.replace(/\s/g, '').length;
-            if (missing > 0) digitPadHtml = span('ui-pad', '0'.repeat(missing));
+            const targetDigits = tp.digits;
+            const currentDigits = p.digits;
+            if (targetDigits.length > currentDigits.length) {
+                const padLen = targetDigits.length - currentDigits.length;
+                const padPrefix = targetDigits.slice(0, padLen).replace(/\d/g, '0');
+                digitPadHtml = span('ui-pad', padPrefix);
+            }
         }
 
         const pfxHtml = p.pfx ? span('ui-pfx', `${p.pfx}${p.pfxSpace}`) : pfxPadHtml;

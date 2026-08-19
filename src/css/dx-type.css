@@ -294,3 +294,18 @@ dx-number .ui-pad {
 dx-number .ui-pfx-pad {
     opacity: 0;
 }
+
+/* ─── Accessibility: Reduced Motion Support ───────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+    dx-type c,
+    dx-type-sda c,
+    dx-reveal,
+    dx-reveal-sda,
+    dx-odometer .odometer-ribbon-inner {
+        animation: none !important;
+        transition: none !important;
+        opacity: 1 !important;
+        transform: none !important;
+    }
+}
+
