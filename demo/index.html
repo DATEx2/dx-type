@@ -9,7 +9,7 @@
     <!-- Demo Showcase Styles & Keyframes -->
     <link rel="stylesheet" href="demo.css">
 </head>
-<body>
+<body class="dx-type-record">
 
     <header>
         <h1>@datex2/dx-type</h1>
@@ -243,35 +243,6 @@
     <!-- Scripts: Using Standalone IIFE bundle so demo runs directly from file:// or http:// -->
     <script src="../dist/dx-type.iife.min.js"></script>
     <script>
-        // Pristine HTML Template Constants for Perfect Replays
-        const HERO_HEADLINE_HTML = `
-            <dx-type-ready class="type-ready" id="hero-orchestrator">
-                <dx-type style="--d: 100ms; --u: 45ms;">
-                    <template><t><w><c>B</c><c>u</c><c>i</c><c>l</c><c>d</c></w> <w style="--w:5"><c>i</c><c>n</c><c>c</c><c>r</c><c>e</c><c>d</c><c>i</c><c>b</c><c>l</c><c>e</c></w> <w style="--w:15"><c>w</c><c>e</c><c>b</c></w> <w style="--w:18"><c>a</c><c>n</c><c>i</c><c>m</c><c>a</c><c>t</c><c>i</c><c>o</c><c>n</c><c class="last-char">s</c></w></t></template>
-                    <s-t>Build incredible web animations</s-t>
-                </dx-type>
-                <dx-reveal style="--d: 1650ms; color: var(--accent); margin-left: 0.5rem;">
-                    <span>✨ with DATEx2</span>
-                </dx-reveal>
-            </dx-type-ready>
-        `;
-
-        const COMPOSITE_HTML = `
-            <dx-type-ready class="type-ready" id="composite-orchestrator">
-                <dx-type style="--d: 150ms; --u: 40ms;">
-                    <template><t><w><c>S</c><c>i</c><c>n</c><c>c</c><c>e</c></w> <w style="--w:5"><c><dx-odometer class="tw-embed" type="year" start="2018" percent="2026" style="--d: 350ms; margin: 0 0.25rem; color: var(--accent-emerald);"></dx-odometer></c></w> <w style="--w:10"><c>e</c><c>x</c><c>c</c><c>e</c><c>l</c><c>l</c><c>e</c><c>n</c><c class="last-char">c</c><c>e</c></w></t></template>
-                    <s-t>Since <dx-odometer class="tw-embed" type="year" start="2018" percent="2026" style="--d: 350ms; margin: 0 0.25rem; color: var(--accent-emerald);"></dx-odometer> excellence</s-t>
-                </dx-type>
-            </dx-type-ready>
-        `;
-
-        // Replay Hero Headline
-        const replayHeadline = () => {
-            const box = document.getElementById('hero-headline-box');
-            box.innerHTML = '';
-            setTimeout(() => { box.innerHTML = HERO_HEADLINE_HTML; }, 20);
-        };
-
         // Number Counter Handlers
         const numEl = document.getElementById('demo-number');
         document.getElementById('btn-num-2450').addEventListener('click', () => numEl.val(2450, 800));
@@ -281,27 +252,21 @@
         // Odometer Handlers
         const replayOdo = (type = 'year', start = '2018', percent = '2026', suffix = '', comma = '') => {
             const box = document.getElementById('odometer-container');
-            box.innerHTML = '';
-            setTimeout(() => {
-                box.innerHTML = `<dx-odometer type="${type}" start="${start}" percent="${percent}" suffix="${suffix}" comma="${comma}"></dx-odometer>`;
-            }, 20);
+            box.innerHTML = `<dx-odometer type="${type}" start="${start}" percent="${percent}" suffix="${suffix}" comma="${comma}"></dx-odometer>`;
         };
         document.getElementById('btn-replay-odo').addEventListener('click', () => replayOdo('year', '2018', '2026'));
         document.getElementById('btn-odo-price').addEventListener('click', () => replayOdo('number', '0', '1450', ' €', ','));
 
         // Composite Replay Handler
-        const replayComposite = () => {
-            const box = document.getElementById('composite-box');
-            box.innerHTML = '';
-            setTimeout(() => { box.innerHTML = COMPOSITE_HTML; }, 20);
-        };
-        document.getElementById('btn-replay-composite').addEventListener('click', replayComposite);
+        document.getElementById('btn-replay-composite').addEventListener('click', () => {
+            document.getElementById('composite-orchestrator')?.replay();
+        });
 
-        // Master Replay All (All 4 in sync)
+        // Master Replay All (All 4 in sync via pristine ctor-saved state)
         document.getElementById('btn-replay-all').addEventListener('click', () => {
-            replayHeadline();
+            document.getElementById('hero-orchestrator')?.replay();
             replayOdo('year', '2018', '2026');
-            replayComposite();
+            document.getElementById('composite-orchestrator')?.replay();
             numEl.val(0, 100);
             setTimeout(() => numEl.val(2450, 900), 150);
         });

@@ -12,14 +12,37 @@ const BaseHTMLElement = rootWin?.HTMLElement || class {};
  * never affects parent Grid/Flexbox layouts.
  */
 export class DxBase extends BaseHTMLElement {
+    constructor() {
+        super();
+        if (typeof document !== 'undefined' && document.body?.classList?.contains('dx-type-record')) {
+            if (this.innerHTML) this._pristineHTML = this.innerHTML;
+        }
+    }
+
     /**
      * Unpack a direct <template> child, replacing all children with template content.
      * Returns true if a template was unpacked, false otherwise.
      */
     unpackTemplate() {
+        if (!this._pristineHTML && typeof document !== 'undefined' && document.body?.classList?.contains('dx-type-record')) {
+            this._pristineHTML = this.innerHTML;
+        }
         const tpl = this.querySelector(':scope > template');
         if (tpl && tpl.content) {
             tpl.replaceWith(tpl.content);
+            this.classList.add('type-active');
+            return true;
+        }
+        return false;
+    }
+
+    replay() {
+        if (this._pristineHTML) {
+            this._cleanedUp = false;
+            this._typed = 0;
+            this.classList.remove('TYPED', 'TYPING', 'type-active', 'REVEALED');
+            this.innerHTML = this._pristineHTML;
+            this.unpackTemplate();
             return true;
         }
         return false;
