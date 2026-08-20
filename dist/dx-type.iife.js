@@ -38,6 +38,7 @@ var DxType = (() => {
     finishReveal: () => finishReveal,
     getIO: () => getIO,
     getSdaGaps: () => getSdaGaps,
+    getTypewriterObserver: () => getTypewriterObserver,
     mountTypewriter: () => mountTypewriter,
     observeIO: () => observeIO,
     observeTypewriter: () => observeTypewriter2,
@@ -246,6 +247,9 @@ var DxType = (() => {
   }
 
   // src/client/base/dx-typing.js
+  function getTypewriterObserver(win) {
+    return getIO(win);
+  }
   function unpackTemplate(el2) {
     if (!el2) return false;
     if (el2.classList && el2.classList.contains(DX_ANIM.TYPED)) return false;

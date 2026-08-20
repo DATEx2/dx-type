@@ -4,7 +4,11 @@
 // used_by: src/client/components/dx-type.js, src/client/components/dx-type-sda.js
 
 import { DxBase, rootWin } from './dx-base.js';
-import { observeIO, DX_ANIM } from './dx-scheduler.js';
+import { observeIO, getIO, DX_ANIM } from './dx-scheduler.js';
+
+export function getTypewriterObserver(win) {
+    return getIO(win);
+}
 
 // ─── Standalone unpackTemplate (for elements that aren't dx-* instances) ─────
 export function unpackTemplate(el) {

@@ -192,6 +192,9 @@ function unregisterRAF(el2) {
 }
 
 // src/client/base/dx-typing.js
+function getTypewriterObserver(win) {
+  return getIO(win);
+}
 function unpackTemplate(el2) {
   if (!el2) return false;
   if (el2.classList && el2.classList.contains(DX_ANIM.TYPED)) return false;
@@ -1226,6 +1229,7 @@ export {
   finishReveal,
   getIO,
   getSdaGaps,
+  getTypewriterObserver,
   mountTypewriter,
   observeIO,
   observeTypewriter2 as observeTypewriter,
