@@ -8,7 +8,7 @@
 
 import { DxRevealing, finishReveal } from '../base/dx-revealing.js';
 import { defCustomElement } from '../base/dx-base.js';
-import { observeIO } from '../base/dx-scheduler.js';
+import { observeIO, DX_ANIM } from '../base/dx-scheduler.js';
 
 export class DxReveal extends DxRevealing {
     connectedCallback() {
@@ -19,9 +19,8 @@ export class DxReveal extends DxRevealing {
         if (!typeReady) {
             // Standalone <dx-reveal>: trigger on scroll via singleton IO
             observeIO(this, (el) => {
-                el.classList.add('dx-reveal-active');
-                const tpl = el.querySelector(':scope > template');
-                if (tpl && tpl.content) tpl.replaceWith(tpl.content);
+                el.unpackTemplate();
+                el.classList.add(DX_ANIM.REVEALING);
             });
         }
 

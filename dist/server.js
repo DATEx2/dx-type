@@ -19,7 +19,7 @@ function formatNumber(val, type = "int", comma = ",", prefix = "", suffix = "") 
   const sfx = suffix ? `${suffix.startsWith(" ") ? "" : " "}${suffix}` : "";
   return `${pfx}${formatted}${sfx}`;
 }
-function generateRibbonHtml(numericValue, type = "int", comma = ",", prefix = "", suffix = "") {
+function generateRibbonHtml(numericValue, type = "int", comma = ",", prefix = "", suffix = "", startValue = null) {
   const formatted = formatNumber(numericValue, type, comma, prefix, suffix);
   const numberPartMatch = /(.*?-?)(\d(?:[\d\s]*\d)?)([,.]?)(\d*)(.*)/.exec(formatted);
   const prefixText = (numberPartMatch?.[1] || "").trim();
@@ -28,6 +28,16 @@ function generateRibbonHtml(numericValue, type = "int", comma = ",", prefix = ""
   const decimalDigits = numberPartMatch?.[4] || "";
   const suffixText = (numberPartMatch?.[5] || "").trim();
   const formattedNumberStr = mainDigits + radixMark + decimalDigits;
+  let formattedStartStr = null;
+  if (startValue !== null && startValue !== void 0 && startValue !== "") {
+    const startNumeric = parseFloat(startValue);
+    if (!isNaN(startNumeric)) {
+      const startFormatted = formatNumber(startNumeric, type, comma, prefix, suffix);
+      const startMatch = /(.*?-?)(\d(?:[\d\s]*\d)?)([,.]?)(\d*)(.*)/.exec(startFormatted);
+      formattedStartStr = (startMatch?.[2] || "") + (startMatch?.[3] || "") + (startMatch?.[4] || "");
+    }
+  }
+  const isYear = type === "year";
   let odoInsideHtml = "";
   for (let i = 0; i < formattedNumberStr.length; i++) {
     const char = formattedNumberStr[i];
@@ -36,33 +46,59 @@ function generateRibbonHtml(numericValue, type = "int", comma = ",", prefix = ""
       let ribbonValuesHtml = "";
       let totalItems = 0;
       let finalIndex = 0;
-      if (digitVal === 0 && formattedNumberStr.length > 1) {
-        for (let j = 0; j <= 10; j++) {
-          const val = j % 10;
-          const lastClass = j === 10 ? " odometer-last-value" : "";
-          const firstClass = j === 0 ? " odometer-first-value" : "";
+      let startDigitVal = 0;
+      if (formattedStartStr) {
+        const paddedStart = formattedStartStr.padStart(formattedNumberStr.length, "0");
+        startDigitVal = parseInt(paddedStart[i], 10);
+        if (isNaN(startDigitVal)) startDigitVal = 0;
+      }
+      if (isYear && formattedStartStr) {
+        if (startDigitVal === digitVal) {
+          ribbonValuesHtml = `<span class="odometer-value odometer-first-value odometer-last-value">${digitVal}</span>`;
+          totalItems = 1;
+          finalIndex = 0;
+        } else {
+          let currentVal = startDigitVal;
+          let count = 0;
+          while (true) {
+            const isFirst = count === 0;
+            const isLast = currentVal === digitVal && count > 0;
+            const firstClass = isFirst ? " odometer-first-value" : "";
+            const lastClass = isLast ? " odometer-last-value" : "";
+            ribbonValuesHtml += `<span class="odometer-value${firstClass}${lastClass}">${currentVal}</span>`;
+            count++;
+            if (isLast || count > 20) break;
+            currentVal = (currentVal + 1) % 10;
+          }
+          totalItems = count;
+          finalIndex = count - 1;
+        }
+      } else {
+        const digitFromRight = formattedNumberStr.length - 1 - i;
+        const fullSpins = Math.min(3, Math.max(1, digitFromRight + 1));
+        const diff = (digitVal - startDigitVal + 10) % 10;
+        let totalSteps = fullSpins * 10 + diff;
+        if (totalSteps === 0) totalSteps = 10;
+        for (let step = 0; step <= totalSteps; step++) {
+          const val = (startDigitVal + step) % 10;
+          const isFirst = step === 0;
+          const isLast = step === totalSteps;
+          const firstClass = isFirst ? " odometer-first-value" : "";
+          const lastClass = isLast ? " odometer-last-value" : "";
           ribbonValuesHtml += `<span class="odometer-value${firstClass}${lastClass}">${val}</span>`;
         }
-        totalItems = 11;
-        finalIndex = 10;
-      } else {
-        for (let j = 0; j <= digitVal; j++) {
-          const lastClass = j === digitVal ? " odometer-last-value" : "";
-          const firstClass = j === 0 ? " odometer-first-value" : "";
-          ribbonValuesHtml += `<span class="odometer-value${firstClass}${lastClass}">${j}</span>`;
-        }
-        totalItems = digitVal + 1;
-        finalIndex = digitVal;
+        totalItems = totalSteps + 1;
+        finalIndex = totalSteps;
       }
       const finalPosPercent = -(finalIndex / totalItems * 100).toFixed(4);
       const ribbonStyle = `style="--initial-pos: 0%; --final-pos: ${finalPosPercent}%; --digit-i: ${i};"`;
       odoInsideHtml += `<span class="odometer-digit"><span class="odometer-digit-spacer">${char}</span><span class="odometer-digit-inner"><span class="odometer-ribbon"><span class="odometer-ribbon-inner" data-final-pos="${finalPosPercent}%" ${ribbonStyle}>${ribbonValuesHtml}</span></span></span></span>`;
     } else {
-      odoInsideHtml += `<span class="odometer-formatting-mark">${char}</span>`;
+      odoInsideHtml += `<span class="odometer-formatting-mark">${char === " " ? "&nbsp;" : char}</span>`;
     }
   }
-  const pfxHtml = prefixText ? `<span class="ui-pfx">${prefixText} </span>` : "";
-  const sfxHtml = suffixText ? `<span class="ui-sfx"> ${suffixText}</span>` : "";
+  const pfxHtml = prefixText ? `<span class="ui-pfx">${prefixText}${prefix.endsWith(" ") ? "" : " "}</span>` : "";
+  const sfxHtml = suffixText ? `<span class="ui-sfx">${suffix.startsWith(" ") ? "" : " "}${suffixText}</span>` : "";
   return `${pfxHtml}<span class="ui-odo"><span class="odometer odometer-theme-datex2"><span class="odometer-inside">${odoInsideHtml}</span></span></span>${sfxHtml}`;
 }
 function ssrDxNumber(numericValue, formattedText, cls = "", type = "number") {
@@ -106,19 +142,11 @@ function ssrDxOdometer(numericValue, options = {}) {
   const typeAttr = ` type="${type}"`;
   const classStr = twContext ? `tw-embed ${className}`.trim() : className;
   const classAttr = classStr ? ` class="${classStr}"` : "";
-  const innerHtml = generateRibbonHtml(numericValue, type, comma, safePrefix, safeSuffix);
   const cleanNumber = String(numericValue);
   const ariaLabel = `${safePrefix ? safePrefix + " " : ""}${cleanNumber}${safeSuffix ? " " + safeSuffix : ""}`.trim().replace(/"/g, "&quot;");
-  return `<dx-odometer${classAttr}${typeAttr} percent="${numericValue}"${prefixAttr}${suffixAttr}${commaAttr} aria-label="${ariaLabel}" aria-hidden="true">${innerHtml}</dx-odometer>`;
-}
-function wrapHyphenatedWords(html) {
-  if (!html || typeof html !== "string") return "";
-  return html.split(/(<[^>]+>)/g).map((part) => {
-    if (part.startsWith("<")) return part;
-    return part.replace(/(?:^|\s)([\p{L}\p{N}]+-[\p{L}\p{N}-]+)(?=\s|$|[.,;:!?])/gu, (match, word) => {
-      return match.replace(word, `<span class="word">${word}</span>`);
-    });
-  }).join("");
+  const formattedText = `${safePrefix}${cleanNumber}${safeSuffix}`;
+  const stHtml = twContext ? "" : `<s-t>${formattedText}</s-t>`;
+  return `<dx-odometer${classAttr}${typeAttr} percent="${numericValue}"${prefixAttr}${suffixAttr}${commaAttr} aria-label="${ariaLabel}" aria-hidden="true">${stHtml}</dx-odometer>`;
 }
 function splitChars(str) {
   return str.match(/&[a-z0-9]+;|./gu) || [];
@@ -128,21 +156,17 @@ function tokenize(html, options = {}) {
   const duration = Number(options.duration ?? options.t ?? options.time ?? 580);
   const delay = Number(options.delay ?? options.d ?? 0);
   const offset = Number(options.offset ?? options.b ?? 0);
-  let processed = html.replace(/(<[^>]+>)|(\s*·\s*)/g, (match, tag) => {
-    if (tag) return tag;
-    return ' <span class="bullet-dot">\xB7</span> ';
-  });
-  const cleanText = processed.replace(/<(?:ui|dx)-odometer[^>]*aria-label="([^"]*)"[^>]*>[\s\S]*?<\/(?:ui|dx)-odometer>/gi, "$1").replace(/<(?:ui|dx)-number[^>]*aria-label="([^"]*)"[^>]*>[\s\S]*?<\/(?:ui|dx)-number>/gi, "$1").replace(/<(?:ui|dx)-number[^>]*>([\s\S]*?)<\/(?:ui|dx)-number>/gi, "$1").replace(/<[^>]+>/g, "").replace(/&amp;/gi, "&").replace(/&lt;/gi, "<").replace(/&gt;/gi, ">").replace(/&quot;/gi, '"').trim().replace(/\s+/g, " ");
+  const cleanText = html.replace(/<(?:ui|dx)-odometer[^>]*aria-label="([^"]*)"[^>]*>[\s\S]*?<\/(?:ui|dx)-odometer>/gi, "$1").replace(/<(?:ui|dx)-number[^>]*aria-label="([^"]*)"[^>]*>[\s\S]*?<\/(?:ui|dx)-number>/gi, "$1").replace(/<(?:ui|dx)-number[^>]*>([\s\S]*?)<\/(?:ui|dx)-number>/gi, "$1").replace(/<[^>]+>/g, "").replace(/&amp;/gi, "&").replace(/&lt;/gi, "<").replace(/&gt;/gi, ">").replace(/&quot;/gi, '"').trim().replace(/\s+/g, " ");
   const tokens = [];
   const tokenRegex = /(<[^>]+>)|(&[a-z0-9]+;)|([^<&]+)/gi;
   let tokenMatch;
-  while ((tokenMatch = tokenRegex.exec(processed)) !== null) {
+  while ((tokenMatch = tokenRegex.exec(html)) !== null) {
     if (tokenMatch[1]) tokens.push({ type: "tag", value: tokenMatch[1] });
     else if (tokenMatch[2]) tokens.push({ type: "entity", value: tokenMatch[2] });
     else if (tokenMatch[3]) tokens.push({ type: "text", value: tokenMatch[3] });
   }
   let result = "";
-  let charIdx = 1;
+  let charIdx = 0;
   for (let i = 0; i < tokens.length; i++) {
     const token = tokens[i];
     if (token.type === "tag") {
@@ -159,12 +183,12 @@ function tokenize(html, options = {}) {
             else if (/^<\/(?:dx|ui)-(?:number|odometer)>/i.test(tokens[i].value)) depth--;
           }
         }
-        result += `<w style="--w:${wordStart - 1};--N:1"><c class="c-ui-num">${compHTML}</c></w>`;
+        result += `<w style="--w:${wordStart};--N:1"><c class="c-ui-num">${compHTML}</c></w>`;
       } else {
         result += token.value;
       }
     } else if (token.type === "entity") {
-      result += `<w style="--w:${charIdx - 1};--N:1"><c>${token.value}</c></w>`;
+      result += `<w style="--w:${charIdx};--N:1"><c>${token.value}</c></w>`;
       charIdx++;
     } else {
       const parts = token.value.split(/(\s+)/);
@@ -187,26 +211,28 @@ function tokenize(html, options = {}) {
           const wordChars = splitChars(part);
           const punctChars = splitChars(punct);
           const n = wordChars.length + punctChars.length;
-          const cTags = wordChars.map(() => {
+          const cTags = wordChars.map((ch) => {
             charIdx++;
-            return `<c>${wordChars[charIdx - wordStart - 1]}</c>`;
+            const cClass = ch === "\xB7" ? ' class="bullet-dot"' : "";
+            return `<c${cClass}>${ch}</c>`;
           }).join("");
           const pTags = punctChars.map((ch) => {
             charIdx++;
-            return `<c>${ch}</c>`;
+            const pClass = ch === "\xB7" ? ' class="bullet-dot"' : "";
+            return `<c${pClass}>${ch}</c>`;
           }).join("");
           const wClass = part.includes("-") || punct.includes("-") ? ' class="word"' : "";
-          result += `<w${wClass} style="--w:${wordStart - 1};--N:${n}">${cTags}${pTags}</w>`;
+          result += `<w${wClass} style="--w:${wordStart};--N:${n}">${cTags}${pTags}</w>`;
         }
       }
     }
   }
   const lastC = result.lastIndexOf("<c");
   if (lastC !== -1) {
-    result = result.slice(0, lastC + 2) + ' data-last="true"' + result.slice(lastC + 2);
+    result = result.slice(0, lastC + 2) + ' data-last="true" onanimationend="return onTypewriterEnd(this, event)"' + result.slice(lastC + 2);
   }
-  const totalUnits = charIdx + 2;
-  const speed = duration / Math.max(1, totalUnits);
+  const totalUnits = Math.max(1, charIdx);
+  const speed = duration / totalUnits;
   const style = `--b:${offset};--a:${totalUnits};--d:${delay};--t:${duration};--u:${speed.toFixed(3)}`;
   return {
     html: result,
@@ -226,14 +252,25 @@ function ssrDxType(content, options = {}) {
   const safeAria = (options.ariaLabel || res.cleanText || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
   const ariaAttr = safeAria ? ` aria-label="${safeAria}"` : "";
   const classAttr = options.className ? ` class="${options.className}"` : "";
+  const stContent = typeof content === "string" ? content.replace(/<(?:dx|ui)-odometer\b([^>]*)>[\s\S]*?<\/(?:dx|ui)-odometer>/gi, (match, attrs) => {
+    const cleanAttrs = attrs.replace(/\bdata-static(?:="[^"]*")?/gi, "").trim();
+    const valMatch = attrs.match(/\bpercent=["']([^"']+)["']/i) || attrs.match(/\bvalue=["']([^"']+)["']/i);
+    const sfxMatch = attrs.match(/\bsuffix=["']([^"']+)["']/i);
+    const pfxMatch = attrs.match(/\bprefix=["']([^"']+)["']/i);
+    const val = valMatch ? valMatch[1] : "";
+    const pfx = pfxMatch ? pfxMatch[1] : "";
+    const sfx = sfxMatch ? sfxMatch[1] : "";
+    const cleanText = `${pfx}${val}${sfx}`.trim();
+    return `<dx-odometer ${cleanAttrs} data-static="true">${cleanText}</dx-odometer>`;
+  }) : content;
   if (isSda) {
-    return `<${tagName}${classAttr} style="${res.style}"${ariaAttr}><s-t>${wrapHyphenatedWords(content)}</s-t><template><t aria-hidden="true">${res.html}</t></template></${tagName}>`;
+    return `<${tagName}${classAttr} style="${res.style}"${ariaAttr}><s-t>${stContent}</s-t><template><t aria-hidden="true">${res.html}</t></template></${tagName}>`;
   }
-  return `<${tagName}${classAttr} style="${res.style}"${ariaAttr}><t aria-hidden="true">${res.html}</t></${tagName}>`;
+  return `<${tagName}${classAttr} style="${res.style}"${ariaAttr}><s-t>${stContent}</s-t><t aria-hidden="true">${res.html}</t></${tagName}>`;
 }
 function ssrDxReveal(content, options = {}) {
   const tagName = options.tagName || (options.isSda ? "dx-reveal-sda" : "dx-reveal");
-  const duration = Number(options.duration ?? options.t ?? options.time ?? 300);
+  const duration = Number(options.duration ?? options.t ?? options.time ?? (options.isSda ? 500 : 600));
   const delay = Number(options.delay ?? options.d ?? 0);
   const classAttr = options.className ? ` class="${options.className}"` : "";
   const styleAttr = ` style="--d:${delay};--t:${duration}"`;
