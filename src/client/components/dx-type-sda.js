@@ -18,11 +18,18 @@ export class DxTypeSda extends DxTyping {
 
         this.addEventListener('animationend', this._onAnimEnd);
 
+        const hasTemplate = !!this.querySelector(':scope > template');
+        const isSdaSupported = typeof CSS !== 'undefined' && CSS.supports && CSS.supports('animation-timeline', 'view()');
+
         // When scrolled into view, IO unpacks template and triggers time-based typing animation
-        observeIO(this, (el) => {
-            unpackTemplate(el);
-            el.classList.add('dx-type-active');
-        });
+        if (hasTemplate || !isSdaSupported) {
+            observeIO(this, (el) => {
+                unpackTemplate(el);
+                if (!isSdaSupported) {
+                    el.classList.add(DX_ANIM.TYPING);
+                }
+            });
+        }
     }
 
     _onAnimStart = (e) => {
@@ -33,13 +40,17 @@ export class DxTypeSda extends DxTyping {
     };
 
     _onAnimEnd = (e) => {
-        if (e.animationName === DX_ANIM.KF_TYPE_SDA || e.animationName === DX_ANIM.KF_TYPE_IN) {
+        if (e.animationName === DX_ANIM.KF_TYPE_SDA) return;
+        if (e.animationName === DX_ANIM.KF_TYPE_IN) {
             const target = e.target;
-            if (target.classList?.contains('last-char') || target.hasAttribute?.('last-char')) {
+            if (target.classList?.contains('last-char') || target.hasAttribute?.('last-char') || target.getAttribute?.('data-last') === 'true') {
                 onTypewriterEnd(target, e);
             } else {
-                const allC = this.querySelectorAll('c');
-                if (allC.length && target === allC[allC.length - 1]) {
+                if (!this._lastC) {
+                    const allC = this.querySelectorAll('c');
+                    this._lastC = allC.length ? allC[allC.length - 1] : null;
+                }
+                if (this._lastC && target === this._lastC) {
                     onTypewriterEnd(target, e);
                 }
             }

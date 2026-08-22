@@ -6,7 +6,9 @@ export class DxType extends DxTyping {
     connectedCallback() {
         this._syncTimingAttributes();
         if (!this.isTyped) {
-            this.unpackTemplate();
+            if (this.querySelector(':scope > template')) {
+                this.unpackTemplate();
+            }
             this.addEventListener('animationend', this._onAnimEnd);
         }
     }
@@ -14,11 +16,14 @@ export class DxType extends DxTyping {
     _onAnimEnd = (e) => {
         if (e.animationName === DX_ANIM.KF_TYPE_IN || e.animationName === DX_ANIM.KF_TYPE_SDA) {
             const target = e.target;
-            if (target.classList?.contains('last-char') || target.hasAttribute?.('last-char')) {
+            if (target.classList?.contains('last-char') || target.hasAttribute?.('last-char') || target.getAttribute?.('data-last') === 'true') {
                 onTypewriterEnd(target, e);
             } else {
-                const allC = this.querySelectorAll('c');
-                if (allC.length && target === allC[allC.length - 1]) {
+                if (!this._lastC) {
+                    const allC = this.querySelectorAll('c');
+                    this._lastC = allC.length ? allC[allC.length - 1] : null;
+                }
+                if (target === this._lastC) {
                     onTypewriterEnd(target, e);
                 }
             }

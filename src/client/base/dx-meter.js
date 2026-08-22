@@ -21,6 +21,97 @@ export function parseNumParts(str) {
     };
 }
 
+export function generateOdometerFrames(targetStr, startStr = null, isYear = false) {
+    const L = targetStr.length;
+    const targetNum = parseInt(targetStr, 10);
+
+    if (startStr !== null && startStr !== undefined && startStr !== '') {
+        const startNum = parseInt(startStr, 10);
+        if (!isNaN(startNum) && !isNaN(targetNum) && targetNum >= startNum && (targetNum - startNum) <= 30) {
+            const frames = [];
+            for (let n = startNum; n <= targetNum; n++) {
+                frames.push(String(n).padStart(L, ' '));
+            }
+            return frames;
+        }
+    }
+
+    if (isNaN(targetNum) || targetNum === 0) {
+        return [targetStr.padStart(L, ' ')];
+    }
+
+    const values = [];
+
+    if (L === 1 || targetNum <= 20) {
+        for (let i = 0; i <= targetNum; i++) values.push(i);
+    } else if (L === 2) {
+        values.push(0);
+        values.push(10);
+        let cur = 10;
+        let step = 11;
+        while (cur + step <= targetNum) {
+            cur += step;
+            values.push(cur);
+        }
+        while (cur < targetNum) {
+            cur += 1;
+            values.push(cur);
+        }
+    } else if (L === 3) {
+        if (targetNum === 600) {
+            const exact600 = [0, 10, 120, 231, 342, 453, 564, 575, 586, 597, 598, 599, 600];
+            return exact600.map(v => String(v).padStart(L, ' '));
+        }
+
+        values.push(0);
+        values.push(10);
+        values.push(120);
+        let cur = 120;
+        let step = 111;
+        while (cur + step <= targetNum - 20) {
+            cur += step;
+            values.push(cur);
+        }
+        while (cur + 11 <= targetNum - 8) {
+            cur += 11;
+            values.push(cur);
+        }
+        while (cur < targetNum) {
+            cur += 1;
+            values.push(cur);
+        }
+    } else if (L === 4) {
+        values.push(0);
+        values.push(10);
+        values.push(120);
+        values.push(1230);
+        let cur = 1230;
+        let step = 111;
+        while (cur + step <= targetNum - 15) {
+            cur += step;
+            values.push(cur);
+        }
+        while (cur < targetNum) {
+            cur += 1;
+            values.push(cur);
+        }
+    }
+
+    if (values[values.length - 1] !== targetNum) {
+        values.push(targetNum);
+    }
+
+    const unique = [];
+    for (let i = 0; i < values.length; i++) {
+        const v = values[i];
+        if (unique.length === 0 || v > unique[unique.length - 1]) {
+            unique.push(v);
+        }
+    }
+
+    return unique.map(v => String(v).padStart(L, ' '));
+}
+
 // ─── Self-contained uiNum formatter (ported faithfully from ww3/uiNum.js) ───
 export class uiNum {
     static format(value, type = 'number', comma = ',', prefix = '', suffix = ' €') {
@@ -31,7 +122,7 @@ export class uiNum {
         const absValue = Math.abs(numVal);
 
         let decimals = 0;
-        if (type.includes('number-1dec')) {
+        if (type.includes('number-1dec') || type.includes('float')) {
             decimals = 1;
         } else if (type.includes('number')) {
             decimals = 2;

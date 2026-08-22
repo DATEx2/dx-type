@@ -7,19 +7,19 @@ const rootWin = typeof window !== 'undefined' ? window : (typeof global !== 'und
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 export const DX_ANIM = Object.freeze({
-    // Final-state classes (uppercase = machine states, never in selectors as triggers)
-    TYPED:     'TYPED',
-    TYPING:    'TYPING',
-    REVEALED:  'REVEALED',
-    REVEALING: 'REVEALING',
+    // Final-state classes (normalized to dx-* prefix)
+    TYPED:     'dx-typed',
+    TYPING:    'dx-typing',
+    REVEALED:  'dx-revealed',
+    REVEALING: 'dx-revealing',
 
     // SSR guard markers — prevent re-transpiling
     TYPE_GUARD:   'TYPE-',
     REVEAL_GUARD: 'REVEAL-',
 
     // Keyframe names emitted by CSS
-    KF_TYPE_SDA:      'type-sda',
-    KF_REVEAL_SDA:    'reveal-sda',
+    KF_TYPE_SDA:      'dx-type-sda',
+    KF_REVEAL_SDA:    'dx-reveal-sda',
     KF_REVEAL_IN:     'reveal-in',
     KF_REVEAL_FADE:   'reveal-fade-in',
     KF_TYPE_IN:       'type-in',
@@ -91,6 +91,7 @@ export function getIO() {
         const topMargin = formatMarginValue(gaps.sdaTopGap);
         const bottomMargin = formatMarginValue(gaps.sdaBottomGap);
         ioInstance = new IO(ioHandler, {
+            root: null, // Visual Viewport (window)
             rootMargin: `${topMargin} 0px ${bottomMargin} 0px`,
             threshold: 0
         });
@@ -128,6 +129,7 @@ if (rootWin) {
 
 // ─── Centralized rAF Batch Ticker ────────────────────────────────────────────
 const activeAnimations = new Set();
+const animEndListeners = new Set();
 let rafId = null;
 
 const raf = (typeof requestAnimationFrame !== 'undefined')
@@ -142,9 +144,20 @@ const caf = (typeof cancelAnimationFrame !== 'undefined')
         ? window.cancelAnimationFrame.bind(window)
         : clearTimeout);
 
+function notifyAnimEnd() {
+    if (animEndListeners.size > 0) {
+        const listeners = Array.from(animEndListeners);
+        animEndListeners.clear();
+        for (let i = 0; i < listeners.length; i++) {
+            listeners[i]();
+        }
+    }
+}
+
 function tick(now) {
     if (activeAnimations.size === 0) {
         rafId = null;
+        notifyAnimEnd();
         return;
     }
     const list = Array.from(activeAnimations);
@@ -155,6 +168,7 @@ function tick(now) {
         rafId = raf(tick);
     } else {
         rafId = null;
+        notifyAnimEnd();
     }
 }
 
@@ -173,8 +187,36 @@ export function registerRAF(el) {
  */
 export function unregisterRAF(el) {
     activeAnimations.delete(el);
-    if (activeAnimations.size === 0 && rafId) {
-        caf(rafId);
-        rafId = null;
+    if (activeAnimations.size === 0) {
+        if (rafId) {
+            caf(rafId);
+            rafId = null;
+        }
+        notifyAnimEnd();
     }
+}
+
+/**
+ * Subscribe a callback to fire when all currently active rAF animations complete.
+ */
+export function onAllAnimationsEnd(callback) {
+    if (typeof callback !== 'function') return;
+    if (activeAnimations.size === 0) {
+        callback();
+        return;
+    }
+    animEndListeners.add(callback);
+}
+
+if (rootWin) {
+    Object.assign(rootWin, {
+        setSdaGaps,
+        getSdaGaps,
+        dxScheduler: {
+            registerRAF,
+            unregisterRAF,
+            onAllAnimationsEnd,
+            getActiveAnimationsCount: () => activeAnimations.size
+        }
+    });
 }

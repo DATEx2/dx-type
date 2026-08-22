@@ -6,6 +6,8 @@
 export const rootWin = typeof window !== 'undefined' ? window : (typeof global !== 'undefined' ? global : null);
 const BaseHTMLElement = rootWin?.HTMLElement || class {};
 
+import { DX_ANIM } from './dx-scheduler.js';
+
 /**
  * Base class for all dx-* components.
  * Uses `display: contents` implicitly (set via CSS) so wrapping in dx-* tags
@@ -29,8 +31,10 @@ export class DxBase extends BaseHTMLElement {
         }
         const tpl = this.querySelector(':scope > template');
         if (tpl && tpl.content) {
+            const st = this.querySelector(':scope > s-t');
+            if (st) st.remove();
             tpl.replaceWith(tpl.content);
-            this.classList.add('type-active');
+            this.classList.add(DX_ANIM.TYPING);
             return true;
         }
         return false;
@@ -40,7 +44,7 @@ export class DxBase extends BaseHTMLElement {
         if (this._pristineHTML) {
             this._cleanedUp = false;
             this._typed = 0;
-            this.classList.remove('TYPED', 'TYPING', 'type-active', 'REVEALED');
+            this.classList.remove(DX_ANIM.TYPED, DX_ANIM.TYPING, DX_ANIM.REVEALED, DX_ANIM.REVEALING);
             this.innerHTML = this._pristineHTML;
             this.unpackTemplate();
             return true;

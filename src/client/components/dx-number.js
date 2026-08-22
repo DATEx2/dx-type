@@ -11,77 +11,73 @@ import { DxMeter, parseNumParts } from '../base/dx-meter.js';
 import { rootWin, span, defCustomElement } from '../base/dx-base.js';
 import { registerRAF, unregisterRAF, DX_ANIM, observeIO } from '../base/dx-scheduler.js';
 
-// ─── Action Bar Visibility Gate (Singleton Observer) ─────────────────────────
-const actionBarSubscribers = new Set();
-let actionBarObserver = null;
-
-function checkActionBarShown(abParent) {
-    const isAb = el => el && (el.classList.contains('show-action-bar') || el.classList.contains('showing-action-bar'));
-    const doc = rootWin?.document;
-    return !!(isAb(doc?.documentElement) || isAb(doc?.body) || isAb(abParent));
+// ─── Viewport Detection & Logging Helpers ─────────────────────────────────────
+function getElDesc(el) {
+    if (!el) return '<dx-number>';
+    const id = el.id ? `#${el.id}` : '';
+    const cls = el.className ? `.${el.className.trim().split(/\s+/).join('.')}` : '';
+    const val = el.getAttribute('percent') || el.getAttribute('value') || '';
+    const sfx = el.getAttribute('suffix') || '';
+    return `<dx-number${id}${cls}> (${val}${sfx})`;
 }
 
-function notifyActionBarSubscribers() {
-    if (actionBarSubscribers.size === 0) return;
-    const subs = Array.from(actionBarSubscribers);
-    actionBarSubscribers.clear();
-    if (actionBarObserver) {
-        actionBarObserver.disconnect();
-        actionBarObserver = null;
-    }
-    for (let i = 0; i < subs.length; i++) {
-        if (typeof subs[i]._triggerActionBarAnimation === 'function') {
-            subs[i]._triggerActionBarAnimation();
-        }
-    }
-}
-
-function subscribeToActionBar(el, abParent) {
-    if (checkActionBarShown(abParent)) {
-        if (typeof el._triggerActionBarAnimation === 'function') {
-            el._triggerActionBarAnimation();
-        }
-        return;
-    }
-    actionBarSubscribers.add(el);
-    if (!actionBarObserver && typeof MutationObserver !== 'undefined') {
-        actionBarObserver = new MutationObserver(() => {
-            if (checkActionBarShown(abParent)) {
-                notifyActionBarSubscribers();
-            }
-        });
-        const docEl = rootWin?.document?.documentElement;
-        const docBody = rootWin?.document?.body;
-        if (docEl) actionBarObserver.observe(docEl, { attributes: true, attributeFilter: ['class'] });
-        if (docBody) actionBarObserver.observe(docBody, { attributes: true, attributeFilter: ['class'] });
-        if (abParent) actionBarObserver.observe(abParent, { attributes: true, attributeFilter: ['class'] });
-    }
-}
-
-function unsubscribeFromActionBar(el) {
-    actionBarSubscribers.delete(el);
-    if (actionBarSubscribers.size === 0 && actionBarObserver) {
-        actionBarObserver.disconnect();
-        actionBarObserver = null;
-    }
+function isElementInViewport(el) {
+    if (typeof window === 'undefined' || !el || typeof el.getBoundingClientRect !== 'function') return false;
+    const rect = el.getBoundingClientRect();
+    if (rect.width === 0 && rect.height === 0) return false;
+    const vh = window.innerHeight || document.documentElement.clientHeight || 0;
+    const vw = window.innerWidth || document.documentElement.clientWidth || 0;
+    return (
+        rect.top < vh &&
+        rect.bottom > 0 &&
+        rect.left < vw &&
+        rect.right > 0
+    );
 }
 
 // ─── Parent selectors (dx-* tags + legacy class/tag selectors) ───────────────
 const SDA_PARENT_SEL = 'dx-type-sda, dx-reveal-sda, .type-sda, .reveal-sda, .TYPE-, .REVEAL-, ui-type-sda, ui-reveal-sda';
 const TYPE_PARENT_SEL = 'dx-type-sda, dx-type, .type-sda, .type, .TYPE-, ui-type, ui-type-sda';
-const REVEAL_PARENT_SEL = 'dx-reveal-sda, dx-reveal, .reveal-sda, .reveal, .REVEAL-, ui-reveal-sda, ui-reveal, .form-control--checkbox-button';
+const REVEAL_PARENT_SEL = 'dx-reveal-sda, dx-reveal, .reveal-sda, .reveal, .REVEAL-, ui-reveal-sda, ui-reveal';
 
 export class DxNumber extends DxMeter {
+    static get observedAttributes() {
+        return ['prefix', 'suffix', 'comma', 'type', 'hide-zero', 'empty-zero'];
+    }
+
+    attributeChangedCallback(name, oldVal, newVal) {
+        if (oldVal !== newVal && this._initialized && !this._isRendering) {
+            this.render();
+        }
+    }
+
     constructor() {
         super();
         this._animationStarted = false;
+        this._inViewport = false;
+        this._parentReady = false;
+        this._pendingVal = null;
         this._timeoutId = null;
         this._numSpan = null;
+        this._isRendering = false;
     }
 
     connectedCallback() {
         if (this.isStatic) return;
         if (this._initialized) return;
+
+        const inST = !!this.closest('s-t');
+        if (inST) {
+            this.makeStatic();
+            this.innerHTML = this.getStaticHTML();
+            return;
+        }
+
+        // Strip SSR placeholder text/spans immediately to prevent duplication
+        // before render() generates its own span structure.
+        if (this.childNodes.length && !this.querySelector('.ui-num')) {
+            this.textContent = '';
+        }
 
         const schedule = (typeof queueMicrotask === 'function') ? queueMicrotask : (cb => setTimeout(cb, 0));
         schedule(() => {
@@ -91,7 +87,75 @@ export class DxNumber extends DxMeter {
         });
     }
 
+    getStaticHTML() {
+        const valAttr = this.getAttribute('percent') || this.getAttribute('value') || this.textContent;
+        const numericValue = parseFloat(valAttr);
+        if (isNaN(numericValue)) return this.textContent.trim();
+        if ((this.hasAttribute('hide-zero') || this.hasAttribute('empty-zero')) && numericValue === 0) {
+            return '';
+        }
+        return this.formatValue(numericValue);
+    }
+
+    isReadyToAnimate() {
+        if (!this._inViewport) {
+            this._inViewport = isElementInViewport(this);
+        }
+        if (this._inViewport && !this._parentReady) {
+            const parentC = this.closest('c');
+            const parentReveal = this.closest(REVEAL_PARENT_SEL);
+            if (!parentC && !parentReveal) {
+                this._parentReady = true;
+            } else if (parentReveal) {
+                if (isElementInViewport(parentReveal) || parentReveal.classList.contains(DX_ANIM.REVEALED) || parentReveal.classList.contains(DX_ANIM.REVEALING) || parentReveal.classList.contains('revealed') || parentReveal.classList.contains('revealing') || parentReveal.hasAttribute('data-static')) {
+                    this._parentReady = true;
+                }
+            }
+        }
+        return this._inViewport && this._parentReady;
+    }
+
+    getDuration() {
+        if (this.hasAttribute('duration')) {
+            const parsed = parseFloat(this.getAttribute('duration'));
+            if (!isNaN(parsed) && parsed > 0) return parsed;
+        }
+        const t = parseFloat(this.style.getPropertyValue('--t')) || parseFloat(this.closest('[style*="--t"]')?.style.getPropertyValue('--t')) || 0;
+        return t > 0 ? t : 600;
+    }
+
+    _checkAndTrigger() {
+        const ready = this.isReadyToAnimate();
+        if (!ready) return;
+
+        if (this._pendingVal) {
+            const { targetValue, duration } = this._pendingVal;
+            this._pendingVal = null;
+            this._animationStarted = true;
+            this.val(targetValue, duration);
+            return;
+        }
+
+        if (!this._animationStarted) {
+            const targetVal = (this._targetValue !== undefined && !isNaN(this._targetValue)) ? this._targetValue : this.getNumericValue();
+            
+            if (this._value !== targetVal) {
+                this._animationStarted = true;
+                const dur = this.getDuration();
+                const d = parseFloat(this.style.getPropertyValue('--d')) || parseFloat(this.closest('[style*="--d"]')?.style.getPropertyValue('--d')) || 0;
+                if (d > 0) {
+                    setTimeout(() => this.val(targetVal, dur), d);
+                } else {
+                    this.val(targetVal, dur);
+                }
+            } else {
+                this._animationStarted = true;
+            }
+        }
+    }
+
     init() {
+        if (this._initialized) return;
         this._initialized = true;
         this._animationStarted = false;
         if (this._timeoutId) {
@@ -99,134 +163,104 @@ export class DxNumber extends DxMeter {
             this._timeoutId = null;
         }
 
-        this._value = this.getNumericValue();
-        const isAnimateOnLoad = !this.classList.contains('tw-embed');
+        const isStatic = this.hasAttribute('data-static') || this.isStatic || !!this.closest('s-t');
+        const targetVal = (this._targetValue !== undefined && !isNaN(this._targetValue) && this._targetValue !== 0)
+            ? this._targetValue
+            : (parseFloat(this.getAttribute('percent')) || this.getNumericValue() || 0);
+        this._targetValue = targetVal;
 
-        if (isAnimateOnLoad) {
-            const startVal = parseFloat(this.getAttribute('start')) || 0;
-            const targetVal = (this._value !== undefined && !isNaN(this._value) && this._value !== 0) ? this._value : (parseFloat(this.getAttribute('percent')) || 0);
-            this._targetValue = targetVal;
-            this._value = startVal;
-            this._animationStarted = false;
-            this.render();
-
-            const trigger = () => {
-                if (this._animationStarted) return;
-                this._animationStarted = true;
-                const d = parseFloat(this.style.getPropertyValue('--d')) || parseFloat(this.closest('[style*="--d"]')?.style.getPropertyValue('--d')) || 0;
-                if (d > 0) {
-                    setTimeout(() => this.val(targetVal, 400), d);
-                } else {
-                    this.val(targetVal, 400);
-                }
-            };
-
-            const abParent = this.closest('.action-bar, .action-bar-wrapper');
-            const sdaParent = this.closest(SDA_PARENT_SEL);
-            const typeReadyParent = this.closest('.type-ready, dx-type-ready, ui-type-ready');
-
-            if (abParent) {
-                this._triggerActionBarAnimation = trigger;
-                subscribeToActionBar(this, abParent);
-            } else if (sdaParent) {
-                sdaParent.addEventListener('animationstart', () => {
-                    if (!this._animationStarted) trigger();
-                }, { once: true });
-
-                if (sdaParent.classList.contains(DX_ANIM.REVEALED) || sdaParent.classList.contains(DX_ANIM.TYPED) ||
-                    sdaParent.classList.contains('revealed') || sdaParent.classList.contains('typed')) {
-                    this._revealTriggered = true;
-                }
-                if (this._revealTriggered && !this._animationStarted) trigger();
-            } else if (typeReadyParent) {
-                trigger();
-            } else {
-                observeIO(this, () => trigger());
-            }
-        } else if (this.classList.contains('tw-embed')) {
-            const startVal = parseFloat(this.getAttribute('start')) || 0;
-            const targetVal = this._value;
-            this._targetValue = targetVal;
-            this._value = startVal;
-            this._animationStarted = false;
-            this.render();
-
-            const parentType = this.closest(TYPE_PARENT_SEL);
-            const parentC = this.closest('c');
-            const parentReveal = this.closest(REVEAL_PARENT_SEL);
-
-            const triggerCounting = () => {
-                if (this._animationStarted) return;
-                delete this._pendingValue;
-                this._animationStarted = true;
-                this.val(targetVal, 800);
-            };
-
-            if (parentType && (parentType.classList.contains(DX_ANIM.TYPED) || parentType.classList.contains('typed'))) {
-                triggerCounting();
-                return;
-            }
-            if (parentReveal && (parentReveal.classList.contains(DX_ANIM.REVEALED) || parentReveal.classList.contains('revealed'))) {
-                triggerCounting();
-                return;
-            }
-
-            if (parentC) {
-                parentC.addEventListener('animationstart', (e) => {
-                    if (e.target === parentC && !this._animationStarted) {
-                        const u = (parentC.style && parseFloat(parentC.style.getPropertyValue('--u'))) || 40;
-                        this._twDelayId = setTimeout(triggerCounting, u * 0.35);
-                    }
-                }, { once: true });
-            }
-            if (parentType && parentC) {
-                parentType.addEventListener('animationstart', (e) => {
-                    if (e.target === parentC && !this._animationStarted) {
-                        const u = (parentC.style && parseFloat(parentC.style.getPropertyValue('--u'))) || 40;
-                        this._twDelayId = setTimeout(triggerCounting, u * 0.35);
-                    }
-                }, { once: true });
-            }
-            if (parentReveal && !parentC) {
-                parentReveal.addEventListener('animationstart', (e) => {
-                    if (!this._animationStarted) {
-                        const d = (parentReveal.style && parseFloat(parentReveal.style.getPropertyValue('--d'))) || 0;
-                        if (d > 0) {
-                            this._twDelayId = setTimeout(triggerCounting, d);
-                        } else {
-                            triggerCounting();
-                        }
-                    }
-                }, { once: true });
-            }
-
-            this._pendingValue = targetVal;
-        } else {
+        if (isStatic) {
+            this._value = targetVal;
             this._animationStarted = true;
-            this.render();
+        } else {
+            this._value = this.hasAttribute('start') ? (parseFloat(this.getAttribute('start')) || 0) : 0;
         }
+        this.render();
+
+        this._inViewport = isElementInViewport(this);
+
+        // 1. Condition #1: In-viewport observer (Singleton IO)
+        observeIO(this, () => {
+            this._inViewport = true;
+            this._checkAndTrigger();
+        });
+
+        // 2. Condition #2: Parent animation readiness
+        const parentC = this.closest('c');
+        const parentReveal = this.closest(REVEAL_PARENT_SEL);
+
+        if (parentC) {
+            const parentType = this.closest(TYPE_PARENT_SEL);
+            if (parentType && (parentType.classList.contains(DX_ANIM.TYPED) || parentType.classList.contains('typed') || parentType.hasAttribute('data-static'))) {
+                this._parentReady = true;
+            } else {
+                parentC.addEventListener('animationstart', (e) => {
+                    if (e.target === parentC) {
+                        const u = (parentC.style && parseFloat(parentC.style.getPropertyValue('--u'))) || 40;
+                        this._twDelayId = setTimeout(() => {
+                            this._parentReady = true;
+                            this._checkAndTrigger();
+                        }, u * 0.35);
+                    }
+                }, { once: true });
+            }
+        } else if (parentReveal) {
+            if (parentReveal.classList.contains(DX_ANIM.REVEALED) || parentReveal.classList.contains(DX_ANIM.REVEALING) || parentReveal.classList.contains('revealed') || parentReveal.classList.contains('revealing') || parentReveal.hasAttribute('data-static')) {
+                this._parentReady = true;
+            } else {
+                const onParentAnim = () => {
+                    this._parentReady = true;
+                    this._checkAndTrigger();
+                };
+                parentReveal.addEventListener('animationstart', onParentAnim, { once: true });
+                parentReveal.addEventListener('transitionstart', onParentAnim, { once: true });
+                parentReveal.addEventListener('animationend', onParentAnim, { once: true });
+                const choiceParent = this.closest('.form-control--checkbox-button, .details-product-option');
+                if (choiceParent && choiceParent !== parentReveal) {
+                    choiceParent.addEventListener('animationstart', onParentAnim, { once: true });
+                    choiceParent.addEventListener('transitionstart', onParentAnim, { once: true });
+                }
+            }
+        } else {
+            this._parentReady = true;
+        }
+
+        this._checkAndTrigger();
     }
 
     disconnectedCallback() {
         if (this._timeoutId) { clearTimeout(this._timeoutId); this._timeoutId = null; }
         if (this._twDelayId) { clearTimeout(this._twDelayId); this._twDelayId = null; }
-        unsubscribeFromActionBar(this);
         unregisterRAF(this);
         this.classList.remove('ui-number-running');
     }
 
     val(newValue, duration) {
         if (!this._initialized) this.init();
-        if (newValue === undefined) return this._value;
+        if (newValue === undefined) return (this._targetValue !== undefined && !isNaN(this._targetValue)) ? this._targetValue : this._value;
 
         const parsedValue = parseFloat(newValue) || 0;
         this._targetValue = parsedValue;
-        if (this._initialized && this._value === parsedValue) {
+
+        if (this._initialized && this._value === parsedValue && !this._pendingVal) {
+            this.render();
             this.setAccessibility(parsedValue);
             return this;
         }
+
+        const animDuration = (duration !== undefined && duration !== null) ? duration : this.getDuration();
+        const ready = this.isReadyToAnimate();
+
+        // If not yet ready to animate (e.g. element off-screen or Action Bar sliding up), defer execution
+        if (!ready && animDuration > 0) {
+            this._pendingVal = { targetValue: parsedValue, duration: animDuration };
+            this.setAttribute('percent', parsedValue);
+            this.setAccessibility(parsedValue);
+            return this;
+        }
+
         this._animationStarted = true;
-        const animDuration = (duration !== undefined && duration !== null) ? duration : 800;
+        this._pendingVal = null;
 
         if (animDuration > 0 && this._value !== parsedValue) {
             this.setAttribute('percent', parsedValue);
@@ -244,6 +278,7 @@ export class DxNumber extends DxMeter {
     }
 
     animateTo(targetValue, duration) {
+        this.removeAttribute('data-static');
         this._targetValue = targetValue;
         this._animStartValue = this._value;
         this._animDuration = duration;
@@ -269,66 +304,191 @@ export class DxNumber extends DxMeter {
             unregisterRAF(this);
         } else {
             const progress = elapsed / duration;
-            const easeProgress = 1 - Math.pow(1 - progress, 3);
+            const easeProgress = progress * (2 - progress);
             this._value = startValue + (targetValue - startValue) * easeProgress;
             this._updateFrameDisplay(targetValue);
         }
     }
 
     _updateFrameDisplay(targetVal) {
+        if ((this.hasAttribute('hide-zero') || this.hasAttribute('empty-zero')) && (this._value === 0 || Math.abs(this._value) < 0.0001)) {
+            if (this.innerHTML !== '') {
+                this.innerHTML = '';
+                this._numSpan = null;
+            }
+            return;
+        }
+
         const numSpan = this._numSpan || (this._numSpan = this.querySelector('.ui-num'));
         if (!numSpan) { this.render(); return; }
 
         const p = parseNumParts(this.formatValue(this._value));
-        let digitPadHtml = '';
         const effectiveTarget = (targetVal !== undefined && !isNaN(targetVal)) ? targetVal : this.getNumericValue();
+        let padPrefix = '';
         if (effectiveTarget !== undefined && !isNaN(effectiveTarget) && this._value !== effectiveTarget) {
             const tp = parseNumParts(this.formatValue(effectiveTarget));
             const targetDigits = tp.digits;
             const currentDigits = p.digits;
             if (targetDigits.length > currentDigits.length) {
                 const padLen = targetDigits.length - currentDigits.length;
-                const padPrefix = targetDigits.slice(0, padLen).replace(/\d/g, '0');
-                digitPadHtml = span('ui-pad', padPrefix);
+                padPrefix = targetDigits.slice(0, padLen).replace(/\d/g, '0');
             }
         }
 
-        const newInner = `${digitPadHtml}${p.digits}${p.radix}${p.decimals}`;
-        if (numSpan.innerHTML !== newInner) numSpan.innerHTML = newInner;
+        const numText = `${p.digits}${p.radix}${p.decimals}`;
+        if (padPrefix) {
+            let padEl = numSpan.querySelector('.ui-pad');
+            if (!padEl) {
+                numSpan.innerHTML = `<span class="ui-pad">${padPrefix}</span>${numText}`;
+            } else {
+                if (padEl.textContent !== padPrefix) padEl.textContent = padPrefix;
+                const nextNode = padEl.nextSibling;
+                if (nextNode && nextNode.nodeType === 3) {
+                    if (nextNode.nodeValue !== numText) nextNode.nodeValue = numText;
+                } else {
+                    numSpan.innerHTML = `<span class="ui-pad">${padPrefix}</span>${numText}`;
+                }
+            }
+        } else {
+            const padEl = numSpan.querySelector('.ui-pad');
+            if (padEl) padEl.remove();
+            if (numSpan.textContent !== numText) numSpan.textContent = numText;
+        }
     }
 
     render() {
-        const p = parseNumParts(this.formatValue(this._value));
-        const targetVal = (this._targetValue !== undefined && !isNaN(this._targetValue)) ? this._targetValue : this.getNumericValue();
-        let pfxPadHtml = '';
-        let digitPadHtml = '';
-
-        if (!this.isStatic && targetVal !== undefined && !isNaN(targetVal) && this._value !== targetVal) {
-            const tp = parseNumParts(this.formatValue(targetVal));
-            if (this._value === 0 && targetVal > 0 && tp.pfx.includes('+') && !p.pfx.includes('+')) {
-                pfxPadHtml = span('ui-pfx ui-pfx-pad', `${tp.pfx}${tp.pfxSpace}`);
-            } else if (!p.pfx && tp.pfx) {
-                pfxPadHtml = span('ui-pfx ui-pfx-pad', `${tp.pfx}${tp.pfxSpace}`);
+        if (this._isRendering) return;
+        this._isRendering = true;
+        try {
+            if ((this.hasAttribute('hide-zero') || this.hasAttribute('empty-zero')) && (this._value === 0 || Math.abs(this._value) < 0.0001)) {
+                if (this.innerHTML !== '') {
+                    this.innerHTML = '';
+                    this._numSpan = null;
+                    this._pfxSpan = null;
+                    this._sfxSpan = null;
+                }
+                if (!this.getAttribute('aria-label')) this.setAccessibility(0);
+                return;
             }
-            const targetDigits = tp.digits;
-            const currentDigits = p.digits;
-            if (targetDigits.length > currentDigits.length) {
-                const padLen = targetDigits.length - currentDigits.length;
-                const padPrefix = targetDigits.slice(0, padLen).replace(/\d/g, '0');
-                digitPadHtml = span('ui-pad', padPrefix);
+
+            const p = parseNumParts(this.formatValue(this._value));
+            const targetVal = (this._targetValue !== undefined && !isNaN(this._targetValue)) ? this._targetValue : this.getNumericValue();
+            
+            let pfxPadHtml = '';
+            let padPrefix = '';
+
+            if (!this.isStatic && targetVal !== undefined && !isNaN(targetVal) && this._value !== targetVal) {
+                const tp = parseNumParts(this.formatValue(targetVal));
+                if (this._value === 0 && targetVal > 0 && tp.pfx.includes('+') && !p.pfx.includes('+')) {
+                    pfxPadHtml = span('ui-pfx ui-pfx-pad', `${tp.pfx}${tp.pfxSpace}`);
+                } else if (!p.pfx && tp.pfx) {
+                    pfxPadHtml = span('ui-pfx ui-pfx-pad', `${tp.pfx}${tp.pfxSpace}`);
+                }
+                const targetDigits = tp.digits;
+                const currentDigits = p.digits;
+                if (targetDigits.length > currentDigits.length) {
+                    const padLen = targetDigits.length - currentDigits.length;
+                    padPrefix = targetDigits.slice(0, padLen).replace(/\d/g, '0');
+                }
             }
-        }
 
-        const pfxHtml = p.pfx ? span('ui-pfx', `${p.pfx}${p.pfxSpace}`) : pfxPadHtml;
-        const sfxHtml = span('ui-sfx', p.sfx ? `${p.sfxSpace}${p.sfx}` : '');
-        const numHtml = span('ui-num', `${digitPadHtml}${p.digits}${p.radix}${p.decimals}`);
-        const newHtml = `${pfxHtml}${numHtml}${sfxHtml}`;
+            const pfxStr = p.pfx ? `${p.pfx}${p.pfxSpace}` : '';
+            const sfxStr = p.sfx ? `${p.sfxSpace}${p.sfx}` : '';
+            const numText = `${p.digits}${p.radix}${p.decimals}`;
 
-        if (this.innerHTML !== newHtml) {
-            this.innerHTML = newHtml;
-            this._numSpan = this.querySelector('.ui-num');
+            let numSpan = this._numSpan || (this._numSpan = this.querySelector('.ui-num'));
+
+            // Fast-path: Direct TextNode updates when DOM structure is already intact
+            if (numSpan && this.contains(numSpan)) {
+                // 1. Update Prefix TextNode
+                let pfxSpan = this._pfxSpan || (this._pfxSpan = this.querySelector('.ui-pfx:not(.ui-pfx-pad)'));
+                if (pfxStr) {
+                    if (!pfxSpan) {
+                        pfxSpan = document.createElement('span');
+                        pfxSpan.className = 'ui-pfx';
+                        pfxSpan.textContent = pfxStr;
+                        this.insertBefore(pfxSpan, numSpan);
+                        this._pfxSpan = pfxSpan;
+                    } else if (pfxSpan.textContent !== pfxStr) {
+                        if (pfxSpan.firstChild && pfxSpan.firstChild.nodeType === 3) {
+                            pfxSpan.firstChild.nodeValue = pfxStr;
+                        } else {
+                            pfxSpan.textContent = pfxStr;
+                        }
+                    }
+                } else if (pfxSpan) {
+                    pfxSpan.remove();
+                    this._pfxSpan = null;
+                }
+
+                // 2. Update Num TextNode (with pad support)
+                if (padPrefix) {
+                    let padEl = numSpan.querySelector('.ui-pad');
+                    if (!padEl) {
+                        numSpan.innerHTML = `<span class="ui-pad">${padPrefix}</span>${numText}`;
+                    } else {
+                        if (padEl.textContent !== padPrefix) padEl.textContent = padPrefix;
+                        const nextNode = padEl.nextSibling;
+                        if (nextNode && nextNode.nodeType === 3) {
+                            if (nextNode.nodeValue !== numText) nextNode.nodeValue = numText;
+                        } else {
+                            numSpan.innerHTML = `<span class="ui-pad">${padPrefix}</span>${numText}`;
+                        }
+                    }
+                } else {
+                    const padEl = numSpan.querySelector('.ui-pad');
+                    if (padEl) padEl.remove();
+                    if (numSpan.firstChild && numSpan.firstChild.nodeType === 3 && !numSpan.firstChild.nextSibling) {
+                        if (numSpan.firstChild.nodeValue !== numText) {
+                            numSpan.firstChild.nodeValue = numText;
+                        }
+                    } else if (numSpan.textContent !== numText) {
+                        numSpan.textContent = numText;
+                    }
+                }
+
+                // 3. Update Suffix TextNode
+                let sfxSpan = this._sfxSpan || (this._sfxSpan = this.querySelector('.ui-sfx'));
+                if (sfxStr) {
+                    if (!sfxSpan) {
+                        sfxSpan = document.createElement('span');
+                        sfxSpan.className = 'ui-sfx';
+                        sfxSpan.textContent = sfxStr;
+                        this.appendChild(sfxSpan);
+                        this._sfxSpan = sfxSpan;
+                    } else if (sfxSpan.textContent !== sfxStr) {
+                        if (sfxSpan.firstChild && sfxSpan.firstChild.nodeType === 3) {
+                            sfxSpan.firstChild.nodeValue = sfxStr;
+                        } else {
+                            sfxSpan.textContent = sfxStr;
+                        }
+                    }
+                } else if (sfxSpan) {
+                    sfxSpan.remove();
+                    this._sfxSpan = null;
+                }
+
+                if (!this.getAttribute('aria-label')) this.setAccessibility(targetVal);
+                return;
+            }
+
+            // Fallback: Initial full HTML construction
+            const digitPadHtml = padPrefix ? span('ui-pad', padPrefix) : '';
+            const pfxHtml = pfxStr ? span('ui-pfx', pfxStr) : '';
+            const sfxHtml = sfxStr ? span('ui-sfx', sfxStr) : '';
+            const numHtml = span('ui-num', `${digitPadHtml}${numText}`);
+            const newHtml = `${pfxPadHtml}${pfxHtml}${numHtml}${sfxHtml}`;
+
+            if (this.innerHTML !== newHtml) {
+                this.innerHTML = newHtml;
+                this._numSpan = this.querySelector('.ui-num');
+                this._pfxSpan = this.querySelector('.ui-pfx');
+                this._sfxSpan = this.querySelector('.ui-sfx');
+            }
+            if (!this.getAttribute('aria-label')) this.setAccessibility(targetVal);
+        } finally {
+            this._isRendering = false;
         }
-        if (!this.getAttribute('aria-label')) this.setAccessibility(targetVal);
     }
 
     replay() {

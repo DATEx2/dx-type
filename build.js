@@ -132,7 +132,7 @@ async function buildAll() {
 
     await cleanDist();
 
-    const allConfigs = [...jsConfigs, ...cssConfigs];
+    const allConfigs = [...jsConfigs, ...cssConfigs].map(cfg => ({ ...cfg, absWorkingDir: __dirname }));
 
     if (isWatch) {
         console.log('👀 Watch mode enabled...');

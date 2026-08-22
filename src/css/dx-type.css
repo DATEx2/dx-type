@@ -4,10 +4,128 @@
  * dynamic numbers, typewriter characters, accessibility layers and animations.
  */
 
-/* ─── 1. Layout Safety & Display Modes ───────────────────────────────────── */
+/* ─── 1. Core Custom Elements & Nested Structure ─────────────────────────── */
 dx-type,
 dx-type-sda {
-    display: contents;
+    display: block !important;
+    position: relative !important;
+    width: 100% !important;
+    height: auto !important;
+    min-height: fit-content !important;
+    text-align: inherit !important;
+    font-kerning: none !important;
+
+    & > s-t {
+        display: block !important;
+        width: 100% !important;
+        height: auto !important;
+        min-height: fit-content !important;
+        visibility: visible !important;
+        caret-color: transparent !important;
+        user-select: text !important;
+        pointer-events: auto !important;
+        font: inherit !important;
+        line-height: inherit !important;
+        letter-spacing: inherit !important;
+        word-spacing: inherit !important;
+        white-space: inherit !important;
+        text-align: inherit !important;
+    }
+
+    &:not(.dx-typed) > s-t {
+        color: transparent !important;
+        -webkit-text-fill-color: transparent !important;
+        text-shadow: none !important;
+        filter: none !important;
+        -webkit-filter: none !important;
+        box-shadow: none !important;
+
+        & * {
+            color: transparent !important;
+            -webkit-text-fill-color: transparent !important;
+            text-shadow: none !important;
+            box-shadow: none !important;
+            filter: none !important;
+            backdrop-filter: none !important;
+            -webkit-backdrop-filter: none !important;
+        }
+    }
+
+    & > t {
+        position: absolute !important;
+        inset: 0 !important;
+        width: 100% !important;
+        height: 100% !important;
+        display: block !important;
+        font: inherit !important;
+        line-height: inherit !important;
+        letter-spacing: inherit !important;
+        word-spacing: inherit !important;
+        white-space: inherit !important;
+        text-align: inherit !important;
+        pointer-events: auto !important;
+    }
+
+    &.inline,
+    :is(span, a, button) > & {
+        display: inline-block !important;
+        vertical-align: baseline !important;
+        width: auto !important;
+        height: auto !important;
+
+        & > s-t {
+            display: inline-block !important;
+            vertical-align: baseline !important;
+            width: auto !important;
+            height: auto !important;
+        }
+        & > t {
+            display: inline !important;
+        }
+    }
+
+    &.dx-typed {
+        & > s-t {
+            color: inherit !important;
+            -webkit-text-fill-color: currentColor !important;
+            pointer-events: auto !important;
+            user-select: text !important;
+            text-shadow: inherit;
+            filter: inherit;
+            -webkit-filter: inherit;
+            box-shadow: inherit;
+
+            & * {
+                color: inherit;
+                -webkit-text-fill-color: currentColor;
+                pointer-events: auto !important;
+                user-select: text !important;
+                text-shadow: inherit;
+            }
+        }
+
+        & > t {
+            position: relative !important;
+            inset: auto !important;
+            width: auto !important;
+            height: auto !important;
+        }
+
+        & c {
+            animation: none !important;
+            opacity: 1 !important;
+            visibility: visible !important;
+            transform: none !important;
+            display: inline-block !important;
+            will-change: auto !important;
+        }
+
+        & dx-odometer .odometer-ribbon-inner {
+            animation: none !important;
+            transform: translateY(var(--final-pos, 0%)) !important;
+            transition: none !important;
+        }
+    }
 }
 
 dx-type-ready {
@@ -16,206 +134,162 @@ dx-type-ready {
 
 dx-reveal,
 dx-reveal-sda {
-    display: inline-block;
-    vertical-align: baseline;
+    display: block;
+    width: 100%;
+
+    &.inline,
+    :is(span, p, a, button, h1, h2, h3, h4, h5, h6) > & {
+        display: inline-block;
+        vertical-align: baseline;
+        width: auto;
+    }
+
+    &.dx-revealed {
+        animation: none !important;
+        opacity: 1 !important;
+        visibility: visible !important;
+        transform: none !important;
+        will-change: auto !important;
+    }
 }
 
-dx-number {
-    contain: style;
-    display: inline-block !important;
-    vertical-align: baseline !important;
-    position: relative !important;
-    white-space: nowrap !important;
-    word-break: keep-all !important;
-    overflow-wrap: normal !important;
-    flex-shrink: 0 !important;
-    min-width: max-content !important;
-}
-
-dx-odometer {
-    contain: none !important;
-    display: inline-block !important;
-    vertical-align: baseline !important;
-    position: relative !important;
-    white-space: nowrap !important;
-    word-break: keep-all !important;
-    overflow-wrap: normal !important;
-    flex-shrink: 0 !important;
-    line-height: inherit;
-}
-
-.tw-embed,
-dx-odometer.tw-embed,
-dx-number.tw-embed {
-    display: inline-block !important;
-    vertical-align: baseline !important;
-    line-height: inherit;
-}
-
-/* ─── 2. Typography & Alignment Inheritance ─────────────────────────────── */
-dx-type,
-dx-type-sda,
-dx-reveal,
-dx-reveal-sda,
-dx-type-ready,
-dx-number,
-dx-odometer,
-t,
-s-t,
-w,
-c,
-.ui-num,
-.ui-pfx,
-.ui-sfx,
-.ui-pad,
-.dx-num,
-.dx-pfx,
-.dx-sfx,
-.dx-pad {
-    font-family: inherit;
-    font-size: inherit;
-    font-weight: inherit;
-    font-style: inherit;
-    line-height: inherit;
-    letter-spacing: inherit;
-    word-spacing: inherit;
-    text-transform: inherit;
-    text-rendering: inherit;
-    font-kerning: none !important;
-    box-sizing: border-box;
-}
-
-/* ─── 3. Mechanical Drum Odometer Ribbon Structure ───────────────────────── */
-dx-odometer .odometer,
-dx-odometer .odometer-inside {
+/* ─── 2. Mechanical Drum Odometer Host & SSR Light DOM ───────────────────── */
+dx-odometer, ui-odometer {
     display: inline-flex !important;
     align-items: baseline !important;
     vertical-align: baseline !important;
     position: relative !important;
-    line-height: 1 !important;
-    font-variant-numeric: tabular-nums !important;
-}
-
-dx-odometer .odometer-digit {
-    display: inline-block !important;
-    position: relative !important;
-    overflow: hidden !important;
-    vertical-align: baseline !important;
-    line-height: 1 !important;
-    height: 1em !important;
-}
-
-dx-odometer .odometer-digit-spacer {
-    visibility: hidden !important;
-    display: block !important;
-    line-height: 1 !important;
-    height: 1em !important;
-    pointer-events: none !important;
-    user-select: none !important;
-}
-
-dx-odometer .odometer-digit-inner {
-    position: absolute !important;
-    top: 0 !important;
-    left: 0 !important;
-    right: 0 !important;
-    bottom: 0 !important;
-    overflow: hidden !important;
-    line-height: 1 !important;
-    height: 1em !important;
-    text-align: left !important;
-}
-
-dx-odometer .odometer-ribbon {
-    display: block !important;
-    height: 100% !important;
-    line-height: 1 !important;
-}
-
-dx-odometer .odometer-ribbon-inner {
-    display: block !important;
-    line-height: 1 !important;
-    transform: translateY(var(--initial-pos, 0%));
-}
-
-dx-odometer .odometer-value {
-    display: block !important;
-    text-align: center !important;
-    height: 1em !important;
-    line-height: 1 !important;
-}
-
-dx-odometer .odometer-formatting-mark {
-    display: inline-block !important;
-    vertical-align: baseline !important;
-    line-height: 1 !important;
-    height: 1em !important;
-    white-space: pre !important;
-}
-
-dx-odometer :is(.ui-pfx, .ui-sfx, .dx-pfx, .dx-sfx) {
-    display: inline-block !important;
-    white-space: pre !important;
-    vertical-align: baseline !important;
-}
-
-/* ─── 4. Dynamic Number (<dx-number>) Structure ──────────────────────────── */
-dx-number .ui-num-wrap {
-    display: inline-block !important;
-    position: relative !important;
-    vertical-align: baseline !important;
-    white-space: nowrap !important;
-}
-
-dx-number :is(.ui-num, .dx-num) {
-    display: inline !important;
-    vertical-align: baseline !important;
-    width: auto !important;
-    height: auto !important;
-    overflow: visible !important;
-    font-size: inherit !important;
     line-height: inherit !important;
+    font: inherit !important;
     color: inherit !important;
-    -webkit-text-fill-color: currentColor !important;
-    text-shadow: none !important;
-    position: relative !important;
-    pointer-events: auto !important;
-    user-select: text !important;
+
+    & .odometer,
+    & .odometer-inside,
+    & .odometer-digit,
+    & .ui-odo,
+    & .ui-sfx,
+    & .ui-pfx,
+    & .odometer-formatting-mark {
+        display: inline-flex !important;
+        align-items: baseline !important;
+        vertical-align: baseline !important;
+        line-height: inherit !important;
+    }
+
+    & .odometer-digit {
+        position: relative !important;
+        overflow: visible !important;
+        display: inline-flex !important;
+        align-items: baseline !important;
+        vertical-align: baseline !important;
+    }
+
+    & .odometer-digit-spacer {
+        visibility: hidden !important;
+        opacity: 0 !important;
+        color: transparent !important;
+        display: inline-block !important;
+        line-height: inherit !important;
+        font: inherit !important;
+        pointer-events: none !important;
+        user-select: none !important;
+    }
+
+    & .odometer-digit-inner {
+        position: absolute !important;
+        inset: 0 !important;
+        overflow: hidden !important;
+        line-height: inherit !important;
+        text-align: left !important;
+    }
+
+    & .odometer-ribbon {
+        display: block !important;
+        height: 100% !important;
+        line-height: inherit !important;
+    }
+
+    & .odometer-ribbon-inner {
+        display: block !important;
+        line-height: inherit !important;
+    }
+
+    & .odometer-value {
+        display: block !important;
+        text-align: center !important;
+        line-height: inherit !important;
+    }
+
+    &[data-static="true"] .odometer-ribbon-inner,
+    &[data-static] .odometer-ribbon-inner {
+        animation: none !important;
+        transform: translateY(var(--final-pos, 0%)) !important;
+        transition: none !important;
+    }
 }
 
-dx-number :is(.ui-pad, .ui-pfx-pad, .dx-pad, .dx-pfx-pad) {
-    display: inline !important;
-    visibility: hidden !important;
-    opacity: 0 !important;
-    pointer-events: none !important;
-    user-select: none !important;
+/* ─── 3. Dynamic Number (<dx-number>) Structure ──────────────────────────── */
+dx-number {
+    & .ui-num-wrap {
+        display: inline-block !important;
+        position: relative !important;
+        vertical-align: baseline !important;
+        white-space: nowrap !important;
+    }
+
+    & :is(.ui-num, .dx-num) {
+        display: inline !important;
+        vertical-align: baseline !important;
+        width: auto !important;
+        height: auto !important;
+        overflow: visible !important;
+        font-size: inherit !important;
+        font-weight: inherit !important;
+        line-height: inherit !important;
+        color: inherit !important;
+        -webkit-text-fill-color: currentColor !important;
+        text-shadow: none !important;
+        position: relative !important;
+        pointer-events: auto !important;
+        user-select: text !important;
+    }
+
+    & :is(.ui-pad, .ui-pfx-pad, .dx-pad, .dx-pfx-pad) {
+        display: inline !important;
+        visibility: hidden !important;
+        opacity: 0 !important;
+        pointer-events: none !important;
+        user-select: none !important;
+    }
+
+    & :is(.ui-pfx, .ui-sfx, .dx-pfx, .dx-sfx) {
+        display: inline-block !important;
+        white-space: pre !important;
+        vertical-align: baseline !important;
+    }
 }
 
-dx-number :is(.ui-pfx, .ui-sfx, .dx-pfx, .dx-sfx) {
+/* ─── 4. Typewriter Character & Word Nodes ───────────────────────────────── */
+c, dx-type c, dx-type-sda c {
     display: inline-block !important;
-    white-space: pre !important;
     vertical-align: baseline !important;
-}
-
-/* ─── 5. Typewriter Character & Word Nodes ───────────────────────────────── */
-dx-type-sda c, dx-type c {
-    display: inline-block;
-    will-change: opacity, transform;
+    line-height: inherit !important;
+    letter-spacing: inherit !important;
+    word-spacing: inherit !important;
     --I: calc(var(--w, 0) + var(--i, 0));
+
+    &.c-ui-num {
+        display: inline !important;
+        vertical-align: baseline !important;
+    }
 }
 
-dx-type-sda w, dx-type w {
-    display: inline-block;
-    white-space: nowrap;
-}
-
-/* Search & Accessibility Text: preserves exact layout geometry prior to JIT mount (zero CLS) */
-dx-type-sda > s-t, dx-type > s-t, dx-type-ready > s-t,
-s-t {
+w, dx-type w, dx-type-sda w {
     display: inline !important;
-    visibility: hidden !important;
-    pointer-events: none !important;
-    user-select: none !important;
+    white-space: nowrap !important;
+    line-height: inherit !important;
+    letter-spacing: inherit !important;
+    word-spacing: inherit !important;
 }
 
 /* Sibling index fallback for characters within word <w> (1..50) */
@@ -274,10 +348,10 @@ c:nth-child(50) { --i: 49; }
 @keyframes type-in {
     0% {
         opacity: 0.001;
-        transform: translateY(2px);
+        transform: translateY(4px);
         visibility: visible;
     }
-    60%, 100% {
+    100% {
         opacity: 1;
         transform: translateY(0);
         visibility: visible;
@@ -335,11 +409,11 @@ dx-type c {
     opacity: 0;
     visibility: hidden;
     display: inline-block;
-    will-change: transform, opacity;
+    vertical-align: baseline;
     transition: none !important;
     animation-name: type-in;
-    animation-duration: calc(clamp(100ms, calc(var(--u, 40) * 2.5 * 1ms), 160ms) * var(--A, 1));
-    animation-timing-function: ease-out;
+    animation-duration: calc(max(60ms, calc(var(--u, 40) * 2.5 * 1ms)) * var(--A, 1));
+    animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
     animation-fill-mode: both !important;
     animation-delay: calc(((var(--d, 0) * 1ms) + (var(--I, 0) * (var(--u, 40) * 1ms + var(--c, 0ms)))) * var(--A, 1));
     animation-play-state: paused;
@@ -353,15 +427,16 @@ dx-reveal {
     backface-visibility: hidden;
     -webkit-backface-visibility: hidden;
     animation-name: reveal-in;
-    animation-duration: calc(var(--t, 400) * 1ms * var(--A, 1));
+    animation-duration: calc(var(--t, 600) * 1ms * var(--A, 1));
     animation-timing-function: ease-out;
     animation-fill-mode: both !important;
     animation-delay: calc(var(--d, 0) * 1ms * var(--A, 1));
     animation-play-state: paused;
 }
 
-dx-type-ready.dx-type-ready :is(dx-type c, dx-reveal),
-:is(dx-reveal.dx-type-ready, dx-reveal.dx-reveal-active) {
+:is(dx-type-ready, .dx-type-ready) :is(dx-type c, dx-reveal),
+:is(dx-type.dx-typing, dx-type.dx-typed) c,
+:is(dx-reveal.dx-type-ready, dx-reveal.dx-revealing, dx-reveal.dx-revealed) {
     animation-play-state: running !important;
     visibility: visible !important;
 }
@@ -370,26 +445,28 @@ dx-type-ready.dx-type-ready :is(dx-type c, dx-reveal),
 dx-type-sda c {
     opacity: 0;
     display: inline-block;
-    will-change: transform, opacity;
+    vertical-align: baseline;
     transition: none !important;
     animation-name: type-in;
-    animation-duration: calc(clamp(100ms, calc(var(--u, 40) * 2.5 * 1ms), 160ms) * var(--A, 1));
-    animation-timing-function: ease-out;
+    animation-duration: calc(max(60ms, calc(var(--u, 40) * 2.5 * 1ms)) * var(--A, 1));
+    animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
     animation-fill-mode: both !important;
     animation-delay: calc(((var(--d, 0) * 1ms) + (var(--I, 0) * (var(--u, 40) * 1ms + var(--c, 0ms)))) * var(--A, 1));
     animation-play-state: paused;
 }
 
-dx-type-sda:has(> template) {
-    opacity: 0.001;
+/* s-t uses color: transparent — no FOUC, no need to hide container */
+
+:is(dx-type-sda.dx-typing, dx-type-sda.dx-typed, dx-type-sda[data-static]) c,
+:is(dx-type-sda.dx-typing, dx-type-sda.dx-typed, dx-type-sda[data-static]) :is(dx-number, dx-odometer, .tw-embed) .odometer-ribbon-inner {
+    animation-play-state: running !important;
 }
 
 @supports (animation-timeline: view()) {
-    dx-type-sda,
-    :is(section, [class*="-section"], [class*="-grid"], [class*="-card"]):not(dx-reveal-sda, #product-hero, #product-hero *) {
+    dx-type-sda {
         container-type: normal;
-        animation: dx-type-sda linear;
-        animation-timeline: view(block 0px var(--footer--height, 60px));
+        animation: dx-type-sda linear both;
+        animation-timeline: view(block 0px calc(var(--footer--height, 60px) + 50px));
         animation-range: cover 0% cover 100%;
     }
 
@@ -397,9 +474,12 @@ dx-type-sda:has(> template) {
         opacity: 0.001;
         transform: translateY(15px);
         will-change: transform, opacity;
-        animation: dx-type-sda linear;
-        animation-timeline: view(block 0px var(--footer--height, 60px));
-        animation-range: cover 0% cover 100%;
+        animation-name: dx-reveal-sda;
+        animation-duration: calc(var(--t, 500) * 1ms);
+        animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+        animation-delay: calc(var(--d, 0) * 1ms);
+        animation-fill-mode: both !important;
+        animation-play-state: paused;
     }
 
     @container style(--play-state: running) {
@@ -407,9 +487,16 @@ dx-type-sda:has(> template) {
             animation-play-state: running !important;
         }
         dx-reveal-sda {
-            animation: dx-reveal-sda calc(var(--t, 360) * 1ms) cubic-bezier(0.16, 1, 0.3, 1) calc(var(--d, 0) * 1ms) both !important;
-            animation-timeline: auto !important;
+            animation-play-state: running !important;
         }
+        :is(dx-number, dx-odometer).tw-embed .odometer-ribbon-inner,
+        .odometer-ribbon-inner {
+            animation-play-state: running !important;
+        }
+    }
+
+    :is(dx-reveal-sda.dx-revealing, dx-reveal-sda.dx-revealed, dx-reveal-sda[data-static]) {
+        animation-play-state: running !important;
     }
 }
 
@@ -423,25 +510,21 @@ dx-type-sda:has(> template) {
     }
 }
 
-/* ─── 9. Odometer Embedded & Standalone Animations ───────────────────────── */
+/* ─── 9. Odometer Embedded & Standalone Animations — ALL 1400ms ───────── */
 @supports (animation-timeline: view()) {
     :is(dx-number, dx-odometer).tw-embed .odometer-ribbon-inner {
         animation-name: run-odometer !important;
-        animation-duration: calc(600ms * var(--A, 1)) !important;
-        animation-timing-function: ease-in-out !important;
+        animation-duration: calc((1400ms - (var(--digit-r, 0) * 60ms)) * var(--A, 1)) !important;
+        animation-timing-function: cubic-bezier(0.37, 0, 0.63, 1) !important;
         animation-fill-mode: both !important;
-        animation-delay: calc((var(--d, 0) * 1ms) + (var(--I, 0) * var(--u, 40) * 1ms) + (var(--digit-i, 0) * 50ms) + (var(--u, 40) * 0.35 * 1ms)) !important;
+        animation-delay: calc(((var(--d, 0) * 1ms) + (var(--I, 0) * (var(--u, 40) * 1ms + var(--c, 0ms))) + (var(--u, 40) * 0.35 * 1ms) + (var(--digit-r, 0) * 60ms)) * var(--A, 1)) !important;
         animation-play-state: paused;
     }
 
-    @container style(--play-state: running) {
-        :is(dx-number, dx-odometer).tw-embed .odometer-ribbon-inner,
-        .odometer-ribbon-inner {
-            animation-play-state: running !important;
-        }
-    }
-
-    dx-type-ready.dx-type-ready :is(dx-number, dx-odometer) .odometer-ribbon-inner {
+    :is(dx-type-ready, .dx-type-ready) :is(dx-number, dx-odometer) .odometer-ribbon-inner,
+    :is(dx-type.dx-typing, dx-type.dx-typed, dx-type-sda.dx-typing, dx-type-sda.dx-typed, dx-type-sda[data-static]) :is(dx-number, dx-odometer, .tw-embed) .odometer-ribbon-inner,
+    :is(dx-type, dx-type-sda) :is(dx-number, dx-odometer, .tw-embed) .odometer-ribbon-inner,
+    :is(dx-odometer.dx-typing, dx-odometer.dx-typed, dx-odometer[data-static]) .odometer-ribbon-inner {
         animation-play-state: running !important;
     }
 }
@@ -449,54 +532,69 @@ dx-type-sda:has(> template) {
 @supports not (animation-timeline: view()) {
     :is(dx-number, dx-odometer).tw-embed .odometer-ribbon-inner {
         animation-name: run-odometer !important;
-        animation-duration: calc(600ms * var(--A, 1)) !important;
-        animation-timing-function: ease-in-out !important;
+        animation-duration: calc((1400ms - (var(--digit-r, 0) * 60ms)) * var(--A, 1)) !important;
+        animation-timing-function: cubic-bezier(0.37, 0, 0.63, 1) !important;
         animation-fill-mode: both !important;
-        animation-delay: calc((var(--d, 0) * 1ms) + (var(--I, 0) * var(--u, 40) * 1ms) + (var(--digit-i, 0) * 50ms) + (var(--u, 40) * 0.35 * 1ms)) !important;
+        animation-delay: calc(((var(--d, 0) * 1ms) + (var(--I, 0) * (var(--u, 40) * 1ms + var(--c, 0ms))) + (var(--u, 40) * 0.35 * 1ms) + (var(--digit-r, 0) * 60ms)) * var(--A, 1)) !important;
         animation-play-state: running !important;
     }
 }
 
-/* Standalone / Hero Odometers */
-dx-type-ready.dx-type-ready dx-type dx-odometer .odometer-ribbon-inner {
+/* Standalone / Triggered Odometers */
+:is(dx-type-ready, .dx-type-ready) dx-type dx-odometer .odometer-ribbon-inner,
+dx-type dx-odometer .odometer-ribbon-inner {
     animation-name: run-odometer !important;
-    animation-duration: calc(600ms * var(--A, 1)) !important;
-    animation-timing-function: ease-in-out !important;
+    animation-duration: calc((1400ms - (var(--digit-r, 0) * 60ms)) * var(--A, 1)) !important;
+    animation-timing-function: cubic-bezier(0.37, 0, 0.63, 1) !important;
     animation-fill-mode: both !important;
-    animation-delay: calc((var(--d, 0) * 1ms) + (var(--I, 0) * var(--u, 40) * 1ms) + (var(--digit-i, 0) * 50ms) + (var(--u, 40) * 0.35 * 1ms)) !important;
+    animation-delay: calc(((var(--d, 0) * 1ms) + (var(--I, 0) * (var(--u, 40) * 1ms + var(--c, 0ms))) + (var(--u, 40) * 0.35 * 1ms) + (var(--digit-r, 0) * 60ms)) * var(--A, 1)) !important;
     animation-play-state: running !important;
 }
 
-/* Footer Year Odometers */
-:is(#tile-footer-MNure7 > footer, footer, .ins-tile--footer):is(.show-footer, .showing-footer, .footer-visible) dx-odometer .odometer-ribbon-inner {
-    animation-name: run-odometer !important;
-    animation-duration: calc(4000ms * var(--A, 1)) !important;
-    animation-timing-function: cubic-bezier(0.1, 0.9, 0.2, 1) !important;
-    animation-fill-mode: both !important;
-    animation-delay: var(--year-base-delay, 500ms) !important;
-    animation-play-state: running !important;
+/* ─── 0. Reset & Preflight Isolation ────────────────────────────────────── */
+dx-type,
+dx-type-sda,
+dx-reveal,
+dx-reveal-sda,
+dx-number,
+dx-odometer,
+ui-odometer,
+:host(dx-type),
+:host(dx-type-sda),
+:host(dx-reveal),
+:host(dx-reveal-sda),
+:host(dx-number),
+:host(dx-odometer) {
+    line-height: inherit !important;
+    font-family: inherit !important;
+    font-size: inherit !important;
+    font-weight: inherit !important;
+    letter-spacing: inherit !important;
+    box-sizing: border-box !important;
 }
 
 /* ─── 10. Final State & Static Cleanup ───────────────────────────────────── */
 dx-odometer[data-static="true"] .odometer-ribbon-inner,
 dx-odometer[data-static] .odometer-ribbon-inner,
-:is(.dx-typed, .TYPED) dx-odometer .odometer-ribbon-inner {
+.dx-typed dx-odometer .odometer-ribbon-inner {
     animation: none !important;
     transition: none !important;
     transform: translateY(var(--final-pos, 0%)) !important;
 }
 
-dx-type-sda:is(.dx-typed, .TYPED) c, dx-type:is(.dx-typed, .TYPED) c,
-:is(.dx-typed, .TYPED) c {
+dx-type-sda.dx-typed c,
+dx-type.dx-typed c,
+.dx-typed c {
     animation: none !important;
     opacity: 1 !important;
     visibility: visible !important;
     transform: none !important;
+    display: inline-block !important;
     will-change: auto !important;
 }
 
-:is(dx-reveal-sda, dx-reveal):is(.dx-revealed, .REVEALED),
-:is(.dx-revealed, .REVEALED) {
+:is(dx-reveal-sda, dx-reveal).dx-revealed,
+.dx-revealed {
     animation: none !important;
     opacity: 1 !important;
     visibility: visible !important;

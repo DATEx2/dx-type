@@ -11,6 +11,10 @@ export function finishReveal(el, e) {
     if (!el) return;
     if (e && e.target && e.target !== el) return;
     if (e && e.animationName &&
+        e.animationName !== 'dx-reveal-sda' &&
+        e.animationName !== 'reveal-sda' &&
+        e.animationName !== 'reveal-in' &&
+        e.animationName !== 'reveal-fade-in' &&
         e.animationName !== DX_ANIM.KF_REVEAL_IN &&
         e.animationName !== DX_ANIM.KF_REVEAL_SDA &&
         e.animationName !== DX_ANIM.KF_REVEAL_FADE) return;
@@ -28,6 +32,8 @@ export function startReveal(el, e) {
     if (!el || el.classList.contains(DX_ANIM.REVEALED) || el.classList.contains(DX_ANIM.REVEALING)) return;
     if (e && e.target && e.target !== el) return;
     if (e && e.animationName &&
+        e.animationName !== 'dx-type-sda' &&
+        e.animationName !== 'type-sda' &&
         e.animationName !== DX_ANIM.KF_TYPE_SDA &&
         e.animationName !== DX_ANIM.KF_SDA_SENSOR) return;
     if (typeof e?.stopPropagation === 'function') e.stopPropagation();

@@ -18,14 +18,16 @@ export function unpackTemplate(el) {
     if (tpl && tpl.content) {
         if (!el.getAttribute('role')) el.setAttribute('role', 'text');
         const st = el.querySelector(':scope > s-t');
-        if (st && !el.getAttribute('aria-label')) {
-            const raw = (st.textContent || '').replace(/\s+/g, ' ').trim();
-            if (raw) el.setAttribute('aria-label', raw);
+        if (st) {
+            if (!el.getAttribute('aria-label')) {
+                const raw = (st.textContent || '').replace(/\s+/g, ' ').trim();
+                if (raw) el.setAttribute('aria-label', raw);
+            }
         }
         tpl.replaceWith(tpl.content);
         const t = el.querySelector(':scope > t');
         if (t) t.setAttribute('aria-hidden', 'true');
-        el.classList.add('type-active');
+        el.classList.add(DX_ANIM.TYPING);
         return true;
     }
     return false;
@@ -73,48 +75,42 @@ export function cleanupTypedDOM(typeEl) {
     if (!typeEl || typeEl._cleanedUp) return;
     typeEl._cleanedUp = true;
 
-    const deferFn = typeof requestAnimationFrame === 'function' ? requestAnimationFrame : setTimeout;
-    deferFn(() => {
-        const doc = typeEl.ownerDocument || (typeof document !== 'undefined' ? document : null);
-        if (!doc) return;
+    const label = typeEl.getAttribute('aria-label') || typeEl.tagName;
+    console.log('[dx-type] 🧹 Running cleanupTypedDOM on:', label, typeEl);
 
-        // 1. Remove template & s-t tag
-        const directTpl = typeEl.querySelector(':scope > template');
-        if (directTpl) directTpl.remove();
-        const st = typeEl.querySelector(':scope > s-t');
-        if (st) st.remove();
-        const t = typeEl.querySelector(':scope > t');
-        const scope = t || (typeEl && typeof typeEl.querySelectorAll === 'function' ? typeEl : null);
-        if (!scope) return;
+    const doc = typeEl.ownerDocument || (typeof document !== 'undefined' ? document : null);
+    if (!doc) return;
 
-        // Unwrap in-place: convert all <c> and <w> into normal text nodes in exact same position
-        const allC = Array.from(scope.querySelectorAll('c'));
-        for (const c of allC) {
-            if (!c.querySelector('dx-odometer, ui-odometer, dx-number, ui-number, .tw-embed')) {
-                c.replaceWith(doc.createTextNode(c.textContent || ''));
-            } else {
-                c.replaceWith(...Array.from(c.childNodes));
-            }
-        }
-        const allW = Array.from(scope.querySelectorAll('w'));
-        for (const w of allW) {
-            w.replaceWith(...Array.from(w.childNodes));
-        }
-        if (t) {
-            t.replaceWith(...Array.from(t.childNodes));
-        }
-        if (typeof typeEl.normalize === 'function') typeEl.normalize();
+    // 1. Remove raw template wrappers if any remain
+    const directTpl = typeEl.querySelector(':scope > template');
+    if (directTpl) directTpl.remove();
 
-        typeEl.removeAttribute('aria-label');
-    });
+    // 2. Remove <t> layer completely so that all <w>, <c>, etc. fly away from DOM, leaving only <s-t>
+    const tLayer = typeEl.querySelector(':scope > t, t');
+    if (tLayer) {
+        tLayer.remove();
+    }
+
+    // 3. Guarantee that all child meters inside <s-t> are marked static and have their static HTML populated
+    const stMeters = typeEl.querySelectorAll('s-t dx-odometer, s-t ui-odometer, s-t dx-number, s-t ui-number');
+    for (let i = 0; i < stMeters.length; i++) {
+        const m = stMeters[i];
+        if (typeof m.makeStatic === 'function') m.makeStatic();
+        if (typeof m.getStaticHTML === 'function') {
+            m.innerHTML = m.getStaticHTML();
+        }
+    }
+
+    typeEl.removeAttribute('aria-label');
 }
 
-// ─── onTypewriterEnd — called when last <c> finishes animating ───────────────
+// ─── onTypewriterEnd — called when last <c> finishes animating or odometer completes ───
 export function onTypewriterEnd(cEl, event) {
     if (event) {
         event.stopPropagation();
         event.preventDefault();
         if (event.animationName === DX_ANIM.KF_PLAY_TOGGLE) return false;
+        if (event.animationName === DX_ANIM.KF_TYPE_SDA) return false;
     }
     if (!cEl) return false;
 
@@ -122,21 +118,42 @@ export function onTypewriterEnd(cEl, event) {
     const parent = cEl.closest('dx-type-sda, dx-type, .type-sda, .type, .TYPE-, ui-type, ui-type-sda');
     if (parent) {
         if (parent.classList.contains(DX_ANIM.TYPED)) return false;
+        if (parent.querySelector(':scope > template')) return false;
 
-        const allC = parent.querySelectorAll('c');
-        const lastC = allC.length ? allC[allC.length - 1] : null;
-        const isLastChar = (cEl === lastC) || (lastC && (cEl.contains(lastC) || lastC.contains(cEl)));
-        const isEmbed = cEl.classList.contains('tw-embed') || !!cEl.querySelector?.('.tw-embed');
+        const isEmbed = cEl.tagName === 'DX-ODOMETER' || cEl.tagName === 'UI-ODOMETER' ||
+                        cEl.tagName === 'DX-NUMBER' || cEl.tagName === 'UI-NUMBER';
+
+        if (!parent._lastC) {
+            const allC = parent.querySelectorAll('t c, c');
+            parent._lastC = allC.length ? allC[allC.length - 1] : null;
+        }
+        const lastC = parent._lastC;
+
+        const isLastChar = !isEmbed && ((cEl === lastC) || (cEl.getAttribute?.('data-last') === 'true') || (cEl.classList?.contains('last-char')) || (lastC && (cEl.contains(lastC) || lastC.contains(cEl))));
 
         if (!isLastChar && !isEmbed) return false;
 
-        parent._typed = (parent._typed || 0) + 1;
-        if (parent._toType === undefined) {
-            parent._toType = 1 + parent.querySelectorAll('ui-odometer.tw-embed, dx-odometer.tw-embed').length;
+        if (isLastChar) {
+            parent._charDone = true;
+            console.log('[dx-type] 🔤 Last character animation completed for:', parent.getAttribute('aria-label') || parent.tagName, cEl);
         }
-        const toType = parent._toType;
+        if (isEmbed) {
+            cEl._animDone = true;
+            console.log('[dx-type] ⏱️ Embedded meter animation completed for:', cEl.getAttribute('aria-label') || cEl.textContent.trim(), cEl);
+            console.trace('[dx-type] 🔍 Trace for embedded meter end:');
+        }
 
-        if (parent._typed >= toType) {
+        // Query all embedded meters in parent active <t> layer
+        const tLayer = parent.querySelector(':scope > t, t') || parent;
+        const embeds = Array.from(tLayer.querySelectorAll('dx-odometer, ui-odometer, dx-number, ui-number'));
+        const allEmbedsDone = embeds.length === 0 || embeds.every(e => e._animDone || e.isStatic || e.getAttribute('data-static') === 'true');
+        const charDone = !!parent._charDone;
+
+        console.log('[dx-type] 🚦 Gate check for "' + (parent.getAttribute('aria-label') || parent.tagName) + '": charDone=' + charDone + ', allEmbedsDone=' + allEmbedsDone + ' (' + embeds.length + ' embeds)');
+
+        // ONLY mark parent as typed when BOTH last char is done AND all embedded meters have finished!
+        if (charDone && allEmbedsDone) {
+            console.log('[dx-type] ✅ All conditions met! Marking typed and triggering cleanup for:', parent.getAttribute('aria-label') || parent.tagName);
             if (typeof parent.markTyped === 'function') {
                 parent.markTyped();
             } else {
@@ -178,6 +195,7 @@ export class DxTyping extends DxBase {
     }
 
     markTyped() {
+        if (this.querySelector(':scope > template')) return; // NEVER mark typed if template is still in DOM!
         if (this.cls) {
             this.cls({ [DX_ANIM.TYPING]: 0, [DX_ANIM.TYPED]: 1 });
         } else {
