@@ -81,8 +81,8 @@ var DxType = (() => {
   });
   var ioInstance = null;
   var ioCallbacks = /* @__PURE__ */ new WeakMap();
-  var _sdaTopGap = "0px";
-  var _sdaBottomGap = "150px";
+  var _sdaTopGap = "0%";
+  var _sdaBottomGap = "0%";
   function formatMarginValue(v) {
     if (!v || v === "0" || v === "0%" || v === "0px" || v === 0) return "0px";
     if (typeof v === "number") return `${v}px`;

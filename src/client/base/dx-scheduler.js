@@ -37,8 +37,8 @@ export const DX_ANIM = Object.freeze({
 let ioInstance = null;
 const ioCallbacks = new WeakMap();
 
-let _sdaTopGap = '0px';
-let _sdaBottomGap = '150px';
+let _sdaTopGap = '0%';
+let _sdaBottomGap = '0%';
 
 export function formatMarginValue(v) {
     if (!v || v === '0' || v === '0%' || v === '0px' || v === 0) return '0px';
