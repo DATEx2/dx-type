@@ -29,7 +29,9 @@ export function formatNumber(val, type = 'int', comma = ',', prefix = '', suffix
 }
 
 /**
- * Generate 3D ribbon markup for <dx-odometer>.
+ * Generate drum digit markup for <dx-odometer>.
+ * New architecture: 1 <d data-seq> element per digit column, wrapped in <b>.
+ * CSS ::before { content: attr(data-seq) } + translateY animates on GPU.
  */
 export function generateRibbonHtml(numericValue, type = 'int', comma = ',', prefix = '', suffix = '', startValue = null) {
     const formatted = formatNumber(numericValue, type, comma, prefix, suffix);
@@ -53,15 +55,23 @@ export function generateRibbonHtml(numericValue, type = 'int', comma = ',', pref
     }
 
     const isYear = (type === 'year');
-    let odoInsideHtml = '';
+
+    // Count total digit columns for leading-zero detection
+    const allDigitPositions = [];
+    for (let i = 0; i < formattedNumberStr.length; i++) {
+        if (formattedNumberStr[i] >= '0' && formattedNumberStr[i] <= '9') allDigitPositions.push(i);
+    }
+    const totalDigits = allDigitPositions.length;
+
+    let digitsHtml = '';
+    let digitIndex = 0;
 
     for (let i = 0; i < formattedNumberStr.length; i++) {
         const char = formattedNumberStr[i];
         if (char >= '0' && char <= '9') {
+            const curDigitIdx = digitIndex++;
+            const digitR = totalDigits - 1 - curDigitIdx;
             const digitVal = parseInt(char, 10);
-            let ribbonValuesHtml = '';
-            let totalItems = 0;
-            let finalIndex = 0;
 
             let startDigitVal = 0;
             if (formattedStartStr) {
@@ -70,68 +80,83 @@ export function generateRibbonHtml(numericValue, type = 'int', comma = ',', pref
                 if (isNaN(startDigitVal)) startDigitVal = 0;
             }
 
+            // Build drum sequence for this digit column
+            let drumValues = [];
+
             if (isYear && formattedStartStr) {
                 if (startDigitVal === digitVal) {
-                    ribbonValuesHtml = `<span class="odometer-value odometer-first-value odometer-last-value">${digitVal}</span>`;
-                    totalItems = 1;
-                    finalIndex = 0;
+                    drumValues.push(digitVal);
                 } else {
-                    let currentVal = startDigitVal;
-                    let count = 0;
-                    while (true) {
-                        const isFirst = (count === 0);
-                        const isLast = (currentVal === digitVal && count > 0);
-                        const firstClass = isFirst ? ' odometer-first-value' : '';
-                        const lastClass = isLast ? ' odometer-last-value' : '';
-                        ribbonValuesHtml += `<span class="odometer-value${firstClass}${lastClass}">${currentVal}</span>`;
-                        count++;
-                        if (isLast || count > 20) break;
-                        currentVal = (currentVal + 1) % 10;
+                    let cur = startDigitVal;
+                    drumValues.push(cur);
+                    while (cur !== digitVal && drumValues.length <= 20) {
+                        cur = (cur + 1) % 10;
+                        drumValues.push(cur);
                     }
-                    totalItems = count;
-                    finalIndex = count - 1;
                 }
             } else {
-                const digitFromRight = formattedNumberStr.length - 1 - i;
-                const fullSpins = Math.min(3, Math.max(1, digitFromRight + 1));
-                const diff = (digitVal - startDigitVal + 10) % 10;
-                let totalSteps = (fullSpins * 10) + diff;
-                if (totalSteps === 0) totalSteps = 10;
+                const isSingleDigit = (totalDigits === 1);
+                const cycles = isSingleDigit ? 0 : (digitR === 0 ? 2 : (digitR === 1 ? 1 : 0));
+                const totalSteps = cycles * 10 + ((digitVal - startDigitVal + 10) % 10);
+                const effectiveSteps = (totalSteps === 0 && cycles === 0) ? 0 : totalSteps;
 
-                for (let step = 0; step <= totalSteps; step++) {
-                    const val = (startDigitVal + step) % 10;
-                    const isFirst = (step === 0);
-                    const isLast = (step === totalSteps);
-                    const firstClass = isFirst ? ' odometer-first-value' : '';
-                    const lastClass = isLast ? ' odometer-last-value' : '';
-                    ribbonValuesHtml += `<span class="odometer-value${firstClass}${lastClass}">${val}</span>`;
+                let cur = startDigitVal;
+                drumValues.push(cur);
+                for (let s = 0; s < effectiveSteps; s++) {
+                    cur = (cur + 1) % 10;
+                    drumValues.push(cur);
                 }
-                totalItems = totalSteps + 1;
-                finalIndex = totalSteps;
+
+                // Prune middle frames for smoother mechanical feel
+                if (drumValues.length >= 10) {
+                    const removeCount = Math.floor(drumValues.length / 5);
+                    if (removeCount > 0) {
+                        const keepStart = 3;
+                        const keepEnd = 4;
+                        const midCount = drumValues.length - keepStart - keepEnd;
+                        if (midCount > removeCount) {
+                            const step = midCount / (removeCount + 1);
+                            const dropIndices = new Set();
+                            for (let r = 1; r <= removeCount; r++) {
+                                dropIndices.add(keepStart + Math.round(r * step) - 1);
+                            }
+                            drumValues = drumValues.filter((_, idx) => !dropIndices.has(idx));
+                        }
+                    }
+                }
+
+                // Leading zeros: replace initial 0 with space for mechanical blank
+                const isLeadingZero = !isYear && curDigitIdx < totalDigits - 1 && drumValues[0] === 0;
+                if (isLeadingZero) {
+                    // Check if all start digits up to this position are 0
+                    let allZero = true;
+                    for (let z = 0; z <= curDigitIdx; z++) {
+                        const sd = formattedStartStr
+                            ? parseInt(formattedStartStr.padStart(formattedNumberStr.length, '0')[allDigitPositions[z]], 10)
+                            : 0;
+                        if (sd !== 0) { allZero = false; break; }
+                    }
+                    if (allZero) drumValues[0] = ' ';
+                }
             }
 
-            const finalPosPercent = -((finalIndex / totalItems) * 100).toFixed(4);
-            const ribbonStyle = `style="--initial-pos: 0%; --final-pos: ${finalPosPercent}%; --digit-i: ${i};"`;
+            const totalItems = drumValues.length;
+            const finalIndex = totalItems - 1;
+            const finalPosPercent = totalItems > 1 ? -((finalIndex / totalItems) * 100).toFixed(4) : 0;
 
-            odoInsideHtml += `<span class="odometer-digit">` +
-                `<span class="odometer-digit-spacer">${char}</span>` +
-                `<span class="odometer-digit-inner">` +
-                    `<span class="odometer-ribbon">` +
-                        `<span class="odometer-ribbon-inner" data-final-pos="${finalPosPercent}%" ${ribbonStyle}>` +
-                            `${ribbonValuesHtml}` +
-                        `</span>` +
-                    `</span>` +
-                `</span>` +
-            `</span>`;
-        } else {
-            odoInsideHtml += `<span class="odometer-formatting-mark">${char === ' ' ? '&nbsp;' : char}</span>`;
+            // Build data-seq: digit values joined by &#10; (newline entity)
+            const seqStr = drumValues.map(v => v === ' ' ? ' ' : v).join('&#10;');
+
+            digitsHtml += `<d data-seq="${seqStr}" style="--p:${finalPosPercent}%;--r:${digitR}"></d>`;
         }
+        // Formatting marks (spaces, radix) are not rendered as separate elements
+        // They're handled by the prefix/suffix or parent layout
     }
 
     const pfxHtml = prefixText ? `<span class="ui-pfx">${prefixText}${prefix.endsWith(' ') ? '' : ' '}</span>` : '';
     const sfxHtml = suffixText ? `<span class="ui-sfx">${suffix.startsWith(' ') ? '' : ' '}${suffixText}</span>` : '';
 
-    return `${pfxHtml}<span class="ui-odo"><span class="odometer odometer-theme-datex2"><span class="odometer-inside">${odoInsideHtml}</span></span></span>${sfxHtml}`;
+    return `${pfxHtml}<b>${digitsHtml}</b>${sfxHtml}`;
 }
 
 /**
@@ -356,7 +381,7 @@ export function ssrDxType(content, options = {}) {
             const pfx = pfxMatch ? pfxMatch[1] : '';
             const sfx = sfxMatch ? sfxMatch[1] : '';
             const cleanText = `${pfx}${val}${sfx}`.trim();
-            return `<dx-odometer ${cleanAttrs} data-static="true">${cleanText}</dx-odometer>`;
+            return `<dx-odometer ${cleanAttrs} class="data-static">${cleanText}</dx-odometer>`;
         })
         : content;
 

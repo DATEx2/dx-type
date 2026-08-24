@@ -168,7 +168,7 @@ export function onTypewriterEnd(cEl, event) {
         // Query all embedded meters in parent active <t> layer
         const tLayer = parent.querySelector(':scope > t, t') || parent;
         const embeds = Array.from(tLayer.querySelectorAll('dx-odometer, ui-odometer, dx-number, ui-number'));
-        const allEmbedsDone = embeds.length === 0 || embeds.every(e => e._animDone || e.isStatic || e.getAttribute('data-static') === 'true');
+        const allEmbedsDone = embeds.length === 0 || embeds.every(e => e._animDone || e.isStatic || e.classList.contains('data-static'));
         const charDone = !!parent._charDone;
 
         // ONLY mark parent as typed when BOTH last char is done AND all embedded meters have finished!

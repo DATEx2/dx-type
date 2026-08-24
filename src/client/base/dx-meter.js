@@ -172,7 +172,7 @@ export class DxMeter extends DxBase {
     }
 
     get isStatic() {
-        return this.hasAttribute('data-static');
+        return this.classList.contains('data-static');
     }
 
     getNumericValue() {
@@ -207,7 +207,7 @@ export class DxMeter extends DxBase {
     }
 
     makeStatic() {
-        this.setAttribute('data-static', 'true');
+        this.classList.add('data-static');
     }
 }
 

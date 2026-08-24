@@ -146,7 +146,7 @@ export class DxNumber extends DxMeter {
             this._timeoutId = null;
         }
 
-        const isStatic = this.hasAttribute('data-static') || this.isStatic || !!this.closest('s-t');
+        const isStatic = this.classList.contains('data-static') || this.isStatic || !!this.closest('s-t');
         const targetVal = (this._targetValue !== undefined && !isNaN(this._targetValue) && this._targetValue !== 0)
             ? this._targetValue
             : (parseFloat(this.getAttribute('percent')) || this.getNumericValue() || 0);
