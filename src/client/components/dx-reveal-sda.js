@@ -8,6 +8,7 @@
 // used_by: src/client/index.js
 
 import { DxRevealing, finishReveal } from '../base/dx-revealing.js';
+import { unpackTemplate } from '../base/dx-typing.js';
 import { defCustomElement } from '../base/dx-base.js';
 import { observeIO, DX_ANIM } from '../base/dx-scheduler.js';
 
@@ -17,7 +18,7 @@ export class DxRevealSda extends DxRevealing {
         this._syncTimingAttributes();
 
         observeIO(this, (el) => {
-            el.unpackTemplate();
+            unpackTemplate(el);
             el.classList.add(DX_ANIM.REVEALING);
         });
 

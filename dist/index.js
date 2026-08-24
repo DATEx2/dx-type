@@ -674,7 +674,7 @@ var DxReveal = class extends DxRevealing {
     const typeReady = this.closest("dx-type-ready, .dx-type-ready");
     if (!typeReady) {
       observeIO(this, (el2) => {
-        el2.unpackTemplate();
+        unpackTemplate(el2);
         el2.classList.add(DX_ANIM.REVEALING);
       });
     }
@@ -700,7 +700,7 @@ var DxRevealSda = class extends DxRevealing {
     if (this.isRevealed) return;
     this._syncTimingAttributes();
     observeIO(this, (el2) => {
-      el2.unpackTemplate();
+      unpackTemplate(el2);
       el2.classList.add(DX_ANIM.REVEALING);
     });
     this.addEventListener("animationend", this._onAnimEnd);
