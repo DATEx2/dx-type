@@ -11,6 +11,28 @@ import { DxMeter, parseNumParts, generateOdometerFrames } from '../base/dx-meter
 import { rootWin, span, defCustomElement } from '../base/dx-base.js';
 import { DX_ANIM, observeIO } from '../base/dx-scheduler.js';
 
+function pruneMiddleFrames(drumValues) {
+    const len = drumValues.length;
+    if (len < 10) return drumValues;
+
+    const removeCount = Math.floor(len / 5);
+    if (removeCount <= 0) return drumValues;
+
+    const keepStart = 3;
+    const keepEnd = 4;
+    const midCount = len - keepStart - keepEnd;
+    if (midCount <= removeCount) return drumValues;
+
+    const step = midCount / (removeCount + 1);
+    const dropIndices = new Set();
+    for (let r = 1; r <= removeCount; r++) {
+        const dropIdx = keepStart + Math.round(r * step) - 1;
+        dropIndices.add(dropIdx);
+    }
+
+    return drumValues.filter((_, idx) => !dropIndices.has(idx));
+}
+
 let odometerStyleSheet = null;
 
 function getOdometerStyleSheet() {
@@ -40,9 +62,15 @@ function getOdometerStyleSheet() {
                     pointer-events: none !important;
                     z-index: -1 !important;
                 }
-                .odometer, .odometer-inside, .odometer-digit, .ui-odo, .ui-sfx, .ui-pfx, .odometer-formatting-mark {
+                .odometer, .odometer-inside, .odometer-digit, .ui-odo, .odometer-formatting-mark {
                     display: inline-flex !important;
                     align-items: baseline !important;
+                    vertical-align: baseline !important;
+                    line-height: inherit !important;
+                }
+                .ui-sfx, .ui-pfx {
+                    display: inline-block !important;
+                    white-space: pre !important;
                     vertical-align: baseline !important;
                     line-height: inherit !important;
                 }
@@ -138,13 +166,8 @@ export class DxOdometer extends DxMeter {
             if (!this._completedRibbons) this._completedRibbons = new Set();
             this._completedRibbons.add(e.target);
 
-            const label = this.getAttribute('aria-label') || this.textContent.trim() || 'odometer';
-            const compDur = typeof getComputedStyle === 'function' ? getComputedStyle(e.target).animationDuration : 'unknown';
-            console.log('[dx-odometer] 🥁 Ribbon finished (' + this._completedRibbons.size + '/' + this._ribbonCount + ') for "' + label + '" [dur=' + compDur + ', anim=' + e.animationName + ']', e.target);
-
             if (this._completedRibbons.size >= this._ribbonCount && this._ribbonCount > 0) {
                 this._animDone = true;
-                console.log('[dx-odometer] 🎯 ALL ribbons completed for "' + label + '" -> notifying typewriter parent', this);
 
                 // Freeze to static state and notify typewriter parent
                 this.makeStatic();
@@ -289,7 +312,7 @@ export class DxOdometer extends DxMeter {
                     ? parseInt(startDigitsStr[curDigitIdx], 10)
                     : 0;
 
-                const drumValues = [];
+                let drumValues = [];
                 if (isYearWithStart) {
                     if (startD === targetD) {
                         drumValues.push(targetD);
@@ -313,6 +336,7 @@ export class DxOdometer extends DxMeter {
                         cur = (cur + 1) % 10;
                         drumValues.push(cur);
                     }
+                    drumValues = pruneMiddleFrames(drumValues);
                 }
 
                 // Mechanical odometer: leading-zero digits show blank at start, not "0".

@@ -17,7 +17,6 @@ export class DxRevealSda extends DxRevealing {
         this._syncTimingAttributes();
 
         observeIO(this, (el) => {
-            console.log(`[dx-reveal-sda:IO] <dx-reveal-sda> entered viewport at ${performance.now().toFixed(1)}ms`);
             el.unpackTemplate();
             el.classList.add(DX_ANIM.REVEALING);
         });
@@ -28,12 +27,10 @@ export class DxRevealSda extends DxRevealing {
 
     _onAnimStart = (e) => {
         if (e.target !== this) return;
-        console.log(`[dx-reveal-sda:anim-start] <dx-reveal-sda> animationstart at ${performance.now().toFixed(1)}ms`);
     };
 
     _onAnimEnd = (e) => {
         if (e.target !== this) return;
-        console.log(`[dx-reveal-sda:anim-end] <dx-reveal-sda> animationend at ${performance.now().toFixed(1)}ms`);
         finishReveal(this, e);
         if (this.isRevealed) {
             this.removeEventListener('animationstart', this._onAnimStart);

@@ -144,11 +144,15 @@ ui-odometer {
   & .odometer-inside,
   & .odometer-digit,
   & .ui-odo,
-  & .ui-sfx,
-  & .ui-pfx,
   & .odometer-formatting-mark {
     display: inline-flex !important;
     align-items: baseline !important;
+    vertical-align: baseline !important;
+    line-height: inherit !important;
+  }
+  & :is(.ui-pfx, .ui-sfx) {
+    display: inline-block !important;
+    white-space: pre !important;
     vertical-align: baseline !important;
     line-height: inherit !important;
   }
@@ -448,7 +452,7 @@ c:nth-child(50) {
     transform: translateY(var(--final-pos, 0%));
   }
 }
-@property --play-state { syntax: "<custom-ident>"; inherits: true; initial-value: paused; }
+@property --play-state { syntax: "<custom-ident>"; inherits: false; initial-value: paused; }
 @keyframes dx-type-sda {
   0% {
     --play-state: paused;
@@ -614,10 +618,17 @@ dx-odometer[data-static] .odometer-ribbon-inner,
   transition: none !important;
   transform: translateY(var(--final-pos, 0%)) !important;
 }
+dx-type-sda.dx-typed,
+dx-type.dx-typed,
+.dx-typed {
+  animation: none !important;
+  animation-timeline: none !important;
+}
 dx-type-sda.dx-typed c,
 dx-type.dx-typed c,
 .dx-typed c {
   animation: none !important;
+  animation-timeline: none !important;
   opacity: 1 !important;
   visibility: visible !important;
   transform: none !important;
@@ -627,6 +638,7 @@ dx-type.dx-typed c,
 :is(dx-reveal-sda, dx-reveal).dx-revealed,
 .dx-revealed {
   animation: none !important;
+  animation-timeline: none !important;
   opacity: 1 !important;
   visibility: visible !important;
   transform: none !important;

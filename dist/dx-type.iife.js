@@ -307,6 +307,25 @@ var DxType = (() => {
       const t = el2.querySelector(":scope > t");
       if (t) t.setAttribute("aria-hidden", "true");
       el2.classList.add(DX_ANIM.TYPING);
+      if (!el2._safetyTimer && typeof setTimeout === "function") {
+        const delay = parseFloat(el2.style?.getPropertyValue("--d")) || parseFloat(el2.getAttribute?.("delay") || el2.getAttribute?.("d")) || 0;
+        const duration = parseFloat(el2.style?.getPropertyValue("--t")) || parseFloat(el2.getAttribute?.("duration") || el2.getAttribute?.("t")) || 580;
+        const hasEmbeds = !!el2.querySelector("dx-odometer, ui-odometer, dx-number, ui-number, .tw-embed");
+        const maxDuration = hasEmbeds ? Math.max(duration, 1600) : duration;
+        const safetyDur = delay + maxDuration + 300;
+        const startTs = Date.now();
+        el2._safetyTimer = setTimeout(() => {
+          el2._safetyTimer = null;
+          if (Date.now() - startTs < safetyDur - 50) return;
+          if (!el2.classList.contains(DX_ANIM.TYPED)) {
+            if (typeof el2.markTyped === "function") {
+              el2.markTyped();
+            } else {
+              DxTyping.prototype.markTyped.call(el2);
+            }
+          }
+        }, safetyDur);
+      }
       return true;
     }
     return false;
@@ -338,8 +357,10 @@ var DxType = (() => {
   function cleanupTypedDOM(typeEl) {
     if (!typeEl || typeEl._cleanedUp) return;
     typeEl._cleanedUp = true;
-    const label = typeEl.getAttribute("aria-label") || typeEl.tagName;
-    console.log("[dx-type] \u{1F9F9} Running cleanupTypedDOM on:", label, typeEl);
+    if (typeEl._safetyTimer) {
+      clearTimeout(typeEl._safetyTimer);
+      typeEl._safetyTimer = null;
+    }
     const doc = typeEl.ownerDocument || (typeof document !== "undefined" ? document : null);
     if (!doc) return;
     const directTpl = typeEl.querySelector(":scope > template");
@@ -380,20 +401,15 @@ var DxType = (() => {
       if (!isLastChar && !isEmbed) return false;
       if (isLastChar) {
         parent._charDone = true;
-        console.log("[dx-type] \u{1F524} Last character animation completed for:", parent.getAttribute("aria-label") || parent.tagName, cEl);
       }
       if (isEmbed) {
         cEl._animDone = true;
-        console.log("[dx-type] \u23F1\uFE0F Embedded meter animation completed for:", cEl.getAttribute("aria-label") || cEl.textContent.trim(), cEl);
-        console.trace("[dx-type] \u{1F50D} Trace for embedded meter end:");
       }
       const tLayer = parent.querySelector(":scope > t, t") || parent;
       const embeds = Array.from(tLayer.querySelectorAll("dx-odometer, ui-odometer, dx-number, ui-number"));
       const allEmbedsDone = embeds.length === 0 || embeds.every((e) => e._animDone || e.isStatic || e.getAttribute("data-static") === "true");
       const charDone = !!parent._charDone;
-      console.log('[dx-type] \u{1F6A6} Gate check for "' + (parent.getAttribute("aria-label") || parent.tagName) + '": charDone=' + charDone + ", allEmbedsDone=" + allEmbedsDone + " (" + embeds.length + " embeds)");
       if (charDone && allEmbedsDone) {
-        console.log("[dx-type] \u2705 All conditions met! Marking typed and triggering cleanup for:", parent.getAttribute("aria-label") || parent.tagName);
         if (typeof parent.markTyped === "function") {
           parent.markTyped();
         } else {
@@ -429,6 +445,10 @@ var DxType = (() => {
     }
     markTyped() {
       if (this.querySelector(":scope > template")) return;
+      if (this._safetyTimer) {
+        clearTimeout(this._safetyTimer);
+        this._safetyTimer = null;
+      }
       if (this.cls) {
         this.cls({ [DX_ANIM.TYPING]: 0, [DX_ANIM.TYPED]: 1 });
       } else {
@@ -458,29 +478,6 @@ var DxType = (() => {
       document.addEventListener("DOMContentLoaded", () => bootstrapTypewriterObserver(), { once: true });
     } else {
       bootstrapTypewriterObserver();
-    }
-    if (typeof MutationObserver !== "undefined" && document.documentElement) {
-      const MATCH_SELECTOR = "dx-type-sda, dx-reveal-sda, dx-type, .type-sda, ui-type-sda, .type, .TYPE";
-      const mutObs = new MutationObserver((mutations) => {
-        for (let i = 0; i < mutations.length; i++) {
-          const added = mutations[i].addedNodes;
-          for (let j = 0; j < added.length; j++) {
-            const node = added[j];
-            if (node && node.nodeType === 1) {
-              if (node.matches && node.matches(MATCH_SELECTOR)) {
-                checkAndObserve(node);
-              }
-              if (node.querySelectorAll) {
-                const nested = node.querySelectorAll(MATCH_SELECTOR);
-                for (let k = 0; k < nested.length; k++) {
-                  checkAndObserve(nested[k]);
-                }
-              }
-            }
-          }
-        }
-      });
-      mutObs.observe(document.documentElement, { childList: true, subtree: true });
     }
   }
   if (rootWin2) {
@@ -773,7 +770,6 @@ var DxType = (() => {
       if (this.isRevealed) return;
       this._syncTimingAttributes();
       observeIO(this, (el2) => {
-        console.log(`[dx-reveal-sda:IO] <dx-reveal-sda> entered viewport at ${performance.now().toFixed(1)}ms`);
         el2.unpackTemplate();
         el2.classList.add(DX_ANIM.REVEALING);
       });
@@ -782,11 +778,9 @@ var DxType = (() => {
     }
     _onAnimStart = (e) => {
       if (e.target !== this) return;
-      console.log(`[dx-reveal-sda:anim-start] <dx-reveal-sda> animationstart at ${performance.now().toFixed(1)}ms`);
     };
     _onAnimEnd = (e) => {
       if (e.target !== this) return;
-      console.log(`[dx-reveal-sda:anim-end] <dx-reveal-sda> animationend at ${performance.now().toFixed(1)}ms`);
       finishReveal(this, e);
       if (this.isRevealed) {
         this.removeEventListener("animationstart", this._onAnimStart);
@@ -826,14 +820,6 @@ var DxType = (() => {
   defCustomElement("dx-type-ready", DxTypeReady);
 
   // src/client/components/dx-number.js
-  function isElementInViewport(el2) {
-    if (typeof window === "undefined" || !el2 || typeof el2.getBoundingClientRect !== "function") return false;
-    const rect = el2.getBoundingClientRect();
-    if (rect.width === 0 && rect.height === 0) return false;
-    const vh = window.innerHeight || document.documentElement.clientHeight || 0;
-    const vw = window.innerWidth || document.documentElement.clientWidth || 0;
-    return rect.top < vh && rect.bottom > 0 && rect.left < vw && rect.right > 0;
-  }
   var TYPE_PARENT_SEL = "dx-type-sda, dx-type, .type-sda, .type, .TYPE-, ui-type, ui-type-sda";
   var REVEAL_PARENT_SEL = "dx-reveal-sda, dx-reveal, .reveal-sda, .reveal, .REVEAL-, ui-reveal-sda, ui-reveal";
   var DxNumber = class extends DxMeter {
@@ -884,21 +870,18 @@ var DxType = (() => {
       return this.formatValue(numericValue);
     }
     isReadyToAnimate() {
-      if (!this._inViewport) {
-        this._inViewport = isElementInViewport(this);
-      }
       if (this._inViewport && !this._parentReady) {
         const parentC = this.closest("c");
         const parentReveal = this.closest(REVEAL_PARENT_SEL);
         if (!parentC && !parentReveal) {
           this._parentReady = true;
         } else if (parentReveal) {
-          if (isElementInViewport(parentReveal) || parentReveal.classList.contains(DX_ANIM.REVEALED) || parentReveal.classList.contains(DX_ANIM.REVEALING) || parentReveal.classList.contains("revealed") || parentReveal.classList.contains("revealing") || parentReveal.hasAttribute("data-static")) {
+          if (parentReveal.classList.contains(DX_ANIM.REVEALED) || parentReveal.classList.contains(DX_ANIM.REVEALING) || parentReveal.classList.contains("revealed") || parentReveal.classList.contains("revealing") || parentReveal.hasAttribute("data-static")) {
             this._parentReady = true;
           }
         }
       }
-      return this._inViewport && this._parentReady;
+      return Boolean(this._inViewport && this._parentReady);
     }
     getDuration() {
       if (this.hasAttribute("duration")) {
@@ -952,7 +935,7 @@ var DxType = (() => {
         this._value = this.hasAttribute("start") ? parseFloat(this.getAttribute("start")) || 0 : 0;
       }
       this.render();
-      this._inViewport = isElementInViewport(this);
+      this._inViewport = false;
       observeIO(this, () => {
         this._inViewport = true;
         this._checkAndTrigger();
@@ -1154,6 +1137,11 @@ var DxType = (() => {
         const numText = `${p.digits}${p.radix}${p.decimals}`;
         let numSpan = this._numSpan || (this._numSpan = this.querySelector(".ui-num"));
         if (numSpan && this.contains(numSpan)) {
+          Array.from(this.childNodes).forEach((node) => {
+            if (node.nodeType === 3 && node.nodeValue && node.nodeValue.trim()) {
+              node.remove();
+            }
+          });
           let pfxSpan = this._pfxSpan || (this._pfxSpan = this.querySelector(".ui-pfx:not(.ui-pfx-pad)"));
           if (pfxStr) {
             if (!pfxSpan) {
@@ -1257,6 +1245,23 @@ var DxType = (() => {
   defCustomElement("ui-number", DxNumber);
 
   // src/client/components/dx-odometer.js
+  function pruneMiddleFrames(drumValues) {
+    const len = drumValues.length;
+    if (len < 10) return drumValues;
+    const removeCount = Math.floor(len / 5);
+    if (removeCount <= 0) return drumValues;
+    const keepStart = 3;
+    const keepEnd = 4;
+    const midCount = len - keepStart - keepEnd;
+    if (midCount <= removeCount) return drumValues;
+    const step = midCount / (removeCount + 1);
+    const dropIndices = /* @__PURE__ */ new Set();
+    for (let r = 1; r <= removeCount; r++) {
+      const dropIdx = keepStart + Math.round(r * step) - 1;
+      dropIndices.add(dropIdx);
+    }
+    return drumValues.filter((_, idx) => !dropIndices.has(idx));
+  }
   var odometerStyleSheet = null;
   function getOdometerStyleSheet() {
     if (!odometerStyleSheet && typeof CSSStyleSheet !== "undefined") {
@@ -1285,9 +1290,15 @@ var DxType = (() => {
                     pointer-events: none !important;
                     z-index: -1 !important;
                 }
-                .odometer, .odometer-inside, .odometer-digit, .ui-odo, .ui-sfx, .ui-pfx, .odometer-formatting-mark {
+                .odometer, .odometer-inside, .odometer-digit, .ui-odo, .odometer-formatting-mark {
                     display: inline-flex !important;
                     align-items: baseline !important;
+                    vertical-align: baseline !important;
+                    line-height: inherit !important;
+                }
+                .ui-sfx, .ui-pfx {
+                    display: inline-block !important;
+                    white-space: pre !important;
                     vertical-align: baseline !important;
                     line-height: inherit !important;
                 }
@@ -1373,12 +1384,8 @@ var DxType = (() => {
         this._ribbonCount = allRibbons.length;
         if (!this._completedRibbons) this._completedRibbons = /* @__PURE__ */ new Set();
         this._completedRibbons.add(e.target);
-        const label = this.getAttribute("aria-label") || this.textContent.trim() || "odometer";
-        const compDur = typeof getComputedStyle === "function" ? getComputedStyle(e.target).animationDuration : "unknown";
-        console.log("[dx-odometer] \u{1F941} Ribbon finished (" + this._completedRibbons.size + "/" + this._ribbonCount + ') for "' + label + '" [dur=' + compDur + ", anim=" + e.animationName + "]", e.target);
         if (this._completedRibbons.size >= this._ribbonCount && this._ribbonCount > 0) {
           this._animDone = true;
-          console.log('[dx-odometer] \u{1F3AF} ALL ribbons completed for "' + label + '" -> notifying typewriter parent', this);
           this.makeStatic();
           if (this.classList.contains("tw-embed") && typeof rootWin2?.__twEnd === "function") {
             rootWin2.__twEnd(this);
@@ -1493,7 +1500,7 @@ var DxType = (() => {
           const digitR = targetDigitsStr.length - 1 - curDigitIdx;
           const targetD = parseInt(targetDigitsStr[curDigitIdx], 10);
           const startD = startDigitsStr && startDigitsStr[curDigitIdx] !== void 0 ? parseInt(startDigitsStr[curDigitIdx], 10) : 0;
-          const drumValues = [];
+          let drumValues = [];
           if (isYearWithStart) {
             if (startD === targetD) {
               drumValues.push(targetD);
@@ -1516,6 +1523,7 @@ var DxType = (() => {
               cur = (cur + 1) % 10;
               drumValues.push(cur);
             }
+            drumValues = pruneMiddleFrames(drumValues);
           }
           const isLeadingZero = !isYear && curDigitIdx <= lastLeadingZeroIdx;
           if (isLeadingZero && drumValues.length > 0 && drumValues[0] === 0) {

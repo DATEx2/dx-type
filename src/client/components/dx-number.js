@@ -21,20 +21,6 @@ function getElDesc(el) {
     return `<dx-number${id}${cls}> (${val}${sfx})`;
 }
 
-function isElementInViewport(el) {
-    if (typeof window === 'undefined' || !el || typeof el.getBoundingClientRect !== 'function') return false;
-    const rect = el.getBoundingClientRect();
-    if (rect.width === 0 && rect.height === 0) return false;
-    const vh = window.innerHeight || document.documentElement.clientHeight || 0;
-    const vw = window.innerWidth || document.documentElement.clientWidth || 0;
-    return (
-        rect.top < vh &&
-        rect.bottom > 0 &&
-        rect.left < vw &&
-        rect.right > 0
-    );
-}
-
 // ─── Parent selectors (dx-* tags + legacy class/tag selectors) ───────────────
 const SDA_PARENT_SEL = 'dx-type-sda, dx-reveal-sda, .type-sda, .reveal-sda, .TYPE-, .REVEAL-, ui-type-sda, ui-reveal-sda';
 const TYPE_PARENT_SEL = 'dx-type-sda, dx-type, .type-sda, .type, .TYPE-, ui-type, ui-type-sda';
@@ -98,21 +84,18 @@ export class DxNumber extends DxMeter {
     }
 
     isReadyToAnimate() {
-        if (!this._inViewport) {
-            this._inViewport = isElementInViewport(this);
-        }
         if (this._inViewport && !this._parentReady) {
             const parentC = this.closest('c');
             const parentReveal = this.closest(REVEAL_PARENT_SEL);
             if (!parentC && !parentReveal) {
                 this._parentReady = true;
             } else if (parentReveal) {
-                if (isElementInViewport(parentReveal) || parentReveal.classList.contains(DX_ANIM.REVEALED) || parentReveal.classList.contains(DX_ANIM.REVEALING) || parentReveal.classList.contains('revealed') || parentReveal.classList.contains('revealing') || parentReveal.hasAttribute('data-static')) {
+                if (parentReveal.classList.contains(DX_ANIM.REVEALED) || parentReveal.classList.contains(DX_ANIM.REVEALING) || parentReveal.classList.contains('revealed') || parentReveal.classList.contains('revealing') || parentReveal.hasAttribute('data-static')) {
                     this._parentReady = true;
                 }
             }
         }
-        return this._inViewport && this._parentReady;
+        return Boolean(this._inViewport && this._parentReady);
     }
 
     getDuration() {
@@ -177,7 +160,7 @@ export class DxNumber extends DxMeter {
         }
         this.render();
 
-        this._inViewport = isElementInViewport(this);
+        this._inViewport = false;
 
         // 1. Condition #1: In-viewport observer (Singleton IO)
         observeIO(this, () => {
@@ -400,6 +383,12 @@ export class DxNumber extends DxMeter {
 
             // Fast-path: Direct TextNode updates when DOM structure is already intact
             if (numSpan && this.contains(numSpan)) {
+                // Strip any stray text nodes directly inside <dx-number> to guarantee zero text duplication
+                Array.from(this.childNodes).forEach(node => {
+                    if (node.nodeType === 3 && node.nodeValue && node.nodeValue.trim()) {
+                        node.remove();
+                    }
+                });
                 // 1. Update Prefix TextNode
                 let pfxSpan = this._pfxSpan || (this._pfxSpan = this.querySelector('.ui-pfx:not(.ui-pfx-pad)'));
                 if (pfxStr) {

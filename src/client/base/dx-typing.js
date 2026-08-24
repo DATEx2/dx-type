@@ -28,6 +28,29 @@ export function unpackTemplate(el) {
         const t = el.querySelector(':scope > t');
         if (t) t.setAttribute('aria-hidden', 'true');
         el.classList.add(DX_ANIM.TYPING);
+
+        // Deterministic Safety Fallback: guarantee cleanup if animationend is dropped (e.g. fast scroll)
+        if (!el._safetyTimer && typeof setTimeout === 'function') {
+            const delay = parseFloat(el.style?.getPropertyValue('--d')) || parseFloat(el.getAttribute?.('delay') || el.getAttribute?.('d')) || 0;
+            const duration = parseFloat(el.style?.getPropertyValue('--t')) || parseFloat(el.getAttribute?.('duration') || el.getAttribute?.('t')) || 580;
+            const hasEmbeds = !!el.querySelector('dx-odometer, ui-odometer, dx-number, ui-number, .tw-embed');
+            const maxDuration = hasEmbeds ? Math.max(duration, 1600) : duration;
+            const safetyDur = delay + maxDuration + 300;
+            const startTs = Date.now();
+            el._safetyTimer = setTimeout(() => {
+                el._safetyTimer = null;
+                // Guard against synchronous test mock timers (e.g. win.setTimeout = fn => fn())
+                if (Date.now() - startTs < safetyDur - 50) return;
+                if (!el.classList.contains(DX_ANIM.TYPED)) {
+                    if (typeof el.markTyped === 'function') {
+                        el.markTyped();
+                    } else {
+                        DxTyping.prototype.markTyped.call(el);
+                    }
+                }
+            }, safetyDur);
+        }
+
         return true;
     }
     return false;
@@ -75,8 +98,10 @@ export function cleanupTypedDOM(typeEl) {
     if (!typeEl || typeEl._cleanedUp) return;
     typeEl._cleanedUp = true;
 
-    const label = typeEl.getAttribute('aria-label') || typeEl.tagName;
-    console.log('[dx-type] 🧹 Running cleanupTypedDOM on:', label, typeEl);
+    if (typeEl._safetyTimer) {
+        clearTimeout(typeEl._safetyTimer);
+        typeEl._safetyTimer = null;
+    }
 
     const doc = typeEl.ownerDocument || (typeof document !== 'undefined' ? document : null);
     if (!doc) return;
@@ -135,12 +160,9 @@ export function onTypewriterEnd(cEl, event) {
 
         if (isLastChar) {
             parent._charDone = true;
-            console.log('[dx-type] 🔤 Last character animation completed for:', parent.getAttribute('aria-label') || parent.tagName, cEl);
         }
         if (isEmbed) {
             cEl._animDone = true;
-            console.log('[dx-type] ⏱️ Embedded meter animation completed for:', cEl.getAttribute('aria-label') || cEl.textContent.trim(), cEl);
-            console.trace('[dx-type] 🔍 Trace for embedded meter end:');
         }
 
         // Query all embedded meters in parent active <t> layer
@@ -149,11 +171,8 @@ export function onTypewriterEnd(cEl, event) {
         const allEmbedsDone = embeds.length === 0 || embeds.every(e => e._animDone || e.isStatic || e.getAttribute('data-static') === 'true');
         const charDone = !!parent._charDone;
 
-        console.log('[dx-type] 🚦 Gate check for "' + (parent.getAttribute('aria-label') || parent.tagName) + '": charDone=' + charDone + ', allEmbedsDone=' + allEmbedsDone + ' (' + embeds.length + ' embeds)');
-
         // ONLY mark parent as typed when BOTH last char is done AND all embedded meters have finished!
         if (charDone && allEmbedsDone) {
-            console.log('[dx-type] ✅ All conditions met! Marking typed and triggering cleanup for:', parent.getAttribute('aria-label') || parent.tagName);
             if (typeof parent.markTyped === 'function') {
                 parent.markTyped();
             } else {
@@ -196,6 +215,10 @@ export class DxTyping extends DxBase {
 
     markTyped() {
         if (this.querySelector(':scope > template')) return; // NEVER mark typed if template is still in DOM!
+        if (this._safetyTimer) {
+            clearTimeout(this._safetyTimer);
+            this._safetyTimer = null;
+        }
         if (this.cls) {
             this.cls({ [DX_ANIM.TYPING]: 0, [DX_ANIM.TYPED]: 1 });
         } else {
@@ -215,7 +238,7 @@ const checkAndObserve = (el) => {
     }
 };
 
-// ─── Auto-Bootstrap at DOM Ready & Dynamic Insertions ────────────────────────
+// ─── Auto-Bootstrap at DOM Ready ─────────────────────────────────────────────
 export function bootstrapTypewriterObserver(root = (typeof document !== 'undefined' ? document : null)) {
     if (!root) return;
     const elements = root.querySelectorAll('dx-type-sda, dx-reveal-sda, dx-type, .type-sda, ui-type-sda, .type, .TYPE');
@@ -229,30 +252,6 @@ if (typeof document !== 'undefined') {
         document.addEventListener('DOMContentLoaded', () => bootstrapTypewriterObserver(), { once: true });
     } else {
         bootstrapTypewriterObserver();
-    }
-
-    if (typeof MutationObserver !== 'undefined' && document.documentElement) {
-        const MATCH_SELECTOR = 'dx-type-sda, dx-reveal-sda, dx-type, .type-sda, ui-type-sda, .type, .TYPE';
-        const mutObs = new MutationObserver((mutations) => {
-            for (let i = 0; i < mutations.length; i++) {
-                const added = mutations[i].addedNodes;
-                for (let j = 0; j < added.length; j++) {
-                    const node = added[j];
-                    if (node && node.nodeType === 1) {
-                        if (node.matches && node.matches(MATCH_SELECTOR)) {
-                            checkAndObserve(node);
-                        }
-                        if (node.querySelectorAll) {
-                            const nested = node.querySelectorAll(MATCH_SELECTOR);
-                            for (let k = 0; k < nested.length; k++) {
-                                checkAndObserve(nested[k]);
-                            }
-                        }
-                    }
-                }
-            }
-        });
-        mutObs.observe(document.documentElement, { childList: true, subtree: true });
     }
 }
 

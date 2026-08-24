@@ -167,11 +167,16 @@ dx-odometer, ui-odometer {
     & .odometer-inside,
     & .odometer-digit,
     & .ui-odo,
-    & .ui-sfx,
-    & .ui-pfx,
     & .odometer-formatting-mark {
         display: inline-flex !important;
         align-items: baseline !important;
+        vertical-align: baseline !important;
+        line-height: inherit !important;
+    }
+
+    & :is(.ui-pfx, .ui-sfx) {
+        display: inline-block !important;
+        white-space: pre !important;
         vertical-align: baseline !important;
         line-height: inherit !important;
     }
@@ -391,10 +396,10 @@ c:nth-child(50) { --i: 49; }
     }
 }
 
-/* @property needed for SDA discrete snap */
+/* @property needed for SDA discrete snap (inherits: false avoids sub-tree style recalculation) */
 @property --play-state {
     syntax: "<custom-ident>";
-    inherits: true;
+    inherits: false;
     initial-value: paused;
 }
 
@@ -454,8 +459,6 @@ dx-type-sda c {
     animation-delay: calc(((var(--d, 0) * 1ms) + (var(--I, 0) * (var(--u, 40) * 1ms + var(--c, 0ms)))) * var(--A, 1));
     animation-play-state: paused;
 }
-
-/* s-t uses color: transparent — no FOUC, no need to hide container */
 
 :is(dx-type-sda.dx-typing, dx-type-sda.dx-typed, dx-type-sda[data-static]) c,
 :is(dx-type-sda.dx-typing, dx-type-sda.dx-typed, dx-type-sda[data-static]) :is(dx-number, dx-odometer, .tw-embed) .odometer-ribbon-inner {
@@ -582,10 +585,18 @@ dx-odometer[data-static] .odometer-ribbon-inner,
     transform: translateY(var(--final-pos, 0%)) !important;
 }
 
+dx-type-sda.dx-typed,
+dx-type.dx-typed,
+.dx-typed {
+    animation: none !important;
+    animation-timeline: none !important;
+}
+
 dx-type-sda.dx-typed c,
 dx-type.dx-typed c,
 .dx-typed c {
     animation: none !important;
+    animation-timeline: none !important;
     opacity: 1 !important;
     visibility: visible !important;
     transform: none !important;
@@ -596,6 +607,7 @@ dx-type.dx-typed c,
 :is(dx-reveal-sda, dx-reveal).dx-revealed,
 .dx-revealed {
     animation: none !important;
+    animation-timeline: none !important;
     opacity: 1 !important;
     visibility: visible !important;
     transform: none !important;
