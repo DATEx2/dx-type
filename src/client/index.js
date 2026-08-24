@@ -17,3 +17,4 @@ export { DxRevealSda } from './components/dx-reveal-sda.js';
 export { DxTypeReady } from './components/dx-type-ready.js';
 export { DxNumber } from './components/dx-number.js';
 export { DxOdometer } from './components/dx-odometer.js';
+export { DxCounter } from './components/dx-counter.js';

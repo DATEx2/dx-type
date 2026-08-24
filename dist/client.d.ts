@@ -109,6 +109,14 @@ export class DxOdometer extends DxMeter {
     update(): void;
 }
 
+
+export class DxCounter extends DxMeter {
+    init(): void;
+    getStaticHTML(): string;
+    val(newValue?: number | string, duration?: number): number | this;
+    render(): void;
+}
+
 declare global {
     interface HTMLElementTagNameMap {
         'dx-type': DxType;
@@ -118,5 +126,6 @@ declare global {
         'dx-type-ready': DxTypeReady;
         'dx-number': DxNumber;
         'dx-odometer': DxOdometer;
+        'dx-counter': DxCounter;
     }
 }

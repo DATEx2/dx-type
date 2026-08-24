@@ -412,3 +412,81 @@ export function ssrDxReveal(content, options = {}) {
 
     return `<${tagName}${classAttr}${styleAttr}>${content}</${tagName}>`;
 }
+
+/**
+ * Generate full SSR markup for <dx-counter>.
+ * @param {number|string} numericValue — Numeric value (target)
+ * @param {string} formattedText — Pre-formatted display text
+ * @param {string} [cls] — Optional CSS classes
+ * @param {string} [type] — Number format type ('number', 'int', etc.)
+ * @returns {string} Minimal semantic SSR HTML
+ */
+/**
+ * Generate full SSR markup for <dx-counter>.
+ * @param {number|string} numericValue — Numeric value (target)
+ * @param {string} formattedText — Pre-formatted display text
+ * @param {string} [cls] — Optional CSS classes
+ * @param {string} [type] — Number format type ('number', 'int', etc.)
+ * @returns {string} Minimal semantic SSR HTML
+ */
+/**
+ * Generate full SSR markup for <dx-counter>.
+ * @param {number|string} numericValue — Numeric value (target)
+ * @param {string} formattedText — Pre-formatted display text
+ * @param {string} [cls] — Optional CSS classes
+ * @param {string} [type] — Number format type ('number', 'int', etc.)
+ * @returns {string} Minimal semantic SSR HTML
+ */
+
+/**
+ * Generate full SSR markup for <dx-counter>.
+ * @param {number|string} numericValue — Numeric value (target)
+ * @param {string} formattedText — Pre-formatted display text
+ * @param {string} [cls] — Optional CSS classes
+ * @param {string} [type] — Number format type ('number', 'int', etc.)
+ * @returns {string} Minimal semantic SSR HTML
+ */
+export function ssrDxCounter(numericValue, formattedText, cls, type = 'number') {
+    if (!numericValue || !formattedText) return '';
+    const raw = (formattedText || '').trim();
+    const m = /^([^0-9]*?)(\d[\d\s.,]*\d|\d)(.*)$/.exec(raw);
+    if (!m) return formattedText;
+
+    const pfx = m[1];
+    const numPart = m[2];
+    let sfx = m[3] || '';
+    if (sfx && !sfx.startsWith(' ') && !sfx.startsWith('\u00A0') && !sfx.startsWith('$') && !sfx.startsWith('%')) {
+        sfx = ' ' + sfx;
+    }
+
+    let radix = '';
+    let decimals = '';
+    let intPart = numPart;
+
+    const decMatch = /([.,])(\d{1,3})$/.exec(numPart);
+    if (decMatch) {
+        radix = decMatch[1];
+        decimals = decMatch[2];
+        intPart = numPart.slice(0, -decMatch[0].length);
+    }
+
+    const cleanInt = intPart.replace(/[\s.,]/g, '');
+    const cleanDec = decimals;
+    const numericStr = (pfx.includes('-') || pfx.includes('–') ? '-' : '') + cleanInt + (cleanDec ? '.' + cleanDec : '');
+    const percent = parseFloat(numericStr) || parseFloat(numericValue) || 0;
+
+    type = type || 'number';
+    if (!radix && (type === 'number' || type === 'int')) {
+        type = 'int';
+    }
+    const cleanNumber = parseInt(cleanInt, 10) || 0;
+    if (type === 'number' || type === 'int' || type.startsWith('number-') || type.startsWith('int-')) {
+        const baseType = type.split('-')[0];
+        type = baseType + (cleanNumber >= 1e6 ? '-millions' : cleanNumber >= 1e3 ? '-thousands' : '');
+    }
+
+    const ariaLabel = formattedText.replace(/·/g, '').replace(/\s+/g, ' ').trim().replace(/"/g, '&quot;');
+    const classAttr = cls ? ' class="' + cls + '"' : '';
+
+    return '<dx-counter' + classAttr + ' type="' + type + '" percent="' + percent + '" prefix="' + pfx + '" suffix="' + sfx + '" comma="' + radix + '" style="--percent: ' + percent + ';" aria-label="' + ariaLabel + '" aria-hidden="true"><s-t>' + formattedText + '</s-t></dx-counter>';
+}

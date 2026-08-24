@@ -530,3 +530,115 @@ dx-type.dx-typed c,
     dx-odometer b { display: none !important; }
     dx-odometer s-t { display: inline !important; }
 }
+
+/* ─── 12. Component: <dx-counter> (100% Pure CSS / GPU Counter) ───────────── */
+@property --b { syntax: '<integer>'; initial-value: 0; inherits: false; }
+@property --m { syntax: '<integer>'; initial-value: 0; inherits: false; }
+@property --k { syntax: '<integer>'; initial-value: 0; inherits: false; }
+@property --u { syntax: '<integer>'; initial-value: 0; inherits: false; }
+@property --dec { syntax: '<integer>'; initial-value: 0; inherits: false; }
+
+dx-counter,
+:host(dx-counter) {
+    display: inline-block !important;
+    vertical-align: baseline !important;
+    position: relative !important;
+    line-height: inherit !important;
+    font-family: inherit !important;
+    font-size: inherit !important;
+    font-weight: inherit !important;
+    letter-spacing: inherit !important;
+    font-variant-numeric: tabular-nums !important;
+    box-sizing: border-box !important;
+    white-space: nowrap !important;
+    --start-b: 0; --target-b: 0;
+    --start-m: 0; --target-m: 0;
+    --start-k: 0; --target-k: 0;
+    --start-u: 0; --target-u: 0;
+    --start-dec: 0; --target-dec: 0;
+    --b: var(--start-b);
+    --m: var(--start-m);
+    --k: var(--start-k);
+    --u: var(--start-u);
+    --dec: var(--start-dec);
+}
+
+dx-counter > s-t {
+    position: relative !important;
+    z-index: 1 !important;
+    display: none !important;
+    vertical-align: baseline !important;
+}
+
+dx-counter.data-static > s-t,
+dx-counter:not(.dx-counter-running) > s-t {
+    display: inline !important;
+}
+
+dx-counter > .dx-num-wrap {
+    position: relative !important;
+    z-index: 0 !important;
+    display: inline-flex !important;
+    align-items: baseline !important;
+    vertical-align: baseline !important;
+}
+
+dx-counter.data-static > .dx-num-wrap {
+    display: none !important;
+}
+
+dx-counter .dx-b::after { counter-reset: b var(--b); content: counter(b); }
+dx-counter .dx-m::after { counter-reset: m var(--m); content: counter(m); }
+dx-counter .dx-k::after { counter-reset: k var(--k); content: counter(k); }
+dx-counter .dx-u::after { counter-reset: u var(--u); content: counter(u); }
+dx-counter .dx-dec::after { counter-reset: dec var(--dec); content: counter(dec, decimal-leading-zero); }
+
+dx-counter.dx-counter-running .dx-num {
+    animation: dx-count-up var(--t, 600ms) cubic-bezier(0, 0, 1, 1) var(--d, 0ms) both !important;
+}
+
+@keyframes dx-count-up {
+    from {
+        --b: var(--start-b, 0);
+        --m: var(--start-m, 0);
+        --k: var(--start-k, 0);
+        --u: var(--start-u, 0);
+        --dec: var(--start-dec, 0);
+    }
+    to {
+        --b: var(--target-b, 0);
+        --m: var(--target-m, 0);
+        --k: var(--target-k, 0);
+        --u: var(--target-u, 0);
+        --dec: var(--target-dec, 0);
+    }
+}
+
+dx-counter.dx-counter-running .dx-k,
+dx-counter.dx-counter-running .dx-sep-k {
+    animation: dx-appear-group 1ms linear calc(var(--d, 0ms) + var(--delay-k, 0ms)) both !important;
+}
+dx-counter.dx-counter-running .dx-m,
+dx-counter.dx-counter-running .dx-sep-m {
+    animation: dx-appear-group 1ms linear calc(var(--d, 0ms) + var(--delay-m, 0ms)) both !important;
+}
+dx-counter.dx-counter-running .dx-b,
+dx-counter.dx-counter-running .dx-sep-b {
+    animation: dx-appear-group 1ms linear calc(var(--d, 0ms) + var(--delay-b, 0ms)) both !important;
+}
+
+@keyframes dx-appear-group {
+    from { visibility: hidden; }
+    to   { visibility: visible; }
+}
+
+@keyframes dx-hide-group {
+    from { visibility: visible; }
+    to   { visibility: hidden; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    dx-counter .dx-num { animation: none !important; }
+    dx-counter > .dx-num-wrap { display: none !important; }
+    dx-counter > s-t { display: inline !important; }
+}
