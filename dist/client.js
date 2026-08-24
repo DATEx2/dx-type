@@ -1200,30 +1200,36 @@ var DxOdometer = class extends DxMeter {
       return;
     }
     if (this.classList.contains("data-static")) return;
-    this._digitCount = this.querySelectorAll("d[data-seq]").length;
-    if (this._digitCount === 0) {
-      this.classList.add("data-static");
-      return;
-    }
     this.addEventListener("animationend", this._onAnimEnd);
     this.addEventListener("animationstart", (e) => {
       if (e?.stopPropagation) e.stopPropagation();
     }, { passive: true });
-    const twEmbed = this.classList.contains("tw-embed");
-    if (!twEmbed) {
-      const parentType = this.closest(TYPE_PARENT_SEL2);
-      if (!parentType) {
-        observeIO(this, (el2) => {
-          el2.classList.add(DX_ANIM.TYPING);
-        });
+    queueMicrotask(() => {
+      if (!this.isConnected || this._animDone || this.classList.contains("data-static")) return;
+      this._digitCount = this.querySelectorAll("d[data-seq]").length;
+      if (this._digitCount === 0) {
+        this.classList.add("data-static");
+        return;
       }
-    }
+      const twEmbed = this.classList.contains("tw-embed");
+      if (!twEmbed) {
+        const parentType = this.closest(TYPE_PARENT_SEL2);
+        if (!parentType) {
+          observeIO(this, (el2) => {
+            el2.classList.add(DX_ANIM.TYPING);
+          });
+        }
+      }
+    });
   }
   _onAnimEnd = (e) => {
     if (this._animDone) return;
     const target = e.target;
     if (!target || target.tagName !== "D") return;
     e.stopPropagation();
+    if (this._digitCount === 0) {
+      this._digitCount = this.querySelectorAll("d[data-seq]").length;
+    }
     this._digitsDone++;
     if (this._digitsDone >= this._digitCount) {
       this._animDone = true;

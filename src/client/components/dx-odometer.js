@@ -35,14 +35,6 @@ export class DxOdometer extends DxMeter {
         // Already static (SSR marked)
         if (this.classList.contains('data-static')) return;
 
-        // Count digit columns for completion tracking
-        this._digitCount = this.querySelectorAll('d[data-seq]').length;
-        if (this._digitCount === 0) {
-            // No <d> elements — fallback: mark static immediately
-            this.classList.add('data-static');
-            return;
-        }
-
         // Listen for animation completion on <d>::before
         this.addEventListener('animationend', this._onAnimEnd);
 
@@ -51,16 +43,28 @@ export class DxOdometer extends DxMeter {
             if (e?.stopPropagation) e.stopPropagation();
         }, { passive: true });
 
-        // Standalone odometers (not inside typewriter): trigger on scroll
-        const twEmbed = this.classList.contains('tw-embed');
-        if (!twEmbed) {
-            const parentType = this.closest(TYPE_PARENT_SEL);
-            if (!parentType) {
-                observeIO(this, (el) => {
-                    el.classList.add(DX_ANIM.TYPING);
-                });
+        // Defer digit count and standalone IO trigger to microtask (after DOM children are parsed)
+        queueMicrotask(() => {
+            if (!this.isConnected || this._animDone || this.classList.contains('data-static')) return;
+
+            this._digitCount = this.querySelectorAll('d[data-seq]').length;
+            if (this._digitCount === 0) {
+                // No <d> elements — fallback: mark static
+                this.classList.add('data-static');
+                return;
             }
-        }
+
+            // Standalone odometers (not inside typewriter): trigger on scroll
+            const twEmbed = this.classList.contains('tw-embed');
+            if (!twEmbed) {
+                const parentType = this.closest(TYPE_PARENT_SEL);
+                if (!parentType) {
+                    observeIO(this, (el) => {
+                        el.classList.add(DX_ANIM.TYPING);
+                    });
+                }
+            }
+        });
     }
 
     _onAnimEnd = (e) => {
@@ -71,6 +75,11 @@ export class DxOdometer extends DxMeter {
         if (!target || target.tagName !== 'D') return;
 
         e.stopPropagation();
+
+        if (this._digitCount === 0) {
+            this._digitCount = this.querySelectorAll('d[data-seq]').length;
+        }
+
         this._digitsDone++;
 
         if (this._digitsDone >= this._digitCount) {
