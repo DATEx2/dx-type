@@ -127,8 +127,8 @@ var DxType = (() => {
     const IO = rootWin?.IntersectionObserver;
     if (typeof IO === "function") {
       const gaps = getSdaGaps();
-      const topMargin = formatMarginValue(gaps.sdaTopGap);
-      const bottomMargin = formatMarginValue(gaps.sdaBottomGap);
+      const topMargin = gaps.sdaTopGap ? formatMarginValue(gaps.sdaTopGap) : "0px";
+      const bottomMargin = gaps.sdaBottomGap && gaps.sdaBottomGap !== "0%" ? formatMarginValue(gaps.sdaBottomGap) : "80px";
       ioInstance = new IO(ioHandler, {
         root: null,
         // Visual Viewport (window)
@@ -751,18 +751,34 @@ var DxType = (() => {
   defCustomElement("ui-reveal", DxReveal);
 
   // src/client/components/dx-reveal-sda.js
+  function getCardInfo(el2) {
+    const section = el2.closest('section, [id*="section"], [class*="-section"]') || el2.parentElement;
+    const sectionName = section ? section.id || section.className?.split(" ")[0] || section.tagName : "unknown";
+    const cardTitle = el2.querySelector('h1, h2, h3, h4, h5, [class*="-title"], [class*="-value"], .text-3xl, strong, .card-title')?.textContent?.trim() || el2.textContent?.trim()?.slice(0, 20) || "";
+    const dVal = el2.style?.getPropertyValue("--d") || el2.getAttribute("data-d") || "0";
+    return { sectionName, cardTitle, dVal };
+  }
   var DxRevealSda = class extends DxRevealing {
     connectedCallback() {
       if (this.isRevealed) return;
       this._syncTimingAttributes();
+      this._ioTime = 0;
       observeIO(this, (el2) => {
+        el2._ioTime = Math.round(performance.now());
         unpackTemplate(el2);
         el2.classList.add(DX_ANIM.REVEALING);
+        const now = Math.round(performance.now());
+        const info = getCardInfo(el2);
+        console.log(`[IO \u2192 REVEALING] Section: "${info.sectionName}" | Card: "${info.cardTitle}" | --d: ${info.dVal}ms | IO: ${el2._ioTime}ms | revealing: +${now - el2._ioTime}ms later`);
       });
       this.addEventListener("animationend", this._onAnimEnd);
     }
     _onAnimEnd = (e) => {
       if (e.target !== this) return;
+      const now = Math.round(performance.now());
+      const info = getCardInfo(this);
+      const ioDiff = this._ioTime ? now - this._ioTime : 0;
+      console.log(`[REVEALED] Section: "${info.sectionName}" | Card: "${info.cardTitle}" | --d: ${info.dVal}ms | IO: ${this._ioTime}ms | revealed: +${ioDiff}ms later`);
       finishReveal(this, e);
       if (this.isRevealed) {
         this.removeEventListener("animationend", this._onAnimEnd);

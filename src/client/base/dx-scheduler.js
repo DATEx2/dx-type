@@ -88,8 +88,8 @@ export function getIO() {
     const IO = rootWin?.IntersectionObserver;
     if (typeof IO === 'function') {
         const gaps = getSdaGaps();
-        const topMargin = formatMarginValue(gaps.sdaTopGap);
-        const bottomMargin = formatMarginValue(gaps.sdaBottomGap);
+        const topMargin = gaps.sdaTopGap ? formatMarginValue(gaps.sdaTopGap) : '0px';
+        const bottomMargin = gaps.sdaBottomGap && gaps.sdaBottomGap !== '0%' ? formatMarginValue(gaps.sdaBottomGap) : '80px';
         ioInstance = new IO(ioHandler, {
             root: null, // Visual Viewport (window)
             rootMargin: `${topMargin} 0px ${bottomMargin} 0px`,

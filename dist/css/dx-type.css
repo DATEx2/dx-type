@@ -521,7 +521,7 @@ dx-reveal-sda {
   transform: translateY(15px);
   will-change: transform, opacity;
   animation-name: dx-reveal-sda;
-  animation-duration: calc(var(--t, 500) * 1ms);
+  animation-duration: calc(var(--t, 360) * 1ms);
   animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
   animation-delay: calc(var(--d, 0) * 1ms);
   animation-fill-mode: both !important;
