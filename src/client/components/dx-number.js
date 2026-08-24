@@ -294,48 +294,66 @@ export class DxNumber extends DxMeter {
     }
 
     _updateFrameDisplay(targetVal) {
+        // hide-zero fast path — use cached TextNode, avoid innerHTML
         if ((this.hasAttribute('hide-zero') || this.hasAttribute('empty-zero')) && (this._value === 0 || Math.abs(this._value) < 0.0001)) {
-            if (this.innerHTML !== '') {
-                this.innerHTML = '';
-                this._numSpan = null;
-            }
+            if (this._numTextNode) this._numTextNode.nodeValue = '';
+            if (this._padTextNode) this._padTextNode.nodeValue = '';
             return;
         }
 
-        const numSpan = this._numSpan || (this._numSpan = this.querySelector('.ui-num'));
-        if (!numSpan) { this.render(); return; }
+        // Must have cached TextNode from render() — if missing, do full render once
+        if (!this._numTextNode) { this.render(); return; }
 
         const p = parseNumParts(this.formatValue(this._value));
-        const effectiveTarget = (targetVal !== undefined && !isNaN(targetVal)) ? targetVal : this.getNumericValue();
-        let padPrefix = '';
-        if (effectiveTarget !== undefined && !isNaN(effectiveTarget) && this._value !== effectiveTarget) {
-            const tp = parseNumParts(this.formatValue(effectiveTarget));
-            const targetDigits = tp.digits;
-            const currentDigits = p.digits;
-            if (targetDigits.length > currentDigits.length) {
-                const padLen = targetDigits.length - currentDigits.length;
-                padPrefix = targetDigits.slice(0, padLen).replace(/\d/g, '0');
-            }
+        const numText = `${p.digits}${p.radix}${p.decimals}`;
+
+        // Update number text via nodeValue (NO layout invalidation)
+        if (this._numTextNode.nodeValue !== numText) {
+            this._numTextNode.nodeValue = numText;
         }
 
-        const numText = `${p.digits}${p.radix}${p.decimals}`;
-        if (padPrefix) {
-            let padEl = numSpan.querySelector('.ui-pad');
-            if (!padEl) {
-                numSpan.innerHTML = `<span class="ui-pad">${padPrefix}</span>${numText}`;
-            } else {
-                if (padEl.textContent !== padPrefix) padEl.textContent = padPrefix;
-                const nextNode = padEl.nextSibling;
-                if (nextNode && nextNode.nodeType === 3) {
-                    if (nextNode.nodeValue !== numText) nextNode.nodeValue = numText;
-                } else {
-                    numSpan.innerHTML = `<span class="ui-pad">${padPrefix}</span>${numText}`;
+        // Update pad prefix (leading zeros) via nodeValue
+        if (this._padTextNode) {
+            const effectiveTarget = (targetVal !== undefined && !isNaN(targetVal)) ? targetVal : this.getNumericValue();
+            let padPrefix = '';
+            if (effectiveTarget !== undefined && !isNaN(effectiveTarget) && this._value !== effectiveTarget) {
+                const tp = parseNumParts(this.formatValue(effectiveTarget));
+                if (tp.digits.length > p.digits.length) {
+                    padPrefix = tp.digits.slice(0, tp.digits.length - p.digits.length).replace(/\d/g, '0');
                 }
             }
+            if (this._padTextNode.nodeValue !== padPrefix) {
+                this._padTextNode.nodeValue = padPrefix;
+            }
+        }
+    }
+
+    // Cache TextNode references inside .ui-num for zero-invalidation rAF updates.
+    // Called once after render() builds/updates DOM structure.
+    _cacheTextNodes() {
+        const numSpan = this._numSpan;
+        if (!numSpan) { this._numTextNode = null; this._padTextNode = null; return; }
+        const padEl = numSpan.querySelector('.ui-pad');
+        if (padEl) {
+            // Pad element exists: cache its TextNode and the sibling TextNode for digits
+            this._padTextNode = padEl.firstChild;
+            if (!this._padTextNode || this._padTextNode.nodeType !== 3) {
+                this._padTextNode = document.createTextNode('');
+                padEl.appendChild(this._padTextNode);
+            }
+            this._numTextNode = padEl.nextSibling;
+            if (!this._numTextNode || this._numTextNode.nodeType !== 3) {
+                this._numTextNode = document.createTextNode('');
+                numSpan.appendChild(this._numTextNode);
+            }
         } else {
-            const padEl = numSpan.querySelector('.ui-pad');
-            if (padEl) padEl.remove();
-            if (numSpan.textContent !== numText) numSpan.textContent = numText;
+            // No pad: cache the single TextNode for digits
+            this._padTextNode = null;
+            this._numTextNode = numSpan.firstChild;
+            if (!this._numTextNode || this._numTextNode.nodeType !== 3) {
+                this._numTextNode = document.createTextNode('');
+                numSpan.appendChild(this._numTextNode);
+            }
         }
     }
 
@@ -349,6 +367,8 @@ export class DxNumber extends DxMeter {
                     this._numSpan = null;
                     this._pfxSpan = null;
                     this._sfxSpan = null;
+                    this._numTextNode = null;
+                    this._padTextNode = null;
                 }
                 if (!this.getAttribute('aria-label')) this.setAccessibility(0);
                 return;
@@ -458,6 +478,7 @@ export class DxNumber extends DxMeter {
                 }
 
                 if (!this.getAttribute('aria-label')) this.setAccessibility(targetVal);
+                this._cacheTextNodes();
                 return;
             }
 
@@ -475,6 +496,7 @@ export class DxNumber extends DxMeter {
                 this._sfxSpan = this.querySelector('.ui-sfx');
             }
             if (!this.getAttribute('aria-label')) this.setAccessibility(targetVal);
+            this._cacheTextNodes();
         } finally {
             this._isRendering = false;
         }
