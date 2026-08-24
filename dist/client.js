@@ -1445,12 +1445,16 @@ var DxCounter = class extends DxMeter {
     const cfg = this.getFormatConfig();
     const targetVal = this._targetValue !== void 0 && !isNaN(this._targetValue) ? this._targetValue : this.getNumericValue();
     const formattedFull = this.formatValue(targetVal);
-    let st = this.querySelector(":scope > s-t");
+    let st = this.querySelector("s-t");
     if (!st) {
       st = document.createElement("s-t");
       this.prepend(st);
     }
     st.textContent = formattedFull;
+    const allSt = Array.from(this.querySelectorAll("s-t"));
+    for (let i = 1; i < allSt.length; i++) {
+      allSt[i].remove();
+    }
     let wrap = this.querySelector(":scope > .dx-num-wrap");
     if (!wrap) {
       wrap = document.createElement("span");

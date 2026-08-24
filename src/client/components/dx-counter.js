@@ -209,13 +209,17 @@ export class DxCounter extends DxMeter {
         const targetVal = (this._targetValue !== undefined && !isNaN(this._targetValue)) ? this._targetValue : this.getNumericValue();
         const formattedFull = this.formatValue(targetVal);
 
-        // Ensure static <s-t> layer exists for SEO, screen readers and Ctrl+F
-        let st = this.querySelector(':scope > s-t');
+        // Clean & preserve exactly ONE <s-t> layer for SEO, screen readers and Ctrl+F
+        let st = this.querySelector('s-t');
         if (!st) {
             st = document.createElement('s-t');
             this.prepend(st);
         }
         st.textContent = formattedFull;
+        const allSt = Array.from(this.querySelectorAll('s-t'));
+        for (let i = 1; i < allSt.length; i++) {
+            allSt[i].remove();
+        }
 
         // Ensure dynamic GPU slot structure exists
         let wrap = this.querySelector(':scope > .dx-num-wrap');
