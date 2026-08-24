@@ -21,25 +21,18 @@ export class DxRevealSda extends DxRevealing {
             el.classList.add(DX_ANIM.REVEALING);
         });
 
-        this.addEventListener('animationstart', this._onAnimStart);
         this.addEventListener('animationend', this._onAnimEnd);
     }
-
-    _onAnimStart = (e) => {
-        if (e.target !== this) return;
-    };
 
     _onAnimEnd = (e) => {
         if (e.target !== this) return;
         finishReveal(this, e);
         if (this.isRevealed) {
-            this.removeEventListener('animationstart', this._onAnimStart);
             this.removeEventListener('animationend', this._onAnimEnd);
         }
     };
 
     disconnectedCallback() {
-        this.removeEventListener('animationstart', this._onAnimStart);
         this.removeEventListener('animationend', this._onAnimEnd);
     }
 }

@@ -41,7 +41,7 @@ var DxType = (() => {
     getTypewriterObserver: () => getTypewriterObserver,
     mountTypewriter: () => mountTypewriter,
     observeIO: () => observeIO,
-    observeTypewriter: () => observeTypewriter2,
+    observeTypewriter: () => observeTypewriter,
     onAllAnimationsEnd: () => onAllAnimationsEnd,
     onTypewriterEnd: () => onTypewriterEnd,
     registerRAF: () => registerRAF,
@@ -330,7 +330,7 @@ var DxType = (() => {
     }
     return false;
   }
-  function observeTypewriter2(el2) {
+  function observeTypewriter(el2) {
     if (!el2) return;
     if (el2.classList && el2.classList.contains(DX_ANIM.TYPED)) return;
     observeIO(el2, unpackTemplate);
@@ -339,7 +339,7 @@ var DxType = (() => {
     if (e && e.animationName && e.animationName !== DX_ANIM.KF_TYPE_SDA) return;
     if (!el2) return;
     if (el2.classList && el2.classList.contains(DX_ANIM.TYPED)) return;
-    observeTypewriter2(el2);
+    observeTypewriter(el2);
   }
   function ensureElementsUpToTarget(target) {
     if (!target) return;
@@ -463,7 +463,7 @@ var DxType = (() => {
   };
   var checkAndObserve = (el2) => {
     if (el2?.querySelector && el2.querySelector(":scope > template") && !el2.classList.contains(DX_ANIM.TYPED)) {
-      observeTypewriter2(el2);
+      observeTypewriter(el2);
     }
   };
   function bootstrapTypewriterObserver(root = typeof document !== "undefined" ? document : null) {
@@ -486,7 +486,7 @@ var DxType = (() => {
       UiTyping: DxTyping,
       unpackTemplate,
       mountTypewriter,
-      observeTypewriter: observeTypewriter2,
+      observeTypewriter,
       ensureElementsUpToTarget,
       onTypewriterEnd,
       __twEnd: onTypewriterEnd,
@@ -694,25 +694,12 @@ var DxType = (() => {
       if (this.isTyped) return;
       this._syncTimingAttributes();
       this.addEventListener("animationend", this._onAnimEnd);
-      const hasTemplate = !!this.querySelector(":scope > template");
-      const isSdaSupported = typeof CSS !== "undefined" && CSS.supports && CSS.supports("animation-timeline", "view()");
-      if (hasTemplate || !isSdaSupported) {
-        observeIO(this, (el2) => {
-          unpackTemplate(el2);
-          if (!isSdaSupported) {
-            el2.classList.add(DX_ANIM.TYPING);
-          }
-        });
-      }
+      observeIO(this, (el2) => {
+        unpackTemplate(el2);
+        el2.classList.add(DX_ANIM.TYPING);
+      });
     }
-    _onAnimStart = (e) => {
-      if (e.target !== this) return;
-      if (e.animationName !== DX_ANIM.KF_TYPE_SDA) return;
-      e.stopPropagation();
-      observeTypewriter(this);
-    };
     _onAnimEnd = (e) => {
-      if (e.animationName === DX_ANIM.KF_TYPE_SDA) return;
       if (e.animationName === DX_ANIM.KF_TYPE_IN) {
         const target = e.target;
         if (target.classList?.contains("last-char") || target.hasAttribute?.("last-char") || target.getAttribute?.("data-last") === "true") {
@@ -729,7 +716,6 @@ var DxType = (() => {
       }
     };
     disconnectedCallback() {
-      this.removeEventListener("animationstart", this._onAnimStart);
       this.removeEventListener("animationend", this._onAnimEnd);
     }
   };
@@ -773,22 +759,16 @@ var DxType = (() => {
         el2.unpackTemplate();
         el2.classList.add(DX_ANIM.REVEALING);
       });
-      this.addEventListener("animationstart", this._onAnimStart);
       this.addEventListener("animationend", this._onAnimEnd);
     }
-    _onAnimStart = (e) => {
-      if (e.target !== this) return;
-    };
     _onAnimEnd = (e) => {
       if (e.target !== this) return;
       finishReveal(this, e);
       if (this.isRevealed) {
-        this.removeEventListener("animationstart", this._onAnimStart);
         this.removeEventListener("animationend", this._onAnimEnd);
       }
     };
     disconnectedCallback() {
-      this.removeEventListener("animationstart", this._onAnimStart);
       this.removeEventListener("animationend", this._onAnimEnd);
     }
   };

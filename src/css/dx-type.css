@@ -396,19 +396,6 @@ c:nth-child(50) { --i: 49; }
     }
 }
 
-/* @property needed for SDA discrete snap (inherits: false avoids sub-tree style recalculation) */
-@property --play-state {
-    syntax: "<custom-ident>";
-    inherits: false;
-    initial-value: paused;
-}
-
-@keyframes dx-type-sda {
-    0% { --play-state: paused; }
-    0.001%, 99.999% { --play-state: running; }
-    100% { --play-state: paused; }
-}
-
 /* ─── 7. Hero Domain (<dx-type>, <dx-reveal>, <dx-type-ready>) ───────────── */
 dx-type c {
     opacity: 0;
@@ -465,82 +452,37 @@ dx-type-sda c {
     animation-play-state: running !important;
 }
 
-@supports (animation-timeline: view()) {
-    dx-type-sda {
-        container-type: normal;
-        animation: dx-type-sda linear both;
-        animation-timeline: view(block 0px calc(var(--footer--height, 60px) + 50px));
-        animation-range: cover 0% cover 100%;
-    }
-
-    dx-reveal-sda {
-        opacity: 0.001;
-        transform: translateY(15px);
-        will-change: transform, opacity;
-        animation-name: dx-reveal-sda;
-        animation-duration: calc(var(--t, 500) * 1ms);
-        animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
-        animation-delay: calc(var(--d, 0) * 1ms);
-        animation-fill-mode: both !important;
-        animation-play-state: paused;
-    }
-
-    @container style(--play-state: running) {
-        dx-type-sda c {
-            animation-play-state: running !important;
-        }
-        dx-reveal-sda {
-            animation-play-state: running !important;
-        }
-        :is(dx-number, dx-odometer).tw-embed .odometer-ribbon-inner,
-        .odometer-ribbon-inner {
-            animation-play-state: running !important;
-        }
-    }
-
-    :is(dx-reveal-sda.dx-revealing, dx-reveal-sda.dx-revealed, dx-reveal-sda[data-static]) {
-        animation-play-state: running !important;
-    }
+dx-reveal-sda {
+    opacity: 0.001;
+    transform: translateY(15px);
+    will-change: transform, opacity;
+    animation-name: dx-reveal-sda;
+    animation-duration: calc(var(--t, 500) * 1ms);
+    animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+    animation-delay: calc(var(--d, 0) * 1ms);
+    animation-fill-mode: both !important;
+    animation-play-state: paused;
 }
 
-@supports not (animation-timeline: view()) {
-    dx-type-sda c {
-        animation-play-state: running !important;
-    }
-    dx-reveal-sda {
-        opacity: 1 !important;
-        transform: none !important;
-    }
+:is(dx-reveal-sda.dx-revealing, dx-reveal-sda.dx-revealed, dx-reveal-sda[data-static]) {
+    animation-play-state: running !important;
 }
 
 /* ─── 9. Odometer Embedded & Standalone Animations — ALL 1400ms ───────── */
-@supports (animation-timeline: view()) {
-    :is(dx-number, dx-odometer).tw-embed .odometer-ribbon-inner {
-        animation-name: run-odometer !important;
-        animation-duration: calc((1400ms - (var(--digit-r, 0) * 60ms)) * var(--A, 1)) !important;
-        animation-timing-function: cubic-bezier(0.37, 0, 0.63, 1) !important;
-        animation-fill-mode: both !important;
-        animation-delay: calc(((var(--d, 0) * 1ms) + (var(--I, 0) * (var(--u, 40) * 1ms + var(--c, 0ms))) + (var(--u, 40) * 0.35 * 1ms) + (var(--digit-r, 0) * 60ms)) * var(--A, 1)) !important;
-        animation-play-state: paused;
-    }
-
-    :is(dx-type-ready, .dx-type-ready) :is(dx-number, dx-odometer) .odometer-ribbon-inner,
-    :is(dx-type.dx-typing, dx-type.dx-typed, dx-type-sda.dx-typing, dx-type-sda.dx-typed, dx-type-sda[data-static]) :is(dx-number, dx-odometer, .tw-embed) .odometer-ribbon-inner,
-    :is(dx-type, dx-type-sda) :is(dx-number, dx-odometer, .tw-embed) .odometer-ribbon-inner,
-    :is(dx-odometer.dx-typing, dx-odometer.dx-typed, dx-odometer[data-static]) .odometer-ribbon-inner {
-        animation-play-state: running !important;
-    }
+:is(dx-number, dx-odometer).tw-embed .odometer-ribbon-inner {
+    animation-name: run-odometer !important;
+    animation-duration: calc((1400ms - (var(--digit-r, 0) * 60ms)) * var(--A, 1)) !important;
+    animation-timing-function: cubic-bezier(0.37, 0, 0.63, 1) !important;
+    animation-fill-mode: both !important;
+    animation-delay: calc(((var(--d, 0) * 1ms) + (var(--I, 0) * (var(--u, 40) * 1ms + var(--c, 0ms))) + (var(--u, 40) * 0.35 * 1ms) + (var(--digit-r, 0) * 60ms)) * var(--A, 1)) !important;
+    animation-play-state: paused;
 }
 
-@supports not (animation-timeline: view()) {
-    :is(dx-number, dx-odometer).tw-embed .odometer-ribbon-inner {
-        animation-name: run-odometer !important;
-        animation-duration: calc((1400ms - (var(--digit-r, 0) * 60ms)) * var(--A, 1)) !important;
-        animation-timing-function: cubic-bezier(0.37, 0, 0.63, 1) !important;
-        animation-fill-mode: both !important;
-        animation-delay: calc(((var(--d, 0) * 1ms) + (var(--I, 0) * (var(--u, 40) * 1ms + var(--c, 0ms))) + (var(--u, 40) * 0.35 * 1ms) + (var(--digit-r, 0) * 60ms)) * var(--A, 1)) !important;
-        animation-play-state: running !important;
-    }
+:is(dx-type-ready, .dx-type-ready) :is(dx-number, dx-odometer) .odometer-ribbon-inner,
+:is(dx-type.dx-typing, dx-type.dx-typed, dx-type-sda.dx-typing, dx-type-sda.dx-typed, dx-type-sda[data-static]) :is(dx-number, dx-odometer, .tw-embed) .odometer-ribbon-inner,
+:is(dx-type, dx-type-sda) :is(dx-number, dx-odometer, .tw-embed) .odometer-ribbon-inner,
+:is(dx-odometer.dx-typing, dx-odometer.dx-typed, dx-odometer[data-static]) .odometer-ribbon-inner {
+    animation-play-state: running !important;
 }
 
 /* Standalone / Triggered Odometers */
