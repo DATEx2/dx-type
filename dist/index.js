@@ -314,7 +314,7 @@ function cleanupTypedDOM(typeEl) {
   for (let i = 0; i < stMeters.length; i++) {
     const m = stMeters[i];
     if (typeof m.makeStatic === "function") m.makeStatic();
-    if (typeof m.getStaticHTML === "function") {
+    if (typeof m.getStaticHTML === "function" && !m.textContent.trim()) {
       m.innerHTML = m.getStaticHTML();
     }
   }
@@ -1204,23 +1204,23 @@ var DxOdometer = class extends DxMeter {
     this.addEventListener("animationstart", (e) => {
       if (e?.stopPropagation) e.stopPropagation();
     }, { passive: true });
-    queueMicrotask(() => {
-      if (!this.isConnected || this._animDone || this.classList.contains("data-static")) return;
-      this._digitCount = this.querySelectorAll("d[data-seq]").length;
-      if (this._digitCount === 0) {
-        this.classList.add("data-static");
-        return;
-      }
-      const twEmbed = this.classList.contains("tw-embed");
-      if (!twEmbed) {
+    const twEmbed = this.classList.contains("tw-embed");
+    if (!twEmbed) {
+      queueMicrotask(() => {
+        if (!this.isConnected || this._animDone || this.classList.contains("data-static")) return;
+        this._digitCount = this.querySelectorAll("d[data-seq]").length;
+        if (this._digitCount === 0) {
+          this.classList.add("data-static");
+          return;
+        }
         const parentType = this.closest(TYPE_PARENT_SEL2);
         if (!parentType) {
           observeIO(this, (el2) => {
             el2.classList.add(DX_ANIM.TYPING);
           });
         }
-      }
-    });
+      });
+    }
   }
   _onAnimEnd = (e) => {
     if (this._animDone) return;
@@ -1233,7 +1233,9 @@ var DxOdometer = class extends DxMeter {
     this._digitsDone++;
     if (this._digitsDone >= this._digitCount) {
       this._animDone = true;
-      this.classList.add("data-static");
+      if (!this.classList.contains("tw-embed")) {
+        this.classList.add("data-static");
+      }
       if (this.classList.contains("tw-embed") && typeof rootWin2?.__twEnd === "function") {
         rootWin2.__twEnd(this);
       }

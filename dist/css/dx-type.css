@@ -9,6 +9,8 @@ dx-type-sda {
   text-align: inherit !important;
   font-kerning: none !important;
   & > s-t {
+    position: relative !important;
+    z-index: 1 !important;
     display: block !important;
     width: 100% !important;
     height: auto !important;
@@ -23,6 +25,10 @@ dx-type-sda {
     word-spacing: inherit !important;
     white-space: inherit !important;
     text-align: inherit !important;
+    & * {
+      display: inline !important;
+      vertical-align: baseline !important;
+    }
   }
   &:not(.dx-typed) > s-t {
     color: transparent !important;
@@ -43,6 +49,7 @@ dx-type-sda {
   }
   & > t {
     position: absolute !important;
+    z-index: 0 !important;
     inset: 0 !important;
     width: 100% !important;
     height: 100% !important;
@@ -62,12 +69,16 @@ dx-type-sda {
     width: auto !important;
     height: auto !important;
     & > s-t {
+      position: relative !important;
+      z-index: 1 !important;
       display: inline-block !important;
       vertical-align: baseline !important;
       width: auto !important;
       height: auto !important;
     }
     & > t {
+      position: absolute !important;
+      z-index: 0 !important;
       display: inline !important;
     }
   }
@@ -133,22 +144,29 @@ dx-reveal-sda {
 dx-odometer,
 ui-odometer {
   display: inline-flex !important;
-  align-items: baseline !important;
+  align-items: stretch !important;
   vertical-align: baseline !important;
   position: relative !important;
   line-height: inherit !important;
   font: inherit !important;
   color: inherit !important;
+  height: 1lh !important;
   & :is(.ui-pfx, .ui-sfx) {
-    display: inline-block !important;
-    white-space: pre !important;
+    display: inline-flex !important;
+    align-items: center !important;
     vertical-align: baseline !important;
     line-height: inherit !important;
+    white-space: pre !important;
+    height: 100% !important;
   }
   & b {
     font-weight: inherit !important;
     font-style: inherit !important;
-    display: inline !important;
+    display: inline-flex !important;
+    align-items: stretch !important;
+    vertical-align: baseline !important;
+    line-height: inherit !important;
+    height: 100% !important;
   }
   & s-t {
     display: none !important;
@@ -165,8 +183,8 @@ ui-odometer {
 }
 d {
   display: inline-block !important;
-  height: 1em !important;
-  line-height: 1em !important;
+  height: 100% !important;
+  line-height: inherit !important;
   overflow: hidden !important;
   vertical-align: baseline !important;
 }
@@ -174,11 +192,11 @@ d::before {
   content: attr(data-seq);
   display: block !important;
   white-space: pre !important;
-  line-height: 1em !important;
+  line-height: inherit !important;
   text-align: center !important;
   transform: translateY(0);
 }
-:is(dx-type-sda.dx-typing, dx-type-sda.dx-typed, dx-type.dx-typing, dx-type.dx-typed, .dx-type-ready, dx-type-ready) d::before,
+:is(dx-type-sda.dx-typing, dx-type-sda.dx-typed, dx-type.dx-typing, dx-type.dx-typed, .dx-type-ready) d::before,
 :is(dx-odometer.dx-typing, dx-odometer.dx-typed) d::before {
   animation: run-odometer calc((var(--odo-dur, 1400ms) - (var(--r, 0) * var(--odo-stag, 60ms))) * var(--A, 1)) cubic-bezier(0.37, 0, 0.63, 1) calc(((var(--d, 0) * 1ms) + (var(--I, 0) * (var(--u, 40) * 1ms + var(--c, 0ms))) + (var(--u, 40) * 0.35 * 1ms) + (var(--r, 0) * var(--odo-stag, 60ms))) * var(--A, 1)) both !important;
   animation-play-state: running !important;
@@ -233,20 +251,19 @@ dx-type-sda c {
   display: inline-block !important;
   vertical-align: baseline !important;
   line-height: inherit !important;
+  height: 1lh !important;
   letter-spacing: inherit !important;
   word-spacing: inherit !important;
   --I: calc(var(--w, 0) + var(--i, 0));
-  &.c-ui-num {
-    display: inline !important;
-    vertical-align: baseline !important;
-  }
 }
 w,
 dx-type w,
 dx-type-sda w {
-  display: inline !important;
+  display: inline-block !important;
   white-space: nowrap !important;
   line-height: inherit !important;
+  height: 1lh !important;
+  vertical-align: baseline !important;
   letter-spacing: inherit !important;
   word-spacing: inherit !important;
 }
@@ -441,7 +458,7 @@ dx-type c {
   vertical-align: baseline;
   transition: none !important;
 }
-:is(dx-type-ready, .dx-type-ready) dx-type c,
+.dx-type-ready dx-type c,
 :is(dx-type.dx-typing, dx-type.dx-typed) c {
   visibility: visible !important;
   animation: type-in calc(max(60ms, calc(var(--u, 40) * 2.5 * 1ms)) * var(--A, 1)) cubic-bezier(0.16, 1, 0.3, 1) calc(((var(--d, 0) * 1ms) + (var(--I, 0) * (var(--u, 40) * 1ms + var(--c, 0ms)))) * var(--A, 1)) both !important;
@@ -453,7 +470,7 @@ dx-reveal {
   backface-visibility: hidden;
   -webkit-backface-visibility: hidden;
 }
-:is(dx-type-ready, .dx-type-ready) dx-reveal,
+.dx-type-ready dx-reveal,
 :is(dx-reveal.dx-type-ready, dx-reveal.dx-revealing, dx-reveal.dx-revealed) {
   visibility: visible !important;
   animation: reveal-in calc(var(--t, 600) * 1ms * var(--A, 1)) ease-out calc(var(--d, 0) * 1ms * var(--A, 1)) both !important;

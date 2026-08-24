@@ -121,7 +121,7 @@ export function cleanupTypedDOM(typeEl) {
     for (let i = 0; i < stMeters.length; i++) {
         const m = stMeters[i];
         if (typeof m.makeStatic === 'function') m.makeStatic();
-        if (typeof m.getStaticHTML === 'function') {
+        if (typeof m.getStaticHTML === 'function' && !m.textContent.trim()) {
             m.innerHTML = m.getStaticHTML();
         }
     }

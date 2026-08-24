@@ -16,6 +16,8 @@ dx-type-sda {
     font-kerning: none !important;
 
     & > s-t {
+        position: relative !important;
+        z-index: 1 !important;
         display: block !important;
         width: 100% !important;
         height: auto !important;
@@ -30,6 +32,11 @@ dx-type-sda {
         word-spacing: inherit !important;
         white-space: inherit !important;
         text-align: inherit !important;
+
+        & * {
+            display: inline !important;
+            vertical-align: baseline !important;
+        }
     }
 
     &:not(.dx-typed) > s-t {
@@ -53,6 +60,7 @@ dx-type-sda {
 
     & > t {
         position: absolute !important;
+        z-index: 0 !important;
         inset: 0 !important;
         width: 100% !important;
         height: 100% !important;
@@ -74,12 +82,16 @@ dx-type-sda {
         height: auto !important;
 
         & > s-t {
+            position: relative !important;
+            z-index: 1 !important;
             display: inline-block !important;
             vertical-align: baseline !important;
             width: auto !important;
             height: auto !important;
         }
         & > t {
+            position: absolute !important;
+            z-index: 0 !important;
             display: inline !important;
         }
     }
@@ -152,28 +164,35 @@ dx-reveal-sda {
     }
 }
 
-/* ─── 2. Mechanical Drum Odometer (\u003cdx-odometer\u003e / \u003cd data-seq\u003e) ──────────── */
+/* ─── 2. Mechanical Drum Odometer (<dx-odometer> / <d data-seq>) ──────────── */
 dx-odometer, ui-odometer {
     display: inline-flex !important;
-    align-items: baseline !important;
+    align-items: stretch !important;
     vertical-align: baseline !important;
     position: relative !important;
     line-height: inherit !important;
     font: inherit !important;
     color: inherit !important;
+    height: 1lh !important;
 
     & :is(.ui-pfx, .ui-sfx) {
-        display: inline-block !important;
-        white-space: pre !important;
+        display: inline-flex !important;
+        align-items: center !important;
         vertical-align: baseline !important;
         line-height: inherit !important;
+        white-space: pre !important;
+        height: 100% !important;
     }
 
-    /* Wrapper for digit columns — reset <b> default bold */
+    /* Wrapper for digit columns — reset <b> default bold and lock line-height */
     & b {
         font-weight: inherit !important;
         font-style: inherit !important;
-        display: inline !important;
+        display: inline-flex !important;
+        align-items: stretch !important;
+        vertical-align: baseline !important;
+        line-height: inherit !important;
+        height: 100% !important;
     }
 
     /* Static text — hidden during animation, shown after */
@@ -192,8 +211,8 @@ dx-odometer, ui-odometer {
 /* ─── Digit column: 1 element per mechanical drum ─────────────────────────── */
 d {
     display: inline-block !important;
-    height: 1em !important;
-    line-height: 1em !important;
+    height: 100% !important;
+    line-height: inherit !important;
     overflow: hidden !important;
     vertical-align: baseline !important;
 }
@@ -202,7 +221,7 @@ d::before {
     content: attr(data-seq);
     display: block !important;
     white-space: pre !important;
-    line-height: 1em !important;
+    line-height: inherit !important;
     text-align: center !important;
     transform: translateY(0);
 }
@@ -210,7 +229,7 @@ d::before {
 /* ─── Odometer animation trigger (from parent typewriter or standalone) ──── */
 :is(dx-type-sda.dx-typing, dx-type-sda.dx-typed,
     dx-type.dx-typing, dx-type.dx-typed,
-    .dx-type-ready, dx-type-ready) d::before,
+    .dx-type-ready) d::before,
 :is(dx-odometer.dx-typing, dx-odometer.dx-typed) d::before {
     animation: run-odometer
         calc((var(--odo-dur, 1400ms) - (var(--r, 0) * var(--odo-stag, 60ms))) * var(--A, 1))
@@ -271,20 +290,18 @@ c, dx-type c, dx-type-sda c {
     display: inline-block !important;
     vertical-align: baseline !important;
     line-height: inherit !important;
+    height: 1lh !important;
     letter-spacing: inherit !important;
     word-spacing: inherit !important;
     --I: calc(var(--w, 0) + var(--i, 0));
-
-    &.c-ui-num {
-        display: inline !important;
-        vertical-align: baseline !important;
-    }
 }
 
 w, dx-type w, dx-type-sda w {
-    display: inline !important;
+    display: inline-block !important;
     white-space: nowrap !important;
     line-height: inherit !important;
+    height: 1lh !important;
+    vertical-align: baseline !important;
     letter-spacing: inherit !important;
     word-spacing: inherit !important;
 }
@@ -388,7 +405,7 @@ dx-type c {
     transition: none !important;
 }
 
-:is(dx-type-ready, .dx-type-ready) dx-type c,
+.dx-type-ready dx-type c,
 :is(dx-type.dx-typing, dx-type.dx-typed) c {
     visibility: visible !important;
     animation: type-in calc(max(60ms, calc(var(--u, 40) * 2.5 * 1ms)) * var(--A, 1)) cubic-bezier(0.16, 1, 0.3, 1) calc(((var(--d, 0) * 1ms) + (var(--I, 0) * (var(--u, 40) * 1ms + var(--c, 0ms)))) * var(--A, 1)) both !important;
@@ -402,7 +419,7 @@ dx-reveal {
     -webkit-backface-visibility: hidden;
 }
 
-:is(dx-type-ready, .dx-type-ready) dx-reveal,
+.dx-type-ready dx-reveal,
 :is(dx-reveal.dx-type-ready, dx-reveal.dx-revealing, dx-reveal.dx-revealed) {
     visibility: visible !important;
     animation: reveal-in calc(var(--t, 600) * 1ms * var(--A, 1)) ease-out calc(var(--d, 0) * 1ms * var(--A, 1)) both !important;
