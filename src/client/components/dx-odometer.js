@@ -338,7 +338,8 @@ export class DxOdometer extends DxMeter {
                         }
                     }
                 } else {
-                    const cycles = digitR === 0 ? 2 : (digitR === 1 ? 1 : 0);
+                    const isSingleDigit = (targetDigitsStr.length === 1);
+                    const cycles = isSingleDigit ? 0 : (digitR === 0 ? 2 : (digitR === 1 ? 1 : 0));
                     const totalSteps = cycles * 10 + ((targetD - startD + 10) % 10);
                     const effectiveSteps = (totalSteps === 0 && cycles === 0) ? 0 : totalSteps;
 
