@@ -607,19 +607,21 @@ dx-counter,
 dx-counter > s-t {
   position: relative !important;
   z-index: 1 !important;
-  display: none !important;
+  display: inline !important;
   vertical-align: baseline !important;
 }
-dx-counter.data-static > s-t,
-dx-counter:not(.dx-counter-running) > s-t {
-  display: inline !important;
+dx-counter.dx-counter-running > s-t {
+  display: none !important;
 }
 dx-counter > .dx-num-wrap {
   position: relative !important;
   z-index: 0 !important;
-  display: inline-flex !important;
+  display: none !important;
   align-items: baseline !important;
   vertical-align: baseline !important;
+}
+dx-counter.dx-counter-running > .dx-num-wrap {
+  display: inline-flex !important;
 }
 dx-counter.data-static > .dx-num-wrap {
   display: none !important;
