@@ -82,7 +82,7 @@ var DxType = (() => {
   var ioInstance = null;
   var ioCallbacks = /* @__PURE__ */ new WeakMap();
   var _sdaTopGap = "0%";
-  var _sdaBottomGap = "0%";
+  var _sdaBottomGap = "50px";
   function formatMarginValue(v) {
     if (!v || v === "0" || v === "0%" || v === "0px" || v === 0) return "0px";
     if (typeof v === "number") return `${v}px`;
@@ -748,34 +748,18 @@ var DxType = (() => {
   defCustomElement("ui-reveal", DxReveal);
 
   // src/client/components/dx-reveal-sda.js
-  function getCardInfo(el2) {
-    const section = el2.closest('section, [id*="section"], [class*="-section"]') || el2.parentElement;
-    const sectionName = section ? section.id || section.className?.split(" ")[0] || section.tagName : "unknown";
-    const cardTitle = el2.querySelector('h1, h2, h3, h4, h5, [class*="-title"], [class*="-value"], .text-3xl, strong, .card-title')?.textContent?.trim() || el2.textContent?.trim()?.slice(0, 20) || "";
-    const dVal = el2.style?.getPropertyValue("--d") || el2.getAttribute("data-d") || "0";
-    return { sectionName, cardTitle, dVal };
-  }
   var DxRevealSda = class extends DxRevealing {
     connectedCallback() {
       if (this.isRevealed) return;
       this._syncTimingAttributes();
-      this._ioTime = 0;
       observeIO(this, (el2) => {
-        el2._ioTime = Math.round(performance.now());
         unpackTemplate(el2);
         el2.classList.add(DX_ANIM.REVEALING);
-        const now = Math.round(performance.now());
-        const info = getCardInfo(el2);
-        console.log(`[IO \u2192 REVEALING] Section: "${info.sectionName}" | Card: "${info.cardTitle}" | --d: ${info.dVal}ms | IO: ${el2._ioTime}ms | revealing: +${now - el2._ioTime}ms later`);
       });
       this.addEventListener("animationend", this._onAnimEnd);
     }
     _onAnimEnd = (e) => {
       if (e.target !== this) return;
-      const now = Math.round(performance.now());
-      const info = getCardInfo(this);
-      const ioDiff = this._ioTime ? now - this._ioTime : 0;
-      console.log(`[REVEALED] Section: "${info.sectionName}" | Card: "${info.cardTitle}" | --d: ${info.dVal}ms | IO: ${this._ioTime}ms | revealed: +${ioDiff}ms later`);
       finishReveal(this, e);
       if (this.isRevealed) {
         this.removeEventListener("animationend", this._onAnimEnd);
@@ -1050,47 +1034,61 @@ var DxType = (() => {
     }
     _updateFrameDisplay(targetVal) {
       if ((this.hasAttribute("hide-zero") || this.hasAttribute("empty-zero")) && (this._value === 0 || Math.abs(this._value) < 1e-4)) {
-        if (this.innerHTML !== "") {
-          this.innerHTML = "";
-          this._numSpan = null;
-        }
+        if (this._numTextNode) this._numTextNode.nodeValue = "";
+        if (this._padTextNode) this._padTextNode.nodeValue = "";
         return;
       }
-      const numSpan = this._numSpan || (this._numSpan = this.querySelector(".ui-num"));
-      if (!numSpan) {
+      if (!this._numTextNode) {
         this.render();
         return;
       }
       const p = parseNumParts(this.formatValue(this._value));
-      const effectiveTarget = targetVal !== void 0 && !isNaN(targetVal) ? targetVal : this.getNumericValue();
-      let padPrefix = "";
-      if (effectiveTarget !== void 0 && !isNaN(effectiveTarget) && this._value !== effectiveTarget) {
-        const tp = parseNumParts(this.formatValue(effectiveTarget));
-        const targetDigits = tp.digits;
-        const currentDigits = p.digits;
-        if (targetDigits.length > currentDigits.length) {
-          const padLen = targetDigits.length - currentDigits.length;
-          padPrefix = targetDigits.slice(0, padLen).replace(/\d/g, "0");
-        }
-      }
       const numText = `${p.digits}${p.radix}${p.decimals}`;
-      if (padPrefix) {
-        let padEl = numSpan.querySelector(".ui-pad");
-        if (!padEl) {
-          numSpan.innerHTML = `<span class="ui-pad">${padPrefix}</span>${numText}`;
-        } else {
-          if (padEl.textContent !== padPrefix) padEl.textContent = padPrefix;
-          const nextNode = padEl.nextSibling;
-          if (nextNode && nextNode.nodeType === 3) {
-            if (nextNode.nodeValue !== numText) nextNode.nodeValue = numText;
-          } else {
-            numSpan.innerHTML = `<span class="ui-pad">${padPrefix}</span>${numText}`;
+      if (this._numTextNode.nodeValue !== numText) {
+        this._numTextNode.nodeValue = numText;
+      }
+      if (this._padTextNode) {
+        const effectiveTarget = targetVal !== void 0 && !isNaN(targetVal) ? targetVal : this.getNumericValue();
+        let padPrefix = "";
+        if (effectiveTarget !== void 0 && !isNaN(effectiveTarget) && this._value !== effectiveTarget) {
+          const tp = parseNumParts(this.formatValue(effectiveTarget));
+          if (tp.digits.length > p.digits.length) {
+            padPrefix = tp.digits.slice(0, tp.digits.length - p.digits.length).replace(/\d/g, "0");
           }
         }
+        if (this._padTextNode.nodeValue !== padPrefix) {
+          this._padTextNode.nodeValue = padPrefix;
+        }
+      }
+    }
+    // Cache TextNode references inside .ui-num for zero-invalidation rAF updates.
+    // Called once after render() builds/updates DOM structure.
+    _cacheTextNodes() {
+      const numSpan = this._numSpan;
+      if (!numSpan) {
+        this._numTextNode = null;
+        this._padTextNode = null;
+        return;
+      }
+      const padEl = numSpan.querySelector(".ui-pad");
+      if (padEl) {
+        this._padTextNode = padEl.firstChild;
+        if (!this._padTextNode || this._padTextNode.nodeType !== 3) {
+          this._padTextNode = document.createTextNode("");
+          padEl.appendChild(this._padTextNode);
+        }
+        this._numTextNode = padEl.nextSibling;
+        if (!this._numTextNode || this._numTextNode.nodeType !== 3) {
+          this._numTextNode = document.createTextNode("");
+          numSpan.appendChild(this._numTextNode);
+        }
       } else {
-        const padEl = numSpan.querySelector(".ui-pad");
-        if (padEl) padEl.remove();
-        if (numSpan.textContent !== numText) numSpan.textContent = numText;
+        this._padTextNode = null;
+        this._numTextNode = numSpan.firstChild;
+        if (!this._numTextNode || this._numTextNode.nodeType !== 3) {
+          this._numTextNode = document.createTextNode("");
+          numSpan.appendChild(this._numTextNode);
+        }
       }
     }
     render() {
@@ -1103,6 +1101,8 @@ var DxType = (() => {
             this._numSpan = null;
             this._pfxSpan = null;
             this._sfxSpan = null;
+            this._numTextNode = null;
+            this._padTextNode = null;
           }
           if (!this.getAttribute("aria-label")) this.setAccessibility(0);
           return;
@@ -1198,6 +1198,7 @@ var DxType = (() => {
             this._sfxSpan = null;
           }
           if (!this.getAttribute("aria-label")) this.setAccessibility(targetVal);
+          this._cacheTextNodes();
           return;
         }
         const digitPadHtml = padPrefix ? span("ui-pad", padPrefix) : "";
@@ -1212,6 +1213,7 @@ var DxType = (() => {
           this._sfxSpan = this.querySelector(".ui-sfx");
         }
         if (!this.getAttribute("aria-label")) this.setAccessibility(targetVal);
+        this._cacheTextNodes();
       } finally {
         this._isRendering = false;
       }
