@@ -381,7 +381,13 @@ export function ssrDxType(content, options = {}) {
             const pfx = pfxMatch ? pfxMatch[1] : '';
             const sfx = sfxMatch ? sfxMatch[1] : '';
             const cleanText = `${pfx}${val}${sfx}`.trim();
-            return `<dx-odometer ${cleanAttrs} class="data-static">${cleanText}</dx-odometer>`;
+            let mergedAttrs = cleanAttrs;
+            if (/\bclass=["']([^"']*)["']/i.test(mergedAttrs)) {
+                mergedAttrs = mergedAttrs.replace(/\bclass=["']([^"']*)["']/i, (m, cls) => `class="${cls.trim()} data-static"`);
+            } else {
+                mergedAttrs = `${mergedAttrs} class="data-static"`.trim();
+            }
+            return `<dx-odometer ${mergedAttrs}>${cleanText}</dx-odometer>`;
         })
         : content;
 
