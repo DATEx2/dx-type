@@ -52,16 +52,22 @@ export class DxNumber extends DxMeter {
         if (this.isStatic) return;
         if (this._initialized) return;
 
-        const inST = !!this.closest('s-t');
+        const inST = typeof this.closest === 'function' && !!this.closest('s-t');
         if (inST) {
             this.makeStatic();
             this.innerHTML = this.getStaticHTML();
             return;
         }
 
+        const isSsr = typeof this.querySelector === 'function' && Boolean(this.querySelector('.ui-num'));
+        if (isSsr) {
+            this.init();
+            return;
+        }
+
         // Strip SSR placeholder text/spans immediately to prevent duplication
         // before render() generates its own span structure.
-        if (this.childNodes.length && !this.querySelector('.ui-num')) {
+        if (this.childNodes.length && typeof this.querySelector === 'function' && !this.querySelector('.ui-num')) {
             this.textContent = '';
         }
 
@@ -152,13 +158,22 @@ export class DxNumber extends DxMeter {
             : (parseFloat(this.getAttribute('percent')) || this.getNumericValue() || 0);
         this._targetValue = targetVal;
 
-        if (isStatic) {
+        const hasSsr = typeof this.querySelector === 'function' && Boolean(this.querySelector('.ui-num'));
+        if (isStatic || !this.hasAttribute('start')) {
             this._value = targetVal;
             this._animationStarted = true;
         } else {
-            this._value = this.hasAttribute('start') ? (parseFloat(this.getAttribute('start')) || 0) : 0;
+            this._value = parseFloat(this.getAttribute('start')) || 0;
         }
-        this.render();
+
+        if (!hasSsr) {
+            this.render();
+        } else {
+            this._numSpan = this.querySelector('.ui-num');
+            this._pfxSpan = this.querySelector('.ui-pfx:not(.ui-pfx-pad)');
+            this._sfxSpan = this.querySelector('.ui-sfx');
+            this._cacheTextNodes();
+        }
 
         this._inViewport = false;
 

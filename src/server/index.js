@@ -147,7 +147,7 @@ export function generateRibbonHtml(numericValue, type = 'int', comma = ',', pref
             // Build data-seq: digit values joined by &#10; (newline entity)
             const seqStr = drumValues.map(v => v === ' ' ? ' ' : v).join('&#10;');
 
-            digitsHtml += `<d data-seq="${seqStr}" style="--p:${finalPosPercent}%;--r:${digitR}"></d>`;
+            digitsHtml += `<d data-seq="${seqStr}" style="--p:${finalPosPercent}%;--r:${digitR}">${char}</d>`;
         }
         // Formatting marks (spaces, radix) are not rendered as separate elements
         // They're handled by the prefix/suffix or parent layout
@@ -212,11 +212,11 @@ export function ssrDxOdometer(numericValue, options = {}) {
     const classAttr = classStr ? ` class="${classStr}"` : '';
 
     const cleanNumber = String(numericValue);
-    const ariaLabel = `${safePrefix ? safePrefix + ' ' : ''}${cleanNumber}${safeSuffix ? ' ' + safeSuffix : ''}`.trim().replace(/"/g, '&quot;');
-    const formattedText = `${safePrefix}${cleanNumber}${safeSuffix}`;
+    const formattedText = formatNumber(numericValue, type, comma, safePrefix, safeSuffix);
+    const ariaLabel = formattedText.replace(/·/g, '').replace(/\s+/g, ' ').trim().replace(/"/g, '&quot;');
 
-    const stHtml = twContext ? '' : `<s-t>${formattedText}</s-t>`;
-    return `<dx-odometer${classAttr}${typeAttr} percent="${numericValue}"${prefixAttr}${suffixAttr}${commaAttr} aria-label="${ariaLabel}" aria-hidden="true">${stHtml}</dx-odometer>`;
+    const ribbonHtml = generateRibbonHtml(numericValue, type, comma, safePrefix, safeSuffix, options.start);
+    return `<dx-odometer${classAttr}${typeAttr} percent="${numericValue}"${prefixAttr}${suffixAttr}${commaAttr} aria-label="${ariaLabel}" aria-hidden="true"><s-t>${formattedText}</s-t>${ribbonHtml}</dx-odometer>`;
 }
 
 function wrapHyphenatedWords(html) {
@@ -387,7 +387,7 @@ export function ssrDxType(content, options = {}) {
             } else {
                 mergedAttrs = `${mergedAttrs} class="data-static"`.trim();
             }
-            return `<dx-odometer ${mergedAttrs}>${cleanText}</dx-odometer>`;
+            return `<dx-odometer ${mergedAttrs}><s-t>${cleanText}</s-t></dx-odometer>`;
         })
         : content;
 

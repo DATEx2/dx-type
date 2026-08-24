@@ -172,7 +172,7 @@ export class DxMeter extends DxBase {
     }
 
     get isStatic() {
-        return this.classList.contains('data-static');
+        return this.classList ? this.classList.contains('data-static') : false;
     }
 
     getNumericValue() {

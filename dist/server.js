@@ -113,7 +113,7 @@ function generateRibbonHtml(numericValue, type = "int", comma = ",", prefix = ""
       const finalIndex = totalItems - 1;
       const finalPosPercent = totalItems > 1 ? -(finalIndex / totalItems * 100).toFixed(4) : 0;
       const seqStr = drumValues.map((v) => v === " " ? " " : v).join("&#10;");
-      digitsHtml += `<d data-seq="${seqStr}" style="--p:${finalPosPercent}%;--r:${digitR}"></d>`;
+      digitsHtml += `<d data-seq="${seqStr}" style="--p:${finalPosPercent}%;--r:${digitR}">${char}</d>`;
     }
   }
   const pfxHtml = prefixText ? `<span class="ui-pfx">${prefixText}${prefix.endsWith(" ") ? "" : " "}</span>` : "";
@@ -162,10 +162,10 @@ function ssrDxOdometer(numericValue, options = {}) {
   const classStr = twContext ? `tw-embed ${className}`.trim() : className;
   const classAttr = classStr ? ` class="${classStr}"` : "";
   const cleanNumber = String(numericValue);
-  const ariaLabel = `${safePrefix ? safePrefix + " " : ""}${cleanNumber}${safeSuffix ? " " + safeSuffix : ""}`.trim().replace(/"/g, "&quot;");
-  const formattedText = `${safePrefix}${cleanNumber}${safeSuffix}`;
-  const stHtml = twContext ? "" : `<s-t>${formattedText}</s-t>`;
-  return `<dx-odometer${classAttr}${typeAttr} percent="${numericValue}"${prefixAttr}${suffixAttr}${commaAttr} aria-label="${ariaLabel}" aria-hidden="true">${stHtml}</dx-odometer>`;
+  const formattedText = formatNumber(numericValue, type, comma, safePrefix, safeSuffix);
+  const ariaLabel = formattedText.replace(/·/g, "").replace(/\s+/g, " ").trim().replace(/"/g, "&quot;");
+  const ribbonHtml = generateRibbonHtml(numericValue, type, comma, safePrefix, safeSuffix, options.start);
+  return `<dx-odometer${classAttr}${typeAttr} percent="${numericValue}"${prefixAttr}${suffixAttr}${commaAttr} aria-label="${ariaLabel}" aria-hidden="true"><s-t>${formattedText}</s-t>${ribbonHtml}</dx-odometer>`;
 }
 function splitChars(str) {
   return str.match(/&[a-z0-9]+;|./gu) || [];
@@ -286,7 +286,7 @@ function ssrDxType(content, options = {}) {
     } else {
       mergedAttrs = `${mergedAttrs} class="data-static"`.trim();
     }
-    return `<dx-odometer ${mergedAttrs}>${cleanText}</dx-odometer>`;
+    return `<dx-odometer ${mergedAttrs}><s-t>${cleanText}</s-t></dx-odometer>`;
   }) : content;
   if (isSda) {
     return `<${tagName}${classAttr} style="${res.style}"${ariaAttr}><s-t>${stContent}</s-t><template><t aria-hidden="true">${res.html}</t></template></${tagName}>`;

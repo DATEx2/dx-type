@@ -1,33 +1,63 @@
-// dx-counter.js — DATEx2 <dx-counter> Web Component (100% Pure CSS / GPU-accelerated numeric counter).
+// dx-counter.js — DATEx2 <dx-counter> Web Component (100% Pure CSS / GPU Counter).
 //
-// Uses CSS @property, @keyframes, and counter() for zero-CPU animation on the Compositor thread.
-// Supports Action Bar visibility gate, Typewriter embed readiness, and dynamic .val() updates.
-// Pure ES2026 — zero external dependencies.
+// Hardware-accelerated numeric counter using CSS @property, @keyframes and counter().
+// Renders dynamic slot structure with threshold delays for thousand/million groups.
+// Pure ES2026 — zero external dependencies, 0 forced reflows.
 //
 // exports: DxCounter
 // used_by: src/client/index.js
 
-import { DxMeter, parseNumParts, uiNum } from '../base/dx-meter.js';
+import { DxMeter } from '../base/dx-meter.js';
 import { rootWin, defCustomElement } from '../base/dx-base.js';
 import { DX_ANIM, observeIO } from '../base/dx-scheduler.js';
 
-const SDA_PARENT_SEL = 'dx-type-sda, dx-reveal-sda, .type-sda, .reveal-sda, .TYPE-, .REVEAL-, ui-type-sda, ui-reveal-sda';
 const TYPE_PARENT_SEL = 'dx-type-sda, dx-type, .type-sda, .type, .TYPE-, ui-type, ui-type-sda';
 const REVEAL_PARENT_SEL = 'dx-reveal-sda, dx-reveal, .reveal-sda, .reveal, .REVEAL-, ui-reveal-sda, ui-reveal';
 
+// Register GPU CSS @property custom properties in Houdini runtime
+if (typeof window !== 'undefined' && window.CSS && typeof window.CSS.registerProperty === 'function') {
+    [
+        '--b', '--m', '--k', '--u', '--dec',
+        '--start-b', '--target-b',
+        '--start-m', '--target-m',
+        '--start-k', '--target-k',
+        '--start-u', '--target-u',
+        '--start-dec', '--target-dec'
+    ].forEach(name => {
+        try {
+            window.CSS.registerProperty({
+                name,
+                syntax: '<integer>',
+                inherits: true,
+                initialValue: '0'
+            });
+        } catch (e) {}
+    });
+}
+
 export class DxCounter extends DxMeter {
     static get observedAttributes() {
-        return ['prefix', 'suffix', 'comma', 'type', 'hide-zero', 'empty-zero', 'percent', 'value'];
+        return ['prefix', 'suffix', 'comma', 'type', 'percent', 'value', 'duration'];
     }
 
     attributeChangedCallback(name, oldVal, newVal) {
-        if (oldVal !== newVal && this._initialized && !this._isRendering) {
-            if (name === 'percent' || name === 'value') {
-                this.val(newVal, 0);
-            } else {
-                this.render();
-            }
+        if (oldVal === newVal || !this._initialized || this._isRendering) return;
+        // percent/value/duration changes are handled exclusively by val() — never re-render
+        if (name === 'percent' || name === 'value' || name === 'duration') return;
+        // prefix/suffix/comma/type: patch existing DOM elements in-place, no render()
+        const wrap = this.querySelector('.dx-num-wrap');
+        if (!wrap) return; // not yet rendered — init() will handle it
+        if (name === 'prefix') {
+            const pfx = wrap.querySelector('.dx-pfx');
+            if (pfx) pfx.textContent = newVal || '';
+        } else if (name === 'suffix') {
+            const sfx = wrap.querySelector('.dx-sfx');
+            if (sfx) sfx.textContent = newVal || '';
+        } else if (name === 'comma') {
+            const radix = wrap.querySelector('.dx-radix');
+            if (radix) radix.textContent = newVal || ',';
         }
+        // 'type' changes only affect future formatValue calls, no DOM surgery needed
     }
 
     constructor() {
@@ -37,48 +67,52 @@ export class DxCounter extends DxMeter {
         this._parentReady = false;
         this._pendingVal = null;
         this._timeoutId = null;
-        this._twDelayId = null;
         this._isRendering = false;
         this._onAnimEndBound = this._onAnimEnd.bind(this);
     }
 
     connectedCallback() {
-        if (this.isStatic) return;
         if (this._initialized) return;
 
-        const inST = !!this.closest('s-t');
+        const inST = typeof this.closest === 'function' ? !!this.closest('s-t') : false;
         if (inST) {
             this.makeStatic();
             this.innerHTML = this.getStaticHTML();
             return;
         }
 
-        const schedule = (typeof queueMicrotask === 'function') ? queueMicrotask : (cb => setTimeout(cb, 0));
-        schedule(() => {
+        const isSsr = typeof this.querySelector === 'function' && Boolean(this.querySelector('.dx-num-wrap'));
+        if (isSsr) {
+            this.init();
+            return;
+        }
+
+        // Use setTimeout(0) only for dynamically created elements
+        setTimeout(() => {
             if (this.isConnected && !this._initialized) {
                 this.init();
             }
-        });
+        }, 0);
     }
 
     getStaticHTML() {
         const valAttr = this.getAttribute('percent') || this.getAttribute('value') || this.textContent;
         const numericValue = parseFloat(valAttr);
         if (isNaN(numericValue)) return this.textContent.trim();
-        if ((this.hasAttribute('hide-zero') || this.hasAttribute('empty-zero')) && numericValue === 0) {
-            return '';
-        }
         return this.formatValue(numericValue);
     }
 
     isReadyToAnimate() {
+        const parentC = typeof this.closest === 'function' ? this.closest('c') : null;
+        const parentReveal = typeof this.closest === 'function' ? this.closest(REVEAL_PARENT_SEL) : null;
+        if (!parentC && !parentReveal) {
+            this._inViewport = true;
+            this._parentReady = true;
+            return true;
+        }
         if (this._inViewport && !this._parentReady) {
-            const parentC = this.closest('c');
-            const parentReveal = this.closest(REVEAL_PARENT_SEL);
-            if (!parentC && !parentReveal) {
-                this._parentReady = true;
-            } else if (parentReveal) {
-                if (parentReveal.classList.contains(DX_ANIM.REVEALED) || parentReveal.classList.contains(DX_ANIM.REVEALING) || parentReveal.classList.contains('revealed') || parentReveal.classList.contains('revealing') || parentReveal.hasAttribute('data-static')) {
+            if (parentReveal) {
+                if (parentReveal.classList && (parentReveal.classList.contains(DX_ANIM.REVEALED) || parentReveal.classList.contains(DX_ANIM.REVEALING) || parentReveal.classList.contains('revealed') || parentReveal.classList.contains('revealing') || (parentReveal.hasAttribute && parentReveal.hasAttribute('data-static')))) {
                     this._parentReady = true;
                 }
             }
@@ -109,19 +143,17 @@ export class DxCounter extends DxMeter {
         };
     }
 
-    _setupTiming(startVal, targetVal, duration) {
-        const start = Math.abs(parseFloat(startVal) || 0);
-        const target = Math.abs(parseFloat(targetVal) || 0);
-        const dur = (duration !== undefined && duration !== null) ? duration : this.getDuration();
-
+    _setupTiming(start, target, dur) {
         const sParts = this._decompose(start);
         const tParts = this._decompose(target);
 
-        // Quad Ease-Out timing inversion: t = 1 - sqrt(1 - delta)
-        let delayK = 0, delayM = 0, delayB = 0;
-        let delayKHide = 0, delayMHide = 0, delayBHide = 0;
+        let delayK = 0;
+        let delayM = 0;
+        let delayB = 0;
+        let delayKHide = 0;
+        let delayMHide = 0;
 
-        if (target > start) {
+        if (start < target) {
             const totalDiff = target - start;
             if (totalDiff > 0) {
                 if (start < 1e3 && target >= 1e3) {
@@ -156,23 +188,35 @@ export class DxCounter extends DxMeter {
             }
         }
 
-        // Set CSS Custom Properties on inline style for GPU interpolation
-        this.style.setProperty('--start-b', sParts.b);
-        this.style.setProperty('--target-b', tParts.b);
-        this.style.setProperty('--start-m', sParts.m);
-        this.style.setProperty('--target-m', tParts.m);
-        this.style.setProperty('--start-k', sParts.k);
-        this.style.setProperty('--target-k', tParts.k);
-        this.style.setProperty('--start-u', sParts.u);
-        this.style.setProperty('--target-u', tParts.u);
-        this.style.setProperty('--start-dec', sParts.dec);
-        this.style.setProperty('--target-dec', tParts.dec);
-        this.style.setProperty('--t', `${dur}ms`);
-        this.style.setProperty('--delay-k', `${delayK}ms`);
-        this.style.setProperty('--delay-m', `${delayM}ms`);
-        this.style.setProperty('--delay-b', `${delayB}ms`);
-        if (delayKHide > 0) this.style.setProperty('--delay-k-hide', `${delayKHide}ms`);
-        if (delayMHide > 0) this.style.setProperty('--delay-m-hide', `${delayMHide}ms`);
+        // Set CSS Custom Properties on inline style for GPU interpolation (only if changed)
+        const setProp = (p, v) => {
+            const sVal = String(v);
+            if (this.style.getPropertyValue(p) !== sVal) {
+                this.style.setProperty(p, sVal);
+            }
+        };
+
+        setProp('--start-b', sParts.b);
+        setProp('--target-b', tParts.b);
+        setProp('--start-m', sParts.m);
+        setProp('--target-m', tParts.m);
+        setProp('--start-k', sParts.k);
+        setProp('--target-k', tParts.k);
+        setProp('--start-u', sParts.u);
+        setProp('--target-u', tParts.u);
+        setProp('--start-dec', sParts.dec);
+        setProp('--target-dec', tParts.dec);
+        setProp('--b', tParts.b);
+        setProp('--m', tParts.m);
+        setProp('--k', tParts.k);
+        setProp('--u', tParts.u);
+        setProp('--dec', tParts.dec);
+        setProp('--t', `${dur}ms`);
+        setProp('--delay-k', `${delayK}ms`);
+        setProp('--delay-m', `${delayM}ms`);
+        setProp('--delay-b', `${delayB}ms`);
+        if (delayKHide > 0) setProp('--delay-k-hide', `${delayKHide}ms`);
+        if (delayMHide > 0) setProp('--delay-m-hide', `${delayMHide}ms`);
 
         // Visibility toggles to avoid ghost whitespace for smaller numbers
         const wrap = this.querySelector('.dx-num');
@@ -192,78 +236,128 @@ export class DxCounter extends DxMeter {
             const cfg = this.getFormatConfig();
             const hasDec = cfg.comma !== '' && cfg.type !== 'int' && (tParts.dec > 0 || sParts.dec > 0 || cfg.type.includes('number'));
 
-            if (elB) elB.style.display = hasB ? 'inline' : 'none';
-            if (elSepB) elSepB.style.display = hasB ? 'inline' : 'none';
-            if (elM) elM.style.display = hasM ? 'inline' : 'none';
-            if (elSepM) elSepM.style.display = hasM ? 'inline' : 'none';
-            if (elK) elK.style.display = hasK ? 'inline' : 'none';
-            if (elSepK) elSepK.style.display = hasK ? 'inline' : 'none';
-            if (elRadix) elRadix.style.display = hasDec ? 'inline' : 'none';
-            if (elDec) elDec.style.display = hasDec ? 'inline' : 'none';
+            const setDisp = (el, v) => {
+                if (el && el.style.display !== v) el.style.display = v;
+            };
+
+            setDisp(elB, hasB ? 'inline' : 'none');
+            setDisp(elSepB, hasB ? 'inline' : 'none');
+            setDisp(elM, hasM ? 'inline' : 'none');
+            setDisp(elSepM, hasM ? 'inline' : 'none');
+            setDisp(elK, hasK ? 'inline' : 'none');
+            setDisp(elSepK, hasK ? 'inline' : 'none');
+            setDisp(elRadix, hasDec ? 'inline' : 'none');
+            setDisp(elDec, hasDec ? 'inline' : 'none');
         }
     }
 
     render() {
         this._isRendering = true;
         const cfg = this.getFormatConfig();
-        const targetVal = (this._targetValue !== undefined && !isNaN(this._targetValue)) ? this._targetValue : this.getNumericValue();
+        const targetVal = (this._targetValue !== undefined && !isNaN(this._targetValue))
+            ? this._targetValue
+            : this.getNumericValue();
         const formattedFull = this.formatValue(targetVal);
 
-        // Clean & preserve exactly ONE <s-t> layer for SEO, screen readers and Ctrl+F
+        let wrap = this.querySelector('.dx-num-wrap');
         let st = this.querySelector('s-t');
-        if (!st) {
-            st = document.createElement('s-t');
-            this.prepend(st);
-        }
-        st.textContent = formattedFull;
-        const allSt = Array.from(this.querySelectorAll('s-t'));
-        for (let i = 1; i < allSt.length; i++) {
-            allSt[i].remove();
-        }
 
-        // Ensure dynamic GPU slot structure exists
-        let wrap = this.querySelector(':scope > .dx-num-wrap');
         if (!wrap) {
-            wrap = document.createElement('span');
-            wrap.className = 'dx-num-wrap';
-            wrap.innerHTML = `<span class="dx-pfx">${cfg.prefix}</span>`
+            this.innerHTML =
+                `<s-t>${formattedFull}</s-t>`
+                + `<span class="dx-num-wrap">`
+                + `<span class="dx-pfx">${cfg.prefix || ''}</span>`
                 + `<span class="dx-num">`
-                + `<span class="dx-b"></span><span class="dx-sep-b"> </span>`
-                + `<span class="dx-m"></span><span class="dx-sep-m"> </span>`
-                + `<span class="dx-k"></span><span class="dx-sep-k"> </span>`
+                + `<span class="dx-b" style="display: none;"></span><span class="dx-sep-b" style="display: none;"> </span>`
+                + `<span class="dx-m" style="display: none;"></span><span class="dx-sep-m" style="display: none;"> </span>`
+                + `<span class="dx-k" style="display: none;"></span><span class="dx-sep-k" style="display: none;"> </span>`
                 + `<span class="dx-u"></span>`
                 + `<span class="dx-radix">${cfg.comma || ','}</span>`
                 + `<span class="dx-dec"></span>`
                 + `</span>`
-                + `<span class="dx-sfx">${cfg.suffix}</span>`;
-            this.appendChild(wrap);
+                + `<span class="dx-sfx">${cfg.suffix || ''}</span>`
+                + `</span>`;
         } else {
-            const pfx = wrap.querySelector('.dx-pfx');
-            if (pfx) pfx.textContent = cfg.prefix;
-            const sfx = wrap.querySelector('.dx-sfx');
-            if (sfx) sfx.textContent = cfg.suffix;
-            const radix = wrap.querySelector('.dx-radix');
-            if (radix) radix.textContent = cfg.comma || ',';
+            if (st && st.textContent !== formattedFull) {
+                st.textContent = formattedFull;
+            }
         }
 
-        const startVal = this._value !== undefined ? this._value : 0;
-        this._setupTiming(startVal, targetVal, this.getDuration());
+        this._cacheDOMElements();
+        const startVal = this._value !== undefined ? this._value : targetVal;
+        this._updateCounterVars(startVal);
         this._isRendering = false;
+    }
+
+    _cacheDOMElements() {
+        const num = this.querySelector('.dx-num');
+        if (num) {
+            this._elB = num.querySelector('.dx-b');
+            this._elSepB = num.querySelector('.dx-sep-b');
+            this._elM = num.querySelector('.dx-m');
+            this._elSepM = num.querySelector('.dx-sep-m');
+            this._elK = num.querySelector('.dx-k');
+            this._elSepK = num.querySelector('.dx-sep-k');
+            this._elRadix = num.querySelector('.dx-radix');
+            this._elDec = num.querySelector('.dx-dec');
+        }
+        this._cachedCfg = this.getFormatConfig();
     }
 
     _onAnimEnd(e) {
         if (e && e.target && !e.target.classList.contains('dx-num')) return;
         this._value = this._targetValue;
+        this._updateCounterVars(this._value);
+
         this.classList.remove('dx-counter-running');
         this.makeStatic();
 
-        const st = this.querySelector(':scope > s-t');
+        const st = this.querySelector('s-t');
         if (st) {
             st.textContent = this.formatValue(this._value);
         }
         const num = this.querySelector('.dx-num');
         if (num) {
             num.removeEventListener('animationend', this._onAnimEndBound);
+        }
+    }
+
+    _updateCounterVars(currentVal) {
+        if (!this._elDec && !this._elRadix) {
+            this._cacheDOMElements();
+        }
+        const c = this._decompose(currentVal);
+        if (c.b !== this._lastB) { this.style.setProperty('--b', String(c.b)); this._lastB = c.b; }
+        if (c.m !== this._lastM) { this.style.setProperty('--m', String(c.m)); this._lastM = c.m; }
+        if (c.k !== this._lastK) { this.style.setProperty('--k', String(c.k)); this._lastK = c.k; }
+        if (c.u !== this._lastU) { this.style.setProperty('--u', String(c.u)); this._lastU = c.u; }
+        if (c.dec !== this._lastDec) { this.style.setProperty('--dec', String(c.dec)); this._lastDec = c.dec; }
+
+        const hasB = currentVal >= 1e9;
+        const hasM = currentVal >= 1e6;
+        const hasK = currentVal >= 1e3;
+        const cfg = this._cachedCfg || this.getFormatConfig();
+        const hasDec = cfg.comma !== '' && cfg.type !== 'int' && (c.dec > 0 || cfg.type.includes('number'));
+
+        if (hasB !== this._lastHasB) {
+            if (this._elB) this._elB.style.display = hasB ? 'inline' : 'none';
+            if (this._elSepB) this._elSepB.style.display = hasB ? 'inline' : 'none';
+            this._lastHasB = hasB;
+        }
+        if (hasM !== this._lastHasM) {
+            if (this._elM) this._elM.style.display = hasM ? 'inline' : 'none';
+            if (this._elSepM) this._elSepM.style.display = hasM ? 'inline' : 'none';
+            this._lastHasM = hasM;
+        }
+        if (hasK !== this._lastHasK) {
+            if (this._elK) this._elK.style.display = hasK ? 'inline' : 'none';
+            if (this._elSepK) this._elSepK.style.display = hasK ? 'inline' : 'none';
+            this._lastHasK = hasK;
+        }
+        if (hasDec !== this._lastHasDec) {
+            if (this._elRadix) this._elRadix.style.display = hasDec ? 'inline' : 'none';
+            if (this._elDec) this._elDec.style.display = hasDec ? 'inline' : 'none';
+            this._lastHasDec = hasDec;
         }
     }
 
@@ -283,21 +377,16 @@ export class DxCounter extends DxMeter {
             const targetVal = (this._targetValue !== undefined && !isNaN(this._targetValue)) ? this._targetValue : this.getNumericValue();
             this._animationStarted = true;
 
-            const dur = this.getDuration();
-            const d = parseFloat(this.style.getPropertyValue('--d')) || parseFloat(this.closest('[style*="--d"]')?.style.getPropertyValue('--d')) || 0;
+            if (this._value !== targetVal) {
+                const isActionBar = this.classList && this.classList.contains('ui-add-to-cart-total');
+                const dur = this.hasAttribute('duration') ? parseFloat(this.getAttribute('duration')) : (isActionBar ? 1000 : this.getDuration());
+                const d = parseFloat(this.getAttribute('delay')) || parseFloat(this.style.getPropertyValue('--d')) || parseFloat(this.closest('[style*="--d"]')?.style.getPropertyValue('--d')) || (isActionBar ? 400 : 0);
 
-            const startAnim = () => {
-                const num = this.querySelector('.dx-num');
-                if (num) {
-                    num.addEventListener('animationend', this._onAnimEndBound, { once: true });
+                this.style.setProperty('--t', `${dur}ms`);
+                if (d > 0) {
+                    this.style.setProperty('--d', `${d}ms`);
                 }
-                this.classList.add('dx-counter-running');
-            };
-
-            if (d > 0) {
-                this._timeoutId = setTimeout(startAnim, d);
-            } else {
-                startAnim();
+                this._updateCounterVars(targetVal);
             }
         }
     }
@@ -311,38 +400,45 @@ export class DxCounter extends DxMeter {
             this._timeoutId = null;
         }
 
-        const isStatic = this.classList.contains('data-static') || this.isStatic || !!this.closest('s-t');
+        const inST = typeof this.closest === 'function' ? !!this.closest('s-t') : false;
+        const isStatic = inST || this.hasAttribute('data-static') || (this.classList && this.classList.contains('data-static') && !this.classList.contains('ui-add-to-cart-total'));
         const targetVal = (this._targetValue !== undefined && !isNaN(this._targetValue) && this._targetValue !== 0)
             ? this._targetValue
             : (parseFloat(this.getAttribute('percent')) || this.getNumericValue() || 0);
-        this._targetValue = targetVal;
-
-        if (isStatic) {
+        const hasSsrMarkup = typeof this.querySelector === 'function' && Boolean(this.querySelector('.dx-num-wrap'));
+        if (isStatic || (!this.hasAttribute('start') && hasSsrMarkup)) {
             this._value = targetVal;
             this._animationStarted = true;
         } else {
             this._value = this.hasAttribute('start') ? (parseFloat(this.getAttribute('start')) || 0) : 0;
         }
 
-        this.render();
+        if (!hasSsrMarkup) {
+            this.render();
+        } else {
+            this._cacheDOMElements();
+        }
         this.setAccessibility(targetVal);
+
+        // Action bar elements are visible immediately
+        const parentC = typeof this.closest === 'function' ? this.closest('c') : null;
+        const parentReveal = typeof this.closest === 'function' ? this.closest(REVEAL_PARENT_SEL) : null;
+        const noScrollParent = !parentC && !parentReveal;
+
+        if (noScrollParent || isStatic) {
+            this._inViewport = true;
+            this._parentReady = true;
+        } else {
+            observeIO(this, () => {
+                this._inViewport = true;
+                this._checkAndTrigger();
+            });
+        }
 
         if (isStatic) {
             this.makeStatic();
             return;
         }
-
-        this._inViewport = false;
-
-        // Viewport IO Singleton
-        observeIO(this, () => {
-            this._inViewport = true;
-            this._checkAndTrigger();
-        });
-
-        // Parent animation readiness
-        const parentC = this.closest('c');
-        const parentReveal = this.closest(REVEAL_PARENT_SEL);
 
         if (parentC) {
             const parentType = this.closest(TYPE_PARENT_SEL);
@@ -351,11 +447,8 @@ export class DxCounter extends DxMeter {
             } else {
                 parentC.addEventListener('animationstart', (e) => {
                     if (e.target === parentC) {
-                        const u = (parentC.style && parseFloat(parentC.style.getPropertyValue('--u'))) || 40;
-                        this._twDelayId = setTimeout(() => {
-                            this._parentReady = true;
-                            this._checkAndTrigger();
-                        }, u * 0.35);
+                        this._parentReady = true;
+                        this._checkAndTrigger();
                     }
                 }, { once: true });
             }
@@ -385,8 +478,6 @@ export class DxCounter extends DxMeter {
 
     disconnectedCallback() {
         if (this._timeoutId) { clearTimeout(this._timeoutId); this._timeoutId = null; }
-        if (this._twDelayId) { clearTimeout(this._twDelayId); this._twDelayId = null; }
-        this.classList.remove('dx-counter-running');
     }
 
     val(newValue, duration) {
@@ -394,9 +485,12 @@ export class DxCounter extends DxMeter {
         if (newValue === undefined) return (this._targetValue !== undefined && !isNaN(this._targetValue)) ? this._targetValue : this._value;
 
         const parsedValue = parseFloat(newValue) || 0;
-        const startVal = this._value !== undefined ? this._value : 0;
         this._targetValue = parsedValue;
-        this._value = parsedValue;
+
+        if (this._initialized && this._value === parsedValue && !this._pendingVal) {
+            this.setAccessibility(parsedValue);
+            return this;
+        }
 
         const animDuration = (duration !== undefined && duration !== null) ? duration : this.getDuration();
         const ready = this.isReadyToAnimate();
@@ -410,34 +504,18 @@ export class DxCounter extends DxMeter {
 
         this._animationStarted = true;
         this._pendingVal = null;
+        this._value = parsedValue;
         this.setAttribute('percent', parsedValue);
         this.setAccessibility(parsedValue);
 
         // Update static <s-t>
-        const st = this.querySelector(':scope > s-t');
+        const st = this.querySelector('s-t');
         if (st) st.textContent = this.formatValue(parsedValue);
 
-        if (animDuration > 0) {
-            this._setupTiming(startVal, parsedValue, animDuration);
-
-            // Restart CSS GPU animation without forced layout reflow
-            const num = this.querySelector('.dx-num');
-            if (num) {
-                num.removeEventListener('animationend', this._onAnimEndBound);
-                num.addEventListener('animationend', this._onAnimEndBound, { once: true });
-                num.style.animationName = 'none';
-                if (typeof window !== 'undefined' && window.getComputedStyle) {
-                    window.getComputedStyle(num).animationName; // Style recalc flush only
-                }
-                num.style.animationName = '';
-            }
-            this.classList.remove('data-static');
-            this.classList.add('dx-counter-running');
-        } else {
-            this._setupTiming(parsedValue, parsedValue, 0);
-            this.classList.remove('dx-counter-running');
-            this.makeStatic();
-        }
+        // 100% pure declarative GPU CSS transition
+        this.style.setProperty('--t', `${animDuration}ms`);
+        this.style.setProperty('--d', '0ms');
+        this._updateCounterVars(parsedValue);
 
         return this;
     }

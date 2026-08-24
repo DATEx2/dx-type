@@ -9,6 +9,7 @@ dx-type,
 dx-type-sda {
     display: block !important;
     position: relative !important;
+    contain: layout style !important;
     width: 100% !important;
     height: auto !important;
     min-height: fit-content !important;
@@ -32,11 +33,6 @@ dx-type-sda {
         word-spacing: inherit !important;
         white-space: inherit !important;
         text-align: inherit !important;
-
-        & * {
-            display: inline !important;
-            vertical-align: baseline !important;
-        }
     }
 
     &:not(.dx-typed) > s-t {
@@ -62,6 +58,7 @@ dx-type-sda {
         position: absolute !important;
         z-index: 0 !important;
         inset: 0 !important;
+        contain: layout style !important;
         width: 100% !important;
         height: 100% !important;
         display: block !important;
@@ -146,6 +143,7 @@ dx-type-ready {
 dx-reveal,
 dx-reveal-sda {
     display: block;
+    contain: layout style;
     width: 100%;
 
     &.inline,
@@ -166,6 +164,7 @@ dx-reveal-sda {
 
 /* ─── 2. Mechanical Drum Odometer (<dx-odometer> / <d data-seq>) ──────────── */
 dx-odometer, ui-odometer {
+    & s-t, & s-t * { color: inherit !important; -webkit-text-fill-color: currentColor !important; opacity: 1 !important; visibility: visible !important; }
     display: inline-flex !important;
     align-items: stretch !important;
     vertical-align: baseline !important;
@@ -198,10 +197,11 @@ dx-odometer, ui-odometer {
     /* Static text — hidden during animation, shown after */
     & s-t { display: none !important; }
 
-    /* Static state (animation complete): hide bands, show text */
+    /* Static state (animation complete): hide bands and affix spans, show text */
     &.data-static s-t { display: inline !important; }
     &.data-static d::before,
-    &.data-static b {
+    &.data-static b,
+    &.data-static :is(.ui-pfx, .ui-sfx) {
         animation: none !important;
         transform: translateY(var(--p, 0%));
         display: none !important;
@@ -210,19 +210,29 @@ dx-odometer, ui-odometer {
 
 /* ─── Digit column: 1 element per mechanical drum ─────────────────────────── */
 d {
+    position: relative !important;
     display: inline-block !important;
     height: 100% !important;
     line-height: inherit !important;
     overflow: hidden !important;
     vertical-align: baseline !important;
+    color: transparent !important;
+    -webkit-text-fill-color: transparent !important;
+    user-select: none !important;
+    pointer-events: none !important;
 }
 
 d::before {
     content: attr(data-seq);
+    position: absolute !important;
+    inset: 0 !important;
+    width: 100% !important;
     display: block !important;
     white-space: pre !important;
     line-height: inherit !important;
     text-align: center !important;
+    color: currentColor !important;
+    -webkit-text-fill-color: currentColor !important;
     transform: translateY(0);
 }
 
@@ -290,18 +300,20 @@ c, dx-type c, dx-type-sda c {
     display: inline-block !important;
     vertical-align: baseline !important;
     line-height: inherit !important;
-    height: 1lh !important;
     letter-spacing: inherit !important;
     word-spacing: inherit !important;
     --I: calc(var(--w, 0) + var(--i, 0));
+
+    &.c-ui-num {
+        display: inline !important;
+        vertical-align: baseline !important;
+    }
 }
 
 w, dx-type w, dx-type-sda w {
-    display: inline-block !important;
+    display: inline !important;
     white-space: nowrap !important;
     line-height: inherit !important;
-    height: 1lh !important;
-    vertical-align: baseline !important;
     letter-spacing: inherit !important;
     word-spacing: inherit !important;
 }
@@ -443,7 +455,7 @@ dx-reveal-sda {
 }
 
 :is(dx-reveal-sda.dx-revealing, dx-reveal-sda.dx-revealed, dx-reveal-sda[data-static]) {
-    animation: dx-reveal-sda calc(var(--t, 500) * 1ms) cubic-bezier(0.16, 1, 0.3, 1) calc(var(--d, 0) * 1ms) both !important;
+    animation: dx-reveal-sda calc(var(--t, 500) * 1ms * var(--A, 1)) cubic-bezier(0.16, 1, 0.3, 1) calc(var(--d, 0) * 1ms * var(--A, 1)) both !important;
 }
 
 /* ─── 0. Reset & Preflight Isolation ────────────────────────────────────── */
@@ -470,16 +482,21 @@ ui-odometer,
 
 /* ─── 10. Final State & Static Cleanup ───────────────────────────────────── */
 dx-odometer.data-static d::before,
-dx-odometer.data-static b {
+dx-odometer.data-static b,
+dx-odometer.data-static :is(.ui-pfx, .ui-sfx) {
     animation: none !important;
     transform: translateY(var(--p, 0%));
     display: none !important;
 }
 .dx-typed dx-odometer d::before,
-.dx-typed dx-odometer b {
+.dx-typed dx-odometer b,
+.dx-typed dx-odometer :is(.ui-pfx, .ui-sfx) {
     animation: none !important;
     transform: translateY(var(--p, 0%));
     display: none !important;
+}
+.dx-typed dx-odometer s-t {
+    display: inline !important;
 }
 
 dx-type-sda.dx-typed,
@@ -532,17 +549,29 @@ dx-type.dx-typed c,
 }
 
 /* ─── 12. Component: <dx-counter> (100% Pure CSS / GPU Counter) ───────────── */
-@property --b { syntax: '<integer>'; initial-value: 0; inherits: false; }
-@property --m { syntax: '<integer>'; initial-value: 0; inherits: false; }
-@property --k { syntax: '<integer>'; initial-value: 0; inherits: false; }
-@property --u { syntax: '<integer>'; initial-value: 0; inherits: false; }
-@property --dec { syntax: '<integer>'; initial-value: 0; inherits: false; }
+@property --b { syntax: '<integer>'; initial-value: 0; inherits: true; }
+@property --m { syntax: '<integer>'; initial-value: 0; inherits: true; }
+@property --k { syntax: '<integer>'; initial-value: 0; inherits: true; }
+@property --u { syntax: '<integer>'; initial-value: 0; inherits: true; }
+@property --dec { syntax: '<integer>'; initial-value: 0; inherits: true; }
+
+@property --start-b { syntax: '<integer>'; initial-value: 0; inherits: true; }
+@property --target-b { syntax: '<integer>'; initial-value: 0; inherits: true; }
+@property --start-m { syntax: '<integer>'; initial-value: 0; inherits: true; }
+@property --target-m { syntax: '<integer>'; initial-value: 0; inherits: true; }
+@property --start-k { syntax: '<integer>'; initial-value: 0; inherits: true; }
+@property --target-k { syntax: '<integer>'; initial-value: 0; inherits: true; }
+@property --start-u { syntax: '<integer>'; initial-value: 0; inherits: true; }
+@property --target-u { syntax: '<integer>'; initial-value: 0; inherits: true; }
+@property --start-dec { syntax: '<integer>'; initial-value: 0; inherits: true; }
+@property --target-dec { syntax: '<integer>'; initial-value: 0; inherits: true; }
 
 dx-counter,
 :host(dx-counter) {
     display: inline-block !important;
     vertical-align: baseline !important;
     position: relative !important;
+    contain: layout style !important;
     line-height: inherit !important;
     font-family: inherit !important;
     font-size: inherit !important;
@@ -553,50 +582,71 @@ dx-counter,
     white-space: nowrap !important;
     color: inherit !important;
     -webkit-text-fill-color: currentColor !important;
-    --start-b: 0; --target-b: 0;
-    --start-m: 0; --target-m: 0;
-    --start-k: 0; --target-k: 0;
-    --start-u: 0; --target-u: 0;
-    --start-dec: 0; --target-dec: 0;
-    --b: var(--start-b);
-    --m: var(--start-m);
-    --k: var(--start-k);
-    --u: var(--start-u);
-    --dec: var(--start-dec);
+    --b: 0;
+    --m: 0;
+    --k: 0;
+    --u: 0;
+    --dec: 0;
+    transition: 
+        --b calc(var(--t, 600ms) * var(--A, 1)) cubic-bezier(0, 0, 0.2, 1) calc(var(--d, 0ms) * var(--A, 1)),
+        --m calc(var(--t, 600ms) * var(--A, 1)) cubic-bezier(0, 0, 0.2, 1) calc(var(--d, 0ms) * var(--A, 1)),
+        --k calc(var(--t, 600ms) * var(--A, 1)) cubic-bezier(0, 0, 0.2, 1) calc(var(--d, 0ms) * var(--A, 1)),
+        --u calc(var(--t, 600ms) * var(--A, 1)) cubic-bezier(0, 0, 0.2, 1) calc(var(--d, 0ms) * var(--A, 1)),
+        --dec calc(var(--t, 600ms) * var(--A, 1)) cubic-bezier(0, 0, 0.2, 1) calc(var(--d, 0ms) * var(--A, 1)) !important;
 }
 
+dx-counter:not([data-static]) {
+    animation: dx-counter-intro calc(var(--t, 1000ms) * var(--A, 1)) cubic-bezier(0, 0, 0.2, 1) calc(var(--d, 0ms) * var(--A, 1)) backwards;
+}
+
+:is(.action-bar, .action-bar-wrapper) dx-counter:not([data-static]) {
+    animation: none;
+    --b: 0; --m: 0; --k: 0; --u: 0; --dec: 0;
+}
+
+:is(.showing-action-bar, .show-action-bar) dx-counter.ui-add-to-cart-total:not([data-static]),
+:is(.showing-action-bar, .show-action-bar) :is(.action-bar, .action-bar-wrapper) dx-counter:not([data-static]),
+:is(.action-bar, .action-bar-wrapper):is(.showing-action-bar, .show-action-bar) dx-counter:not([data-static]) {
+    animation: dx-counter-intro calc(var(--t, 1000ms) * var(--A, 1)) cubic-bezier(0, 0, 0.2, 1) calc((var(--d, 0ms) + 300ms) * var(--A, 1)) backwards !important;
+}
+
+@keyframes dx-counter-intro {
+    from {
+        --b: 0;
+        --m: 0;
+        --k: 0;
+        --u: 0;
+        --dec: 0;
+    }
+}
+
+/* <s-t> is ALWAYS invisible visually, but preserved in DOM for SEO, screen readers and Ctrl+F */
 dx-counter > s-t,
 dx-counter > s-t * {
+    position: absolute !important;
+    width: 1px !important;
+    height: 1px !important;
+    padding: 0 !important;
+    margin: -1px !important;
+    overflow: hidden !important;
+    clip: rect(0, 0, 0, 0) !important;
+    white-space: nowrap !important;
+    border: 0 !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+    color: transparent !important;
+    -webkit-text-fill-color: transparent !important;
+}
+
+/* .dx-num-wrap is ALWAYS the visible element (before, during, and after animation) */
+dx-counter > .dx-num-wrap {
+    display: inline-flex !important;
     position: relative !important;
     z-index: 1 !important;
-    display: inline !important;
-    vertical-align: baseline !important;
-    color: inherit !important;
-    -webkit-text-fill-color: currentColor !important;
-    opacity: 1 !important;
-    visibility: visible !important;
-}
-
-dx-counter.dx-counter-running > s-t {
-    display: none !important;
-}
-
-dx-counter > .dx-num-wrap {
-    position: relative !important;
-    z-index: 0 !important;
-    display: none !important;
     align-items: baseline !important;
     vertical-align: baseline !important;
     color: inherit !important;
     -webkit-text-fill-color: currentColor !important;
-}
-
-dx-counter.dx-counter-running > .dx-num-wrap {
-    display: inline-flex !important;
-}
-
-dx-counter.data-static > .dx-num-wrap {
-    display: none !important;
 }
 
 dx-counter .dx-b,
@@ -617,52 +667,10 @@ dx-counter .dx-k::after { counter-reset: k var(--k); content: counter(k); }
 dx-counter .dx-u::after { counter-reset: u var(--u); content: counter(u); }
 dx-counter .dx-dec::after { counter-reset: dec var(--dec); content: counter(dec, decimal-leading-zero); }
 
-dx-counter.dx-counter-running .dx-num {
-    animation: dx-count-up var(--t, 600ms) cubic-bezier(0, 0, 1, 1) var(--d, 0ms) both !important;
-}
-
-@keyframes dx-count-up {
-    from {
-        --b: var(--start-b, 0);
-        --m: var(--start-m, 0);
-        --k: var(--start-k, 0);
-        --u: var(--start-u, 0);
-        --dec: var(--start-dec, 0);
-    }
-    to {
-        --b: var(--target-b, 0);
-        --m: var(--target-m, 0);
-        --k: var(--target-k, 0);
-        --u: var(--target-u, 0);
-        --dec: var(--target-dec, 0);
-    }
-}
-
-dx-counter.dx-counter-running .dx-k,
-dx-counter.dx-counter-running .dx-sep-k {
-    animation: dx-appear-group 1ms linear calc(var(--d, 0ms) + var(--delay-k, 0ms)) both !important;
-}
-dx-counter.dx-counter-running .dx-m,
-dx-counter.dx-counter-running .dx-sep-m {
-    animation: dx-appear-group 1ms linear calc(var(--d, 0ms) + var(--delay-m, 0ms)) both !important;
-}
-dx-counter.dx-counter-running .dx-b,
-dx-counter.dx-counter-running .dx-sep-b {
-    animation: dx-appear-group 1ms linear calc(var(--d, 0ms) + var(--delay-b, 0ms)) both !important;
-}
-
-@keyframes dx-appear-group {
-    from { visibility: hidden; }
-    to   { visibility: visible; }
-}
-
-@keyframes dx-hide-group {
-    from { visibility: visible; }
-    to   { visibility: hidden; }
+@media (prefers-reduced-motion: reduce) {
+    dx-counter .dx-num { animation: none !important; }
 }
 
 @media (prefers-reduced-motion: reduce) {
     dx-counter .dx-num { animation: none !important; }
-    dx-counter > .dx-num-wrap { display: none !important; }
-    dx-counter > s-t { display: inline !important; }
 }
