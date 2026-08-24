@@ -25,15 +25,12 @@ var DX_ANIM = Object.freeze({
 });
 var ioInstance = null;
 var ioCallbacks = /* @__PURE__ */ new WeakMap();
-var _sdaTopGap = "0%";
-var _sdaBottomGap = "0%";
+var _sdaTopGap = "0px";
+var _sdaBottomGap = "150px";
 function formatMarginValue(v) {
   if (!v || v === "0" || v === "0%" || v === "0px" || v === 0) return "0px";
-  if (typeof v === "number") return `-${v}px`;
-  if (typeof v === "string") {
-    const trimmed = v.trim();
-    return trimmed.startsWith("-") ? trimmed : `-${trimmed}`;
-  }
+  if (typeof v === "number") return `${v}px`;
+  if (typeof v === "string") return v.trim();
   return "0px";
 }
 function setSdaGaps(top = "0%", bottom = "0%") {
@@ -71,8 +68,8 @@ function getIO() {
   const IO = rootWin?.IntersectionObserver;
   if (typeof IO === "function") {
     const gaps = getSdaGaps();
-    const topMargin = gaps.sdaTopGap ? formatMarginValue(gaps.sdaTopGap) : "0px";
-    const bottomMargin = gaps.sdaBottomGap && gaps.sdaBottomGap !== "0%" ? formatMarginValue(gaps.sdaBottomGap) : "80px";
+    const topMargin = formatMarginValue(gaps.sdaTopGap);
+    const bottomMargin = formatMarginValue(gaps.sdaBottomGap);
     ioInstance = new IO(ioHandler, {
       root: null,
       // Visual Viewport (window)

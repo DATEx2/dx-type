@@ -428,7 +428,6 @@ dx-reveal {
     opacity: 0;
     transform: translate3d(0, 15px, 0);
     visibility: hidden;
-    will-change: opacity, transform !important;
     backface-visibility: hidden;
     -webkit-backface-visibility: hidden;
     animation-name: reveal-in;
@@ -468,9 +467,8 @@ dx-type-sda c {
 dx-reveal-sda {
     opacity: 0.001;
     transform: translateY(15px);
-    will-change: transform, opacity;
     animation-name: dx-reveal-sda;
-    animation-duration: calc(var(--t, 360) * 1ms);
+    animation-duration: calc(var(--t, 350) * 1ms);
     animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
     animation-delay: calc(var(--d, 0) * 1ms);
     animation-fill-mode: both !important;
