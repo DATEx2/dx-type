@@ -1339,6 +1339,12 @@ var DxOdometer = class extends DxMeter {
     if (hasExistingDom) {
       this._initialized = true;
       this._ribbonCount = (shadow || this).querySelectorAll(".odometer-ribbon-inner").length;
+      const twEmbed2 = this.classList.contains("tw-embed");
+      if (!twEmbed2) {
+        observeIO(this, (el2) => {
+          el2.classList.add(DX_ANIM.TYPING);
+        });
+      }
       return;
     }
     const typeReadyParent = this.closest(".type-ready, dx-type-ready");
@@ -1346,11 +1352,17 @@ var DxOdometer = class extends DxMeter {
     const parentC = this.closest("c");
     if (typeReadyParent || twEmbed || parentC) {
       this._timeoutId = setTimeout(() => {
-        if (!this._initialized) this.init();
+        if (!this._initialized) {
+          this.init();
+          this.classList.add(DX_ANIM.TYPING);
+        }
       }, 0);
     } else {
-      observeIO(this, () => {
-        if (!this._initialized) this.init();
+      observeIO(this, (el2) => {
+        if (!this._initialized) {
+          this.init();
+        }
+        el2.classList.add(DX_ANIM.TYPING);
       });
     }
   }

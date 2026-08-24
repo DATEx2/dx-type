@@ -204,6 +204,12 @@ export class DxOdometer extends DxMeter {
         if (hasExistingDom) {
             this._initialized = true;
             this._ribbonCount = (shadow || this).querySelectorAll('.odometer-ribbon-inner').length;
+            const twEmbed = this.classList.contains('tw-embed');
+            if (!twEmbed) {
+                observeIO(this, (el) => {
+                    el.classList.add(DX_ANIM.TYPING);
+                });
+            }
             return;
         }
 
@@ -213,12 +219,18 @@ export class DxOdometer extends DxMeter {
 
         if (typeReadyParent || twEmbed || parentC) {
             this._timeoutId = setTimeout(() => {
-                if (!this._initialized) this.init();
+                if (!this._initialized) {
+                    this.init();
+                    this.classList.add(DX_ANIM.TYPING);
+                }
             }, 0);
         } else {
             // Standalone odometer: trigger on scroll via singleton IO
-            observeIO(this, () => {
-                if (!this._initialized) this.init();
+            observeIO(this, (el) => {
+                if (!this._initialized) {
+                    this.init();
+                }
+                el.classList.add(DX_ANIM.TYPING);
             });
         }
     }
