@@ -380,12 +380,17 @@ c:nth-child(50) { --i: 49; }
 @keyframes type-in {
     0% {
         opacity: 0.001;
-        transform: translateY(4px);
+        transform: translateY(7px) scale(0.92);
+        visibility: visible;
+    }
+    50% {
+        opacity: 0.35;
+        transform: translateY(3px) scale(0.97);
         visibility: visible;
     }
     100% {
         opacity: 1;
-        transform: translateY(0);
+        transform: translateY(0) scale(1);
         visibility: visible;
     }
 }
