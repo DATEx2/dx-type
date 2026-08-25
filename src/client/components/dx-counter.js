@@ -393,8 +393,8 @@ export class DxCounter extends DxMeter {
 
             if (this._value !== targetVal) {
                 const isActionBar = this.classList && this.classList.contains('ui-add-to-cart-total');
-                const dur = this.hasAttribute('duration') ? parseFloat(this.getAttribute('duration')) : (isActionBar ? 600 : this.getDuration());
-                const d = this.hasAttribute('delay') ? parseFloat(this.getAttribute('delay')) : (isActionBar ? 200 : 0);
+                const dur = this.hasAttribute('duration') ? parseFloat(this.getAttribute('duration')) : (isActionBar ? 1000 : this.getDuration());
+                const d = this.hasAttribute('delay') ? parseFloat(this.getAttribute('delay')) : (isActionBar ? 150 : 0);
 
                 this.style.setProperty('--dxc-duration', `${dur}ms`);
                 this.style.setProperty('--dxc-delay', `${d}ms`);
