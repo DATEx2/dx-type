@@ -380,10 +380,10 @@ export class DxCounter extends DxMeter {
             if (this._value !== targetVal) {
                 const isActionBar = this.classList && this.classList.contains('ui-add-to-cart-total');
                 const dur = this.hasAttribute('duration') ? parseFloat(this.getAttribute('duration')) : (isActionBar ? 600 : this.getDuration());
-                const d = parseFloat(this.getAttribute('delay')) || 0;
+                const d = this.hasAttribute('delay') ? parseFloat(this.getAttribute('delay')) : (isActionBar ? 60 : 0);
 
                 this.style.setProperty('--t', `${dur}ms`);
-                this.style.setProperty('--d', `${d}ms`);
+                this.style.setProperty('--delay', `${d}ms`);
                 this._updateCounterVars(targetVal);
             }
         }
