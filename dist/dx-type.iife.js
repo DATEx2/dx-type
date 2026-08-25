@@ -1314,34 +1314,6 @@ var DxType = (() => {
   // src/client/components/dx-counter.js
   var TYPE_PARENT_SEL3 = "dx-type-sda, dx-type, .type-sda, .type, .TYPE-, ui-type, ui-type-sda";
   var REVEAL_PARENT_SEL2 = "dx-reveal-sda, dx-reveal, .reveal-sda, .reveal, .REVEAL-, ui-reveal-sda, ui-reveal";
-  if (typeof window !== "undefined" && window.CSS && typeof window.CSS.registerProperty === "function") {
-    [
-      "--b",
-      "--m",
-      "--k",
-      "--u",
-      "--dec",
-      "--start-b",
-      "--target-b",
-      "--start-m",
-      "--target-m",
-      "--start-k",
-      "--target-k",
-      "--start-u",
-      "--target-u",
-      "--start-dec",
-      "--target-dec"
-    ].forEach((name) => {
-      try {
-        window.CSS.registerProperty({
-          name,
-          syntax: "*",
-          inherits: false
-        });
-      } catch (e) {
-      }
-    });
-  }
   var DxCounter = class extends DxMeter {
     static get observedAttributes() {
       return ["prefix", "suffix", "comma", "type", "percent", "value", "duration"];

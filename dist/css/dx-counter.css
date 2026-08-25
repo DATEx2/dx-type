@@ -1,19 +1,4 @@
 /* src/css/dx-counter.css */
-@property --b { syntax: "*"; inherits: false; }
-@property --m { syntax: "*"; inherits: false; }
-@property --k { syntax: "*"; inherits: false; }
-@property --u { syntax: "*"; inherits: false; }
-@property --dec { syntax: "*"; inherits: false; }
-@property --start-b { syntax: "*"; inherits: false; }
-@property --target-b { syntax: "*"; inherits: false; }
-@property --start-m { syntax: "*"; inherits: false; }
-@property --target-m { syntax: "*"; inherits: false; }
-@property --start-k { syntax: "*"; inherits: false; }
-@property --target-k { syntax: "*"; inherits: false; }
-@property --start-u { syntax: "*"; inherits: false; }
-@property --target-u { syntax: "*"; inherits: false; }
-@property --start-dec { syntax: "*"; inherits: false; }
-@property --target-dec { syntax: "*"; inherits: false; }
 dx-counter,
 :host(dx-counter) {
   display: inline-block !important;

@@ -14,25 +14,7 @@ import { DX_ANIM, observeIO } from '../base/dx-scheduler.js';
 const TYPE_PARENT_SEL = 'dx-type-sda, dx-type, .type-sda, .type, .TYPE-, ui-type, ui-type-sda';
 const REVEAL_PARENT_SEL = 'dx-reveal-sda, dx-reveal, .reveal-sda, .reveal, .REVEAL-, ui-reveal-sda, ui-reveal';
 
-// Register GPU CSS @property custom properties in Houdini runtime
-if (typeof window !== 'undefined' && window.CSS && typeof window.CSS.registerProperty === 'function') {
-    [
-        '--b', '--m', '--k', '--u', '--dec',
-        '--start-b', '--target-b',
-        '--start-m', '--target-m',
-        '--start-k', '--target-k',
-        '--start-u', '--target-u',
-        '--start-dec', '--target-dec'
-    ].forEach(name => {
-        try {
-            window.CSS.registerProperty({
-                name,
-                syntax: '*',
-                inherits: false
-            });
-        } catch (e) {}
-    });
-}
+
 
 export class DxCounter extends DxMeter {
     static get observedAttributes() {
