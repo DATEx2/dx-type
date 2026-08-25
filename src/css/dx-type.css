@@ -4,6 +4,43 @@
  * dynamic numbers, typewriter characters, accessibility layers and animations.
  */
 
+/* ─── 0. Universal Library Preflight & Reset ─────────────────────────────── */
+dx-type,
+dx-type-sda,
+dx-reveal,
+dx-reveal-sda,
+dx-number,
+dx-odometer,
+ui-odometer,
+dx-counter,
+:host(dx-type),
+:host(dx-type-sda),
+:host(dx-reveal),
+:host(dx-reveal-sda),
+:host(dx-number),
+:host(dx-odometer),
+:host(dx-counter),
+dx-type *,
+dx-type-sda *,
+dx-reveal *,
+dx-reveal-sda *,
+dx-number *,
+dx-odometer *,
+ui-odometer *,
+dx-counter * {
+    font-family: inherit !important;
+    font-size: inherit !important;
+    font-weight: inherit !important;
+    font-style: inherit !important;
+    line-height: inherit !important;
+    letter-spacing: inherit !important;
+    word-spacing: inherit !important;
+    vertical-align: inherit !important;
+    text-align: inherit !important;
+    text-transform: inherit !important;
+    box-sizing: border-box !important;
+}
+
 /* ─── 1. Core Custom Elements & Nested Structure ─────────────────────────── */
 dx-type,
 dx-type-sda {
@@ -20,19 +57,13 @@ dx-type-sda {
         position: relative !important;
         z-index: 1 !important;
         display: block !important;
-        width: 100% !important;
+        width: inherit !important;
         height: auto !important;
         min-height: fit-content !important;
         visibility: visible !important;
         caret-color: transparent !important;
         user-select: text !important;
         pointer-events: auto !important;
-        font: inherit !important;
-        line-height: inherit !important;
-        letter-spacing: inherit !important;
-        word-spacing: inherit !important;
-        white-space: inherit !important;
-        text-align: inherit !important;
     }
 
     &:not(.dx-typed) > s-t {
@@ -59,15 +90,9 @@ dx-type-sda {
         z-index: 0 !important;
         inset: 0 !important;
         contain: layout style !important;
-        width: 100% !important;
-        height: 100% !important;
+        width: inherit !important;
+        height: inherit !important;
         display: block !important;
-        font: inherit !important;
-        line-height: inherit !important;
-        letter-spacing: inherit !important;
-        word-spacing: inherit !important;
-        white-space: inherit !important;
-        text-align: inherit !important;
         pointer-events: auto !important;
     }
 
@@ -95,22 +120,8 @@ dx-type-sda {
 
     &.dx-typed {
         & > s-t {
-            color: inherit !important;
-            -webkit-text-fill-color: currentColor !important;
             pointer-events: auto !important;
             user-select: text !important;
-            text-shadow: inherit;
-            filter: inherit;
-            -webkit-filter: inherit;
-            box-shadow: inherit;
-
-            & * {
-                color: inherit;
-                -webkit-text-fill-color: currentColor;
-                pointer-events: auto !important;
-                user-select: text !important;
-                text-shadow: inherit;
-            }
         }
 
         & > t {
@@ -173,26 +184,22 @@ dx-odometer, ui-odometer {
     font: inherit !important;
     font-variant-numeric: tabular-nums !important;
     color: inherit !important;
-    height: 1lh !important;
+    height: inherit !important;
 
     & :is(.ui-pfx, .ui-sfx) {
         display: inline-flex !important;
         align-items: center !important;
         vertical-align: baseline !important;
-        line-height: inherit !important;
         white-space: pre !important;
-        height: 100% !important;
+        height: inherit !important;
     }
 
     /* Wrapper for digit columns — reset <b> default bold and lock line-height */
     & b {
-        font-weight: inherit !important;
-        font-style: inherit !important;
         display: inline-flex !important;
         align-items: stretch !important;
         vertical-align: baseline !important;
-        line-height: inherit !important;
-        height: 100% !important;
+        height: inherit !important;
         overflow: hidden !important;
     }
 
@@ -214,8 +221,7 @@ dx-odometer, ui-odometer {
 d {
     position: relative !important;
     display: inline-block !important;
-    height: 100% !important;
-    line-height: inherit !important;
+    height: inherit !important;
     vertical-align: baseline !important;
     visibility: hidden !important;
     user-select: none !important;
@@ -459,27 +465,6 @@ dx-reveal-sda {
     animation: dx-reveal-sda calc(var(--t, 500) * 1ms * var(--A, 1)) cubic-bezier(0.16, 1, 0.3, 1) calc(var(--d, 0) * 1ms * var(--A, 1)) both !important;
 }
 
-/* ─── 0. Reset & Preflight Isolation ────────────────────────────────────── */
-dx-type,
-dx-type-sda,
-dx-reveal,
-dx-reveal-sda,
-dx-number,
-dx-odometer,
-ui-odometer,
-:host(dx-type),
-:host(dx-type-sda),
-:host(dx-reveal),
-:host(dx-reveal-sda),
-:host(dx-number),
-:host(dx-odometer) {
-    line-height: inherit !important;
-    font-family: inherit !important;
-    font-size: inherit !important;
-    font-weight: inherit !important;
-    letter-spacing: inherit !important;
-    box-sizing: border-box !important;
-}
 
 /* ─── 10. Final State & Static Cleanup ───────────────────────────────────── */
 dx-odometer.data-static d::before,

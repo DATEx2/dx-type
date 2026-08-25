@@ -1,0 +1,78 @@
+/* src/css/dx-counter.css */
+@property --b { syntax: "<integer>"; initial-value: 0; inherits: false; }
+@property --m { syntax: "<integer>"; initial-value: 0; inherits: false; }
+@property --k { syntax: "<integer>"; initial-value: 0; inherits: false; }
+@property --u { syntax: "<integer>"; initial-value: 0; inherits: false; }
+@property --dec { syntax: "<integer>"; initial-value: 0; inherits: false; }
+dx-counter,
+:host(dx-counter) {
+  display: inline-block !important;
+  vertical-align: baseline !important;
+  position: relative !important;
+  line-height: inherit !important;
+  font-family: inherit !important;
+  font-size: inherit !important;
+  font-weight: inherit !important;
+  letter-spacing: inherit !important;
+  font-variant-numeric: tabular-nums !important;
+  box-sizing: border-box !important;
+  white-space: nowrap !important;
+  color: inherit !important;
+  -webkit-text-fill-color: currentColor !important;
+  --start-b: 0;
+  --target-b: 0;
+  --start-m: 0;
+  --target-m: 0;
+  --start-k: 0;
+  --target-k: 0;
+  --start-u: 0;
+  --target-u: 0;
+  --start-dec: 0;
+  --target-dec: 0;
+  --b: var(--start-b);
+  --m: var(--start-m);
+  --k: var(--start-k);
+  --u: var(--start-u);
+  --dec: var(--start-dec);
+}
+dx-counter > s-t,
+dx-counter > s-t * {
+  position: relative !important;
+  z-index: 1 !important;
+  display: inline !important;
+  vertical-align: baseline !important;
+  color: inherit !important;
+  -webkit-text-fill-color: currentColor !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+dx-counter.dx-counter-running > s-t {
+  display: none !important;
+}
+dx-counter > .dx-num-wrap {
+  position: relative !important;
+  z-index: 0 !important;
+  display: none !important;
+  align-items: baseline !important;
+  vertical-align: baseline !important;
+  color: inherit !important;
+  -webkit-text-fill-color: currentColor !important;
+}
+dx-counter.dx-counter-running > .dx-num-wrap {
+  display: inline-flex !important;
+}
+dx-counter.data-static > .dx-num-wrap {
+  display: none !important;
+}
+dx-counter .dx-b,
+dx-counter .dx-m,
+dx-counter .dx-k,
+dx-counter .dx-u,
+dx-counter .dx-dec,
+dx-counter .dx-pfx,
+dx-counter .dx-sfx,
+dx-counter .dx-radix {
+  color: inherit !important;
+  -webkit-text-fill-color: currentColor !important;
+}
+/*# sourceMappingURL=dx-counter.css.map */
