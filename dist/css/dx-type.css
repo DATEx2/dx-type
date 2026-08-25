@@ -220,7 +220,7 @@ d::before {
 }
 :is(dx-type-sda.dx-typing, dx-type-sda.dx-typed, dx-type.dx-typing, dx-type.dx-typed, .dx-type-ready) d::before,
 :is(dx-odometer.dx-typing, dx-odometer.dx-typed) d::before {
-  animation: run-odometer calc((var(--odo-dur, 1400ms) - (var(--r, 0) * var(--odo-stag, 60ms))) * var(--A, 1)) cubic-bezier(0.37, 0, 0.63, 1) calc((var(--d, 0) + (var(--I, 0) * (var(--u, 40) + var(--c, 0))) + (var(--u, 40) * 0.35) + (var(--r, 0) * 60)) * var(--A, 1) * 1ms) both !important;
+  animation: run-odometer calc((var(--odo-dur, 1400ms) - (var(--r, 0) * var(--odo-stag, 60ms))) * var(--A, 1)) cubic-bezier(0.37, 0, 0.63, 1) calc((var(--d, 0) + ((var(--w, 0) + var(--i, 0)) * (var(--u, 40) + var(--c, 0))) + (var(--u, 40) * 0.35) + (var(--r, 0) * 60)) * var(--A, 1) * 1ms) both !important;
   animation-play-state: running !important;
 }
 @keyframes run-odometer {
@@ -483,7 +483,7 @@ dx-type c {
 .dx-type-ready dx-type c,
 :is(dx-type.dx-typing, dx-type.dx-typed) c {
   visibility: visible !important;
-  animation: type-in calc(max(30ms, var(--u, 40) * 3.5 * var(--A, 1) * 1ms)) linear calc((var(--d, 0) + (var(--I, 0) * (var(--u, 40) + var(--c, 0)))) * var(--A, 1) * 1ms) both !important;
+  animation: type-in calc(max(60ms, var(--u, 40) * 2.5 * var(--A, 1) * 1ms)) cubic-bezier(0.16, 1, 0.3, 1) calc((var(--d, 0) + ((var(--w, 0) + var(--i, 0)) * (var(--u, 40) + var(--c, 0)))) * var(--A, 1) * 1ms) both !important;
 }
 .dx-type-ready dx-reveal,
 :is(dx-reveal.dx-type-ready, dx-reveal.dx-revealing, dx-reveal.dx-revealed) {
@@ -497,7 +497,7 @@ dx-type-sda c {
   transition: none !important;
 }
 :is(dx-type-sda.dx-typing, dx-type-sda.dx-typed, dx-type-sda[data-static]) c {
-  animation: type-in calc(max(30ms, var(--u, 40) * 3.5 * var(--A, 1) * 1ms)) linear calc((var(--d, 0) + (var(--I, 0) * (var(--u, 40) + var(--c, 0)))) * var(--A, 1) * 1ms) both !important;
+  animation: type-in calc(max(60ms, var(--u, 40) * 2.5 * var(--A, 1) * 1ms)) cubic-bezier(0.16, 1, 0.3, 1) calc((var(--d, 0) + ((var(--w, 0) + var(--i, 0)) * (var(--u, 40) + var(--c, 0)))) * var(--A, 1) * 1ms) both !important;
 }
 :is(dx-reveal-sda.dx-revealing, dx-reveal-sda.dx-revealed, dx-reveal-sda[data-static]) {
   animation: dx-reveal-sda calc(var(--t, 500) * var(--A, 1) * 1ms) cubic-bezier(0.16, 1, 0.3, 1) calc(var(--d, 0) * var(--A, 1) * 1ms) both !important;
