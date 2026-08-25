@@ -30,17 +30,19 @@ dx-counter,
   white-space: nowrap !important;
   color: inherit !important;
   -webkit-text-fill-color: currentColor !important;
+  --d: 0ms;
+  --t: 600ms;
   --b: 0;
   --m: 0;
   --k: 0;
   --u: 0;
   --dec: 0;
   transition:
-    --b calc(var(--t, 500ms) * var(--A, 1)) cubic-bezier(0.16, 1, 0.3, 1) calc(var(--d, 0ms) * var(--A, 1)),
-    --m calc(var(--t, 500ms) * var(--A, 1)) cubic-bezier(0.16, 1, 0.3, 1) calc(var(--d, 0ms) * var(--A, 1)),
-    --k calc(var(--t, 500ms) * var(--A, 1)) cubic-bezier(0.16, 1, 0.3, 1) calc(var(--d, 0ms) * var(--A, 1)),
-    --u calc(var(--t, 500ms) * var(--A, 1)) cubic-bezier(0.16, 1, 0.3, 1) calc(var(--d, 0ms) * var(--A, 1)),
-    --dec calc(var(--t, 500ms) * var(--A, 1)) cubic-bezier(0.16, 1, 0.3, 1) calc(var(--d, 0ms) * var(--A, 1)) !important;
+    --b calc(var(--t, 600ms) * var(--A, 1)) cubic-bezier(0.16, 1, 0.3, 1) calc(var(--d, 0ms) * var(--A, 1)),
+    --m calc(var(--t, 600ms) * var(--A, 1)) cubic-bezier(0.16, 1, 0.3, 1) calc(var(--d, 0ms) * var(--A, 1)),
+    --k calc(var(--t, 600ms) * var(--A, 1)) cubic-bezier(0.16, 1, 0.3, 1) calc(var(--d, 0ms) * var(--A, 1)),
+    --u calc(var(--t, 600ms) * var(--A, 1)) cubic-bezier(0.16, 1, 0.3, 1) calc(var(--d, 0ms) * var(--A, 1)),
+    --dec calc(var(--t, 600ms) * var(--A, 1)) cubic-bezier(0.16, 1, 0.3, 1) calc(var(--d, 0ms) * var(--A, 1)) !important;
 }
 dx-counter:not([data-static]) {
   animation: dx-counter-intro calc(var(--t, 600ms) * var(--A, 1)) cubic-bezier(0.16, 1, 0.3, 1) calc(var(--d, 0ms) * var(--A, 1)) backwards;
@@ -56,7 +58,7 @@ dx-counter:not([data-static]) {
 :is(.showing-action-bar, .show-action-bar) dx-counter.ui-add-to-cart-total:not([data-static]),
 :is(.showing-action-bar, .show-action-bar) :is(.action-bar, .action-bar-wrapper) dx-counter:not([data-static]),
 :is(.action-bar, .action-bar-wrapper):is(.showing-action-bar, .show-action-bar) dx-counter:not([data-static]) {
-  animation: dx-counter-intro calc(var(--t, 600ms) * var(--A, 1)) cubic-bezier(0.16, 1, 0.3, 1) calc(var(--d, 60ms) * var(--A, 1)) backwards !important;
+  animation: dx-counter-intro calc(var(--t, 600ms) * var(--A, 1)) cubic-bezier(0.16, 1, 0.3, 1) calc(var(--d, 0ms) * var(--A, 1)) backwards !important;
 }
 @keyframes dx-counter-intro {
   from {
