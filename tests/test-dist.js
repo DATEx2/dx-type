@@ -33,6 +33,8 @@ export default async function testDist() {
         'dist/server.d.ts',
         'dist/css/dx-type.css',
         'dist/css/dx-type.min.css',
+        'dist/css/dx-counter.css',
+        'dist/css/dx-counter.min.css',
     ];
 
     // 1. Verify all expected build artifacts exist

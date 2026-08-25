@@ -71,7 +71,7 @@ export class DxOdometer extends DxMeter {
 
         e.stopPropagation();
 
-        if (this._digitCount === 0) {
+        if (!this._digitCount) {
             this._digitCount = this.querySelectorAll('d[data-seq]').length;
         }
 
@@ -80,7 +80,7 @@ export class DxOdometer extends DxMeter {
         if (this._digitsDone >= this._digitCount) {
             this._animDone = true;
             if (!this.classList.contains('tw-embed')) {
-                this.classList.add('data-static');
+                this.makeStatic();
             }
 
             // Notify typewriter parent that this embedded odometer is done

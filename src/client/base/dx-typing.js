@@ -34,8 +34,8 @@ export function unpackTemplate(el) {
             const delay = parseFloat(el.style?.getPropertyValue('--d')) || parseFloat(el.getAttribute?.('delay') || el.getAttribute?.('d')) || 0;
             const duration = parseFloat(el.style?.getPropertyValue('--t')) || parseFloat(el.getAttribute?.('duration') || el.getAttribute?.('t')) || 580;
             const hasEmbeds = !!el.querySelector('dx-odometer, ui-odometer, dx-number, ui-number, .tw-embed');
-            const maxDuration = hasEmbeds ? Math.max(duration, 1600) : duration;
-            const safetyDur = delay + maxDuration + 300;
+            const maxDuration = hasEmbeds ? duration + 1600 : duration;
+            const safetyDur = delay + maxDuration + 5000; // 5s true fallback, rely on events
             const startTs = Date.now();
             el._safetyTimer = setTimeout(() => {
                 el._safetyTimer = null;
@@ -117,7 +117,7 @@ export function cleanupTypedDOM(typeEl) {
     }
 
     // 3. Guarantee that all child meters inside <s-t> are marked static and have their static HTML populated
-    const stMeters = typeEl.querySelectorAll('s-t dx-odometer, s-t ui-odometer, s-t dx-number, s-t ui-number');
+    const stMeters = typeEl.querySelectorAll ? typeEl.querySelectorAll('s-t dx-odometer, s-t ui-odometer, s-t dx-number, s-t ui-number') : [];
     for (let i = 0; i < stMeters.length; i++) {
         const m = stMeters[i];
         if (typeof m.makeStatic === 'function') m.makeStatic();

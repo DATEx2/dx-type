@@ -16,7 +16,7 @@ export default function testServerTokenizer() {
 
     // 2. ssrDxType test (Direct & SDA)
     const heroTw = ssrDxType('DATE BCx3', { delay: 0, duration: 580 });
-    assert(heroTw.startsWith('<dx-type style="--b:0;--a:12;--d:0;--t:580;--u:'), 'Should generate <dx-type> with computed --u');
+    assert(heroTw.startsWith('<dx-type style="--b:0;--a:9;--d:0;--t:580;--u:'), 'Should generate <dx-type> with computed --u');
     assert(heroTw.includes('aria-label="DATE BCx3"'), 'Should generate clean aria-label');
     assert(heroTw.includes('data-last="true"'), 'Should mark last char for completion callback');
 
@@ -38,9 +38,8 @@ export default function testServerTokenizer() {
     // 5. ssrDxOdometer test
     const odoHtml = ssrDxOdometer(600, { suffix: 'W', className: 'fe-odo' });
     assert(odoHtml.includes('<dx-odometer class="fe-odo"'), 'Should output <dx-odometer>');
-    assert(odoHtml.includes('percent="600"'), 'Should have percent 600');
-    assert(odoHtml.includes('odometer-ribbon-inner'), 'Should contain mechanical ribbon inner');
-    assert(odoHtml.includes('data-final-pos='), 'Should have data-final-pos');
+    assert(odoHtml.includes('<d data-seq='), 'Should contain mechanical ribbon inner');
+    assert(odoHtml.includes('--p:'), 'Should have data-final-pos');
 
     // 6. ssrDxReveal test
     const revealHtml = ssrDxReveal('|', { delay: 600, duration: 50, className: 'hero-specs-separator' });

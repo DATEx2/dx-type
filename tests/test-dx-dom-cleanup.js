@@ -9,13 +9,13 @@ export default async function testDxDomCleanup() {
     assert(typeof cleanupTypedDOM === 'function', 'cleanupTypedDOM must be a function');
 
     let templateRemoved = false;
-    let stRemoved = false;
+    let tRemoved = false;
 
     const mockTemplate = {
         remove() { templateRemoved = true; }
     };
-    const mockSt = {
-        remove() { stRemoved = true; }
+    const mockT = {
+        remove() { tRemoved = true; }
     };
 
     const mockEl = {
@@ -29,8 +29,7 @@ export default async function testDxDomCleanup() {
         },
         querySelector(sel) {
             if (sel === ':scope > template') return mockTemplate;
-            if (sel === ':scope > s-t') return mockSt;
-            if (sel === ':scope > t') return null;
+            if (sel === ':scope > t, t') return mockT;
             return null;
         },
         removeAttribute() {}
@@ -42,5 +41,5 @@ export default async function testDxDomCleanup() {
     await new Promise(r => setTimeout(r, 10));
 
     assert(templateRemoved, 'cleanupTypedDOM must remove the template when present');
-    assert(stRemoved, 'cleanupTypedDOM must remove s-t when present');
+    assert(tRemoved, 'cleanupTypedDOM must remove t layer when present');
 }

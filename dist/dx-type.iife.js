@@ -309,8 +309,8 @@ var DxType = (() => {
         const delay = parseFloat(el2.style?.getPropertyValue("--d")) || parseFloat(el2.getAttribute?.("delay") || el2.getAttribute?.("d")) || 0;
         const duration = parseFloat(el2.style?.getPropertyValue("--t")) || parseFloat(el2.getAttribute?.("duration") || el2.getAttribute?.("t")) || 580;
         const hasEmbeds = !!el2.querySelector("dx-odometer, ui-odometer, dx-number, ui-number, .tw-embed");
-        const maxDuration = hasEmbeds ? Math.max(duration, 1600) : duration;
-        const safetyDur = delay + maxDuration + 300;
+        const maxDuration = hasEmbeds ? duration + 1600 : duration;
+        const safetyDur = delay + maxDuration + 5e3;
         const startTs = Date.now();
         el2._safetyTimer = setTimeout(() => {
           el2._safetyTimer = null;
@@ -367,7 +367,7 @@ var DxType = (() => {
     if (tLayer) {
       tLayer.remove();
     }
-    const stMeters = typeEl.querySelectorAll("s-t dx-odometer, s-t ui-odometer, s-t dx-number, s-t ui-number");
+    const stMeters = typeEl.querySelectorAll ? typeEl.querySelectorAll("s-t dx-odometer, s-t ui-odometer, s-t dx-number, s-t ui-number") : [];
     for (let i = 0; i < stMeters.length; i++) {
       const m = stMeters[i];
       if (typeof m.makeStatic === "function") m.makeStatic();
@@ -1297,14 +1297,14 @@ var DxType = (() => {
       const target = e.target;
       if (!target || target.tagName !== "D") return;
       e.stopPropagation();
-      if (this._digitCount === 0) {
+      if (!this._digitCount) {
         this._digitCount = this.querySelectorAll("d[data-seq]").length;
       }
       this._digitsDone++;
       if (this._digitsDone >= this._digitCount) {
         this._animDone = true;
         if (!this.classList.contains("tw-embed")) {
-          this.classList.add("data-static");
+          this.makeStatic();
         }
         if (this.classList.contains("tw-embed") && typeof rootWin2?.__twEnd === "function") {
           rootWin2.__twEnd(this);

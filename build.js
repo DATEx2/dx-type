@@ -111,14 +111,20 @@ const jsConfigs = [
 const cssConfigs = [
     // CSS unminified copy/process
     {
-        entryPoints: { 'dx-type': 'src/css/dx-type.css' },
+        entryPoints: {
+            'dx-type': 'src/css/dx-type.css',
+            'dx-counter': 'src/css/dx-counter.css',
+        },
         outdir: 'dist/css',
         bundle: true,
         sourcemap: true,
     },
     // CSS minified
     {
-        entryPoints: { 'dx-type.min': 'src/css/dx-type.css' },
+        entryPoints: {
+            'dx-type.min': 'src/css/dx-type.css',
+            'dx-counter.min': 'src/css/dx-counter.css',
+        },
         outdir: 'dist/css',
         bundle: true,
         minify: true,
@@ -164,6 +170,8 @@ async function buildAll() {
         'dist/dx-type.iife.min.js',
         'dist/css/dx-type.css',
         'dist/css/dx-type.min.css',
+        'dist/css/dx-counter.css',
+        'dist/css/dx-counter.min.css',
     ];
 
     for (const file of files) {
