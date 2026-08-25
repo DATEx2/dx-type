@@ -248,25 +248,6 @@ function unpackTemplate(el2) {
     const t = el2.querySelector(":scope > t");
     if (t) t.setAttribute("aria-hidden", "true");
     el2.classList.add(DX_ANIM.TYPING);
-    if (!el2._safetyTimer && typeof setTimeout === "function") {
-      const delay = parseFloat(el2.style?.getPropertyValue("--d")) || parseFloat(el2.getAttribute?.("delay") || el2.getAttribute?.("d")) || 0;
-      const duration = parseFloat(el2.style?.getPropertyValue("--t")) || parseFloat(el2.getAttribute?.("duration") || el2.getAttribute?.("t")) || 580;
-      const hasEmbeds = !!el2.querySelector("dx-odometer, ui-odometer, dx-number, ui-number, .tw-embed");
-      const maxDuration = hasEmbeds ? duration + 1600 : duration;
-      const safetyDur = delay + maxDuration + 5e3;
-      const startTs = Date.now();
-      el2._safetyTimer = setTimeout(() => {
-        el2._safetyTimer = null;
-        if (Date.now() - startTs < safetyDur - 50) return;
-        if (!el2.classList.contains(DX_ANIM.TYPED)) {
-          if (typeof el2.markTyped === "function") {
-            el2.markTyped();
-          } else {
-            DxTyping.prototype.markTyped.call(el2);
-          }
-        }
-      }, safetyDur);
-    }
     return true;
   }
   return false;
@@ -298,10 +279,6 @@ function ensureElementsUpToTarget(target) {
 function cleanupTypedDOM(typeEl) {
   if (!typeEl || typeEl._cleanedUp) return;
   typeEl._cleanedUp = true;
-  if (typeEl._safetyTimer) {
-    clearTimeout(typeEl._safetyTimer);
-    typeEl._safetyTimer = null;
-  }
   const doc = typeEl.ownerDocument || (typeof document !== "undefined" ? document : null);
   if (!doc) return;
   const directTpl = typeEl.querySelector(":scope > template");
@@ -386,10 +363,6 @@ var DxTyping = class extends DxBase {
   }
   markTyped() {
     if (this.querySelector(":scope > template")) return;
-    if (this._safetyTimer) {
-      clearTimeout(this._safetyTimer);
-      this._safetyTimer = null;
-    }
     if (this.cls) {
       this.cls({ [DX_ANIM.TYPING]: 0, [DX_ANIM.TYPED]: 1 });
     } else {

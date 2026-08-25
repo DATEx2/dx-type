@@ -151,15 +151,17 @@ dx-type-ready {
 
 dx-reveal,
 dx-reveal-sda {
-    display: block;
+    display: block !important;
     contain: layout style !important;
-    width: 100%;
+    width: 100% !important;
+    opacity: 0.001;
+    transform: translateY(15px);
 
     &.inline,
     :is(span, p, a, button, h1, h2, h3, h4, h5, h6) > & {
-        display: inline-block;
-        vertical-align: baseline;
-        width: auto;
+        display: inline-block !important;
+        vertical-align: baseline !important;
+        width: auto !important;
     }
 
     &.dx-revealed {
@@ -427,14 +429,6 @@ dx-type c {
     animation: type-in calc(max(60ms, calc(var(--u, 40) * 2.5 * 1ms)) * var(--A, 1)) cubic-bezier(0.16, 1, 0.3, 1) calc(((var(--d, 0) * 1ms) + (var(--I, 0) * (var(--u, 40) * 1ms + var(--c, 0ms)))) * var(--A, 1)) both !important;
 }
 
-dx-reveal {
-    opacity: 0;
-    transform: translate3d(0, 15px, 0);
-    visibility: hidden;
-    backface-visibility: hidden;
-    -webkit-backface-visibility: hidden;
-}
-
 .dx-type-ready dx-reveal,
 :is(dx-reveal.dx-type-ready, dx-reveal.dx-revealing, dx-reveal.dx-revealed) {
     visibility: visible !important;
@@ -451,11 +445,6 @@ dx-type-sda c {
 
 :is(dx-type-sda.dx-typing, dx-type-sda.dx-typed, dx-type-sda[data-static]) c {
     animation: type-in calc(max(60ms, calc(var(--u, 40) * 2.5 * 1ms)) * var(--A, 1)) cubic-bezier(0.16, 1, 0.3, 1) calc(((var(--d, 0) * 1ms) + (var(--I, 0) * (var(--u, 40) * 1ms + var(--c, 0ms)))) * var(--A, 1)) both !important;
-}
-
-dx-reveal-sda {
-    opacity: 0.001;
-    transform: translateY(15px);
 }
 
 :is(dx-reveal-sda.dx-revealing, dx-reveal-sda.dx-revealed, dx-reveal-sda[data-static]) {

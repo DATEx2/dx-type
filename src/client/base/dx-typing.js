@@ -28,29 +28,6 @@ export function unpackTemplate(el) {
         const t = el.querySelector(':scope > t');
         if (t) t.setAttribute('aria-hidden', 'true');
         el.classList.add(DX_ANIM.TYPING);
-
-        // Deterministic Safety Fallback: guarantee cleanup if animationend is dropped (e.g. fast scroll)
-        if (!el._safetyTimer && typeof setTimeout === 'function') {
-            const delay = parseFloat(el.style?.getPropertyValue('--d')) || parseFloat(el.getAttribute?.('delay') || el.getAttribute?.('d')) || 0;
-            const duration = parseFloat(el.style?.getPropertyValue('--t')) || parseFloat(el.getAttribute?.('duration') || el.getAttribute?.('t')) || 580;
-            const hasEmbeds = !!el.querySelector('dx-odometer, ui-odometer, dx-number, ui-number, .tw-embed');
-            const maxDuration = hasEmbeds ? duration + 1600 : duration;
-            const safetyDur = delay + maxDuration + 5000; // 5s true fallback, rely on events
-            const startTs = Date.now();
-            el._safetyTimer = setTimeout(() => {
-                el._safetyTimer = null;
-                // Guard against synchronous test mock timers (e.g. win.setTimeout = fn => fn())
-                if (Date.now() - startTs < safetyDur - 50) return;
-                if (!el.classList.contains(DX_ANIM.TYPED)) {
-                    if (typeof el.markTyped === 'function') {
-                        el.markTyped();
-                    } else {
-                        DxTyping.prototype.markTyped.call(el);
-                    }
-                }
-            }, safetyDur);
-        }
-
         return true;
     }
     return false;
@@ -97,11 +74,6 @@ export function ensureElementsUpToTarget(target) {
 export function cleanupTypedDOM(typeEl) {
     if (!typeEl || typeEl._cleanedUp) return;
     typeEl._cleanedUp = true;
-
-    if (typeEl._safetyTimer) {
-        clearTimeout(typeEl._safetyTimer);
-        typeEl._safetyTimer = null;
-    }
 
     const doc = typeEl.ownerDocument || (typeof document !== 'undefined' ? document : null);
     if (!doc) return;
@@ -215,10 +187,6 @@ export class DxTyping extends DxBase {
 
     markTyped() {
         if (this.querySelector(':scope > template')) return; // NEVER mark typed if template is still in DOM!
-        if (this._safetyTimer) {
-            clearTimeout(this._safetyTimer);
-            this._safetyTimer = null;
-        }
         if (this.cls) {
             this.cls({ [DX_ANIM.TYPING]: 0, [DX_ANIM.TYPED]: 1 });
         } else {
