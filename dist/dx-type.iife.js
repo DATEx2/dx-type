@@ -1316,21 +1316,21 @@ var DxType = (() => {
   var REVEAL_PARENT_SEL2 = "dx-reveal-sda, dx-reveal, .reveal-sda, .reveal, .REVEAL-, ui-reveal-sda, ui-reveal";
   if (typeof window !== "undefined" && window.CSS && typeof window.CSS.registerProperty === "function") {
     [
-      "--cnt-b",
-      "--cnt-m",
-      "--cnt-k",
-      "--cnt-u",
-      "--cnt-dec",
-      "--cnt-start-b",
-      "--cnt-target-b",
-      "--cnt-start-m",
-      "--cnt-target-m",
-      "--cnt-start-k",
-      "--cnt-target-k",
-      "--cnt-start-u",
-      "--cnt-target-u",
-      "--cnt-start-dec",
-      "--cnt-target-dec"
+      "--dxc-b",
+      "--dxc-m",
+      "--dxc-k",
+      "--dxc-u",
+      "--dxc-dec",
+      "--dxc-from-b",
+      "--dxc-to-b",
+      "--dxc-from-m",
+      "--dxc-to-m",
+      "--dxc-from-k",
+      "--dxc-to-k",
+      "--dxc-from-u",
+      "--dxc-to-u",
+      "--dxc-from-dec",
+      "--dxc-to-dec"
     ].forEach((name) => {
       try {
         window.CSS.registerProperty({
@@ -1483,27 +1483,27 @@ var DxType = (() => {
           this.style.setProperty(p, sVal);
         }
       };
-      setProp("--cnt-start-b", sParts.b);
-      setProp("--cnt-target-b", tParts.b);
-      setProp("--cnt-start-m", sParts.m);
-      setProp("--cnt-target-m", tParts.m);
-      setProp("--cnt-start-k", sParts.k);
-      setProp("--cnt-target-k", tParts.k);
-      setProp("--cnt-start-u", sParts.u);
-      setProp("--cnt-target-u", tParts.u);
-      setProp("--cnt-start-dec", sParts.dec);
-      setProp("--cnt-target-dec", tParts.dec);
-      setProp("--cnt-b", tParts.b);
-      setProp("--cnt-m", tParts.m);
-      setProp("--cnt-k", tParts.k);
-      setProp("--cnt-u", tParts.u);
-      setProp("--cnt-dec", tParts.dec);
-      setProp("--cnt-t", `${dur}ms`);
-      setProp("--cnt-delay-k", `${delayK}ms`);
-      setProp("--cnt-delay-m", `${delayM}ms`);
-      setProp("--cnt-delay-b", `${delayB}ms`);
-      if (delayKHide > 0) setProp("--cnt-delay-k-hide", `${delayKHide}ms`);
-      if (delayMHide > 0) setProp("--cnt-delay-m-hide", `${delayMHide}ms`);
+      setProp("--dxc-from-b", sParts.b);
+      setProp("--dxc-to-b", tParts.b);
+      setProp("--dxc-from-m", sParts.m);
+      setProp("--dxc-to-m", tParts.m);
+      setProp("--dxc-from-k", sParts.k);
+      setProp("--dxc-to-k", tParts.k);
+      setProp("--dxc-from-u", sParts.u);
+      setProp("--dxc-to-u", tParts.u);
+      setProp("--dxc-from-dec", sParts.dec);
+      setProp("--dxc-to-dec", tParts.dec);
+      setProp("--dxc-b", tParts.b);
+      setProp("--dxc-m", tParts.m);
+      setProp("--dxc-k", tParts.k);
+      setProp("--dxc-u", tParts.u);
+      setProp("--dxc-dec", tParts.dec);
+      setProp("--dxc-duration", `${dur}ms`);
+      setProp("--dxc-delay-k", `${delayK}ms`);
+      setProp("--dxc-delay-m", `${delayM}ms`);
+      setProp("--dxc-delay-b", `${delayB}ms`);
+      if (delayKHide > 0) setProp("--dxc-delay-k-hide", `${delayKHide}ms`);
+      if (delayMHide > 0) setProp("--dxc-delay-m-hide", `${delayMHide}ms`);
       const wrap = this.querySelector(".dx-num");
       if (wrap) {
         const elB = wrap.querySelector(".dx-b");
@@ -1586,23 +1586,23 @@ var DxType = (() => {
       }
       const c = this._decompose(currentVal);
       if (c.b !== this._lastB) {
-        this.style.setProperty("--cnt-b", String(c.b));
+        this.style.setProperty("--dxc-b", String(c.b));
         this._lastB = c.b;
       }
       if (c.m !== this._lastM) {
-        this.style.setProperty("--cnt-m", String(c.m));
+        this.style.setProperty("--dxc-m", String(c.m));
         this._lastM = c.m;
       }
       if (c.k !== this._lastK) {
-        this.style.setProperty("--cnt-k", String(c.k));
+        this.style.setProperty("--dxc-k", String(c.k));
         this._lastK = c.k;
       }
       if (c.u !== this._lastU) {
-        this.style.setProperty("--cnt-u", String(c.u));
+        this.style.setProperty("--dxc-u", String(c.u));
         this._lastU = c.u;
       }
       if (c.dec !== this._lastDec) {
-        this.style.setProperty("--cnt-dec", String(c.dec));
+        this.style.setProperty("--dxc-dec", String(c.dec));
         this._lastDec = c.dec;
       }
       const hasB = currentVal >= 1e9;
