@@ -29,6 +29,7 @@ dx-reveal,
 dx-reveal-sda,
 :host(dx-reveal),
 :host(dx-reveal-sda) {
+  contain: layout style !important;
   box-sizing: border-box !important;
 }
 dx-type,
