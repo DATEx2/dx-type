@@ -379,8 +379,8 @@ export class DxCounter extends DxMeter {
 
             if (this._value !== targetVal) {
                 const isActionBar = this.classList && this.classList.contains('ui-add-to-cart-total');
-                const dur = this.hasAttribute('duration') ? parseFloat(this.getAttribute('duration')) : (isActionBar ? 1000 : this.getDuration());
-                const d = parseFloat(this.getAttribute('delay')) || parseFloat(this.style.getPropertyValue('--d')) || parseFloat(this.closest('[style*="--d"]')?.style.getPropertyValue('--d')) || (isActionBar ? 400 : 0);
+                const dur = this.hasAttribute('duration') ? parseFloat(this.getAttribute('duration')) : (isActionBar ? 600 : this.getDuration());
+                const d = parseFloat(this.getAttribute('delay')) || parseFloat(this.style.getPropertyValue('--d')) || parseFloat(this.closest('[style*="--d"]')?.style.getPropertyValue('--d')) || (isActionBar ? 60 : 0);
 
                 this.style.setProperty('--t', `${dur}ms`);
                 if (d > 0) {
