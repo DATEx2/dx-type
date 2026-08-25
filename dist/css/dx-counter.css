@@ -1,19 +1,19 @@
 /* src/css/dx-counter.css */
-@property --b { syntax: "<integer>"; initial-value: 0; inherits: true; }
-@property --m { syntax: "<integer>"; initial-value: 0; inherits: true; }
-@property --k { syntax: "<integer>"; initial-value: 0; inherits: true; }
-@property --u { syntax: "<integer>"; initial-value: 0; inherits: true; }
-@property --dec { syntax: "<integer>"; initial-value: 0; inherits: true; }
-@property --start-b { syntax: "<integer>"; initial-value: 0; inherits: true; }
-@property --target-b { syntax: "<integer>"; initial-value: 0; inherits: true; }
-@property --start-m { syntax: "<integer>"; initial-value: 0; inherits: true; }
-@property --target-m { syntax: "<integer>"; initial-value: 0; inherits: true; }
-@property --start-k { syntax: "<integer>"; initial-value: 0; inherits: true; }
-@property --target-k { syntax: "<integer>"; initial-value: 0; inherits: true; }
-@property --start-u { syntax: "<integer>"; initial-value: 0; inherits: true; }
-@property --target-u { syntax: "<integer>"; initial-value: 0; inherits: true; }
-@property --start-dec { syntax: "<integer>"; initial-value: 0; inherits: true; }
-@property --target-dec { syntax: "<integer>"; initial-value: 0; inherits: true; }
+@property --b { syntax: "*"; inherits: false; }
+@property --m { syntax: "*"; inherits: false; }
+@property --k { syntax: "*"; inherits: false; }
+@property --u { syntax: "*"; inherits: false; }
+@property --dec { syntax: "*"; inherits: false; }
+@property --start-b { syntax: "*"; inherits: false; }
+@property --target-b { syntax: "*"; inherits: false; }
+@property --start-m { syntax: "*"; inherits: false; }
+@property --target-m { syntax: "*"; inherits: false; }
+@property --start-k { syntax: "*"; inherits: false; }
+@property --target-k { syntax: "*"; inherits: false; }
+@property --start-u { syntax: "*"; inherits: false; }
+@property --target-u { syntax: "*"; inherits: false; }
+@property --start-dec { syntax: "*"; inherits: false; }
+@property --target-dec { syntax: "*"; inherits: false; }
 dx-counter,
 :host(dx-counter) {
   display: inline-block !important;

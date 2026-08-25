@@ -1335,9 +1335,8 @@ var DxType = (() => {
       try {
         window.CSS.registerProperty({
           name,
-          syntax: "<integer>",
-          inherits: true,
-          initialValue: "0"
+          syntax: "*",
+          inherits: false
         });
       } catch (e) {
       }
