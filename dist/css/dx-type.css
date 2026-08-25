@@ -1,4 +1,10 @@
 /* src/css/dx-type.css */
+@property --dxt-u { syntax: "<number>"; initial-value: 40; inherits: true; }
+@property --dxt-w { syntax: "<number>"; initial-value: 0; inherits: true; }
+@property --dxt-i { syntax: "<number>"; initial-value: 0; inherits: true; }
+@property --dxt-d { syntax: "<number>"; initial-value: 0; inherits: true; }
+@property --dxt-c { syntax: "<number>"; initial-value: 0; inherits: true; }
+@property --dxt-A { syntax: "<number>"; initial-value: 1; inherits: true; }
 dx-type,
 dx-type-sda,
 dx-number,
@@ -41,6 +47,10 @@ dx-type-sda {
   min-height: fit-content !important;
   text-align: inherit !important;
   font-kerning: none !important;
+  --dxt-u: var(--u, 40);
+  --dxt-d: var(--d, 0);
+  --dxt-c: var(--c, 0);
+  --dxt-A: var(--A, 1);
   & > s-t {
     position: relative !important;
     z-index: 1 !important;
@@ -220,7 +230,7 @@ d::before {
 }
 :is(dx-type-sda.dx-typing, dx-type-sda.dx-typed, dx-type.dx-typing, dx-type.dx-typed, .dx-type-ready) d::before,
 :is(dx-odometer.dx-typing, dx-odometer.dx-typed) d::before {
-  animation: run-odometer calc((var(--odo-dur, 1400ms) - (var(--r, 0) * var(--odo-stag, 60ms))) * var(--A, 1)) cubic-bezier(0.37, 0, 0.63, 1) calc((var(--d, 0) + var(--w, 0) * var(--u, 40) + var(--i, 0) * var(--u, 40) + var(--c, 0) + var(--u, 40) * 0.35 + var(--r, 0) * 60) * var(--A, 1) * 1ms) both !important;
+  animation: run-odometer calc((var(--odo-dur, 1400ms) - (var(--r, 0) * var(--odo-stag, 60ms))) * var(--A, 1)) cubic-bezier(0.37, 0, 0.63, 1) calc((var(--dxt-d, 0) + var(--dxt-w, 0) * var(--dxt-u, 40) + var(--dxt-i, 0) * var(--dxt-u, 40) + var(--dxt-c, 0) + var(--dxt-u, 40) * 0.35 + var(--r, 0) * 60) * var(--dxt-A, 1) * 1ms) both !important;
   animation-play-state: running !important;
 }
 @keyframes run-odometer {
@@ -274,7 +284,7 @@ dx-type-sda c {
   line-height: inherit !important;
   letter-spacing: inherit !important;
   word-spacing: inherit !important;
-  --I: calc(var(--w, 0) + var(--i, 0));
+  --dxt-i: var(--i, 0);
   &.c-ui-num {
     display: inline !important;
     vertical-align: baseline !important;
@@ -288,156 +298,207 @@ dx-type-sda w {
   line-height: inherit !important;
   letter-spacing: inherit !important;
   word-spacing: inherit !important;
+  --dxt-w: var(--w, 0);
 }
 c:nth-child(1) {
   --i: 0;
+  --dxt-i: 0;
 }
 c:nth-child(2) {
   --i: 1;
+  --dxt-i: 1;
 }
 c:nth-child(3) {
   --i: 2;
+  --dxt-i: 2;
 }
 c:nth-child(4) {
   --i: 3;
+  --dxt-i: 3;
 }
 c:nth-child(5) {
   --i: 4;
+  --dxt-i: 4;
 }
 c:nth-child(6) {
   --i: 5;
+  --dxt-i: 5;
 }
 c:nth-child(7) {
   --i: 6;
+  --dxt-i: 6;
 }
 c:nth-child(8) {
   --i: 7;
+  --dxt-i: 7;
 }
 c:nth-child(9) {
   --i: 8;
+  --dxt-i: 8;
 }
 c:nth-child(10) {
   --i: 9;
+  --dxt-i: 9;
 }
 c:nth-child(11) {
   --i: 10;
+  --dxt-i: 10;
 }
 c:nth-child(12) {
   --i: 11;
+  --dxt-i: 11;
 }
 c:nth-child(13) {
   --i: 12;
+  --dxt-i: 12;
 }
 c:nth-child(14) {
   --i: 13;
+  --dxt-i: 13;
 }
 c:nth-child(15) {
   --i: 14;
+  --dxt-i: 14;
 }
 c:nth-child(16) {
   --i: 15;
+  --dxt-i: 15;
 }
 c:nth-child(17) {
   --i: 16;
+  --dxt-i: 16;
 }
 c:nth-child(18) {
   --i: 17;
+  --dxt-i: 17;
 }
 c:nth-child(19) {
   --i: 18;
+  --dxt-i: 18;
 }
 c:nth-child(20) {
   --i: 19;
+  --dxt-i: 19;
 }
 c:nth-child(21) {
   --i: 20;
+  --dxt-i: 20;
 }
 c:nth-child(22) {
   --i: 21;
+  --dxt-i: 21;
 }
 c:nth-child(23) {
   --i: 22;
+  --dxt-i: 22;
 }
 c:nth-child(24) {
   --i: 23;
+  --dxt-i: 23;
 }
 c:nth-child(25) {
   --i: 24;
+  --dxt-i: 24;
 }
 c:nth-child(26) {
   --i: 25;
+  --dxt-i: 25;
 }
 c:nth-child(27) {
   --i: 26;
+  --dxt-i: 26;
 }
 c:nth-child(28) {
   --i: 27;
+  --dxt-i: 27;
 }
 c:nth-child(29) {
   --i: 28;
+  --dxt-i: 28;
 }
 c:nth-child(30) {
   --i: 29;
+  --dxt-i: 29;
 }
 c:nth-child(31) {
   --i: 30;
+  --dxt-i: 30;
 }
 c:nth-child(32) {
   --i: 31;
+  --dxt-i: 31;
 }
 c:nth-child(33) {
   --i: 32;
+  --dxt-i: 32;
 }
 c:nth-child(34) {
   --i: 33;
+  --dxt-i: 33;
 }
 c:nth-child(35) {
   --i: 34;
+  --dxt-i: 34;
 }
 c:nth-child(36) {
   --i: 35;
+  --dxt-i: 35;
 }
 c:nth-child(37) {
   --i: 36;
+  --dxt-i: 36;
 }
 c:nth-child(38) {
   --i: 37;
+  --dxt-i: 37;
 }
 c:nth-child(39) {
   --i: 38;
+  --dxt-i: 38;
 }
 c:nth-child(40) {
   --i: 39;
+  --dxt-i: 39;
 }
 c:nth-child(41) {
   --i: 40;
+  --dxt-i: 40;
 }
 c:nth-child(42) {
   --i: 41;
+  --dxt-i: 41;
 }
 c:nth-child(43) {
   --i: 42;
+  --dxt-i: 42;
 }
 c:nth-child(44) {
   --i: 43;
+  --dxt-i: 43;
 }
 c:nth-child(45) {
   --i: 44;
+  --dxt-i: 44;
 }
 c:nth-child(46) {
   --i: 45;
+  --dxt-i: 45;
 }
 c:nth-child(47) {
   --i: 46;
+  --dxt-i: 46;
 }
 c:nth-child(48) {
   --i: 47;
+  --dxt-i: 47;
 }
 c:nth-child(49) {
   --i: 48;
+  --dxt-i: 48;
 }
 c:nth-child(50) {
   --i: 49;
+  --dxt-i: 49;
 }
 @keyframes type-in {
   0% {
@@ -483,7 +544,7 @@ dx-type c {
 .dx-type-ready dx-type c,
 :is(dx-type.dx-typing, dx-type.dx-typed) c {
   visibility: visible !important;
-  animation: type-in calc(max(60ms, var(--u, 40) * 2.5 * var(--A, 1) * 1ms)) cubic-bezier(0.16, 1, 0.3, 1) calc((var(--d, 0) + var(--w, 0) * var(--u, 40) + var(--i, 0) * var(--u, 40) + var(--c, 0)) * var(--A, 1) * 1ms) both !important;
+  animation: type-in calc(max(60ms, var(--dxt-u, 40) * 2.5 * var(--dxt-A, 1) * 1ms)) cubic-bezier(0.16, 1, 0.3, 1) calc((var(--dxt-d, 0) + var(--dxt-w, 0) * var(--dxt-u, 40) + var(--dxt-i, 0) * var(--dxt-u, 40) + var(--dxt-c, 0)) * var(--dxt-A, 1) * 1ms) both !important;
 }
 .dx-type-ready dx-reveal,
 :is(dx-reveal.dx-type-ready, dx-reveal.dx-revealing, dx-reveal.dx-revealed) {
@@ -497,7 +558,7 @@ dx-type-sda c {
   transition: none !important;
 }
 :is(dx-type-sda.dx-typing, dx-type-sda.dx-typed, dx-type-sda[data-static]) c {
-  animation: type-in calc(max(60ms, var(--u, 40) * 2.5 * var(--A, 1) * 1ms)) cubic-bezier(0.16, 1, 0.3, 1) calc((var(--d, 0) + var(--w, 0) * var(--u, 40) + var(--i, 0) * var(--u, 40) + var(--c, 0)) * var(--A, 1) * 1ms) both !important;
+  animation: type-in calc(max(60ms, var(--dxt-u, 40) * 2.5 * var(--dxt-A, 1) * 1ms)) cubic-bezier(0.16, 1, 0.3, 1) calc((var(--dxt-d, 0) + var(--dxt-w, 0) * var(--dxt-u, 40) + var(--dxt-i, 0) * var(--dxt-u, 40) + var(--dxt-c, 0)) * var(--dxt-A, 1) * 1ms) both !important;
 }
 :is(dx-reveal-sda.dx-revealing, dx-reveal-sda.dx-revealed, dx-reveal-sda[data-static]) {
   animation: dx-reveal-sda calc(var(--t, 500) * var(--A, 1) * 1ms) cubic-bezier(0.16, 1, 0.3, 1) calc(var(--d, 0) * var(--A, 1) * 1ms) both !important;
