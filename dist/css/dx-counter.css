@@ -37,14 +37,14 @@ dx-counter,
   --dxc-u: 0;
   --dxc-dec: 0;
   transition:
-    --dxc-b calc(var(--dxc-duration, 500ms) * var(--A, 1)) cubic-bezier(0.16, 1, 0.3, 1) calc(var(--dxc-delay, 0ms) * var(--A, 1)),
-    --dxc-m calc(var(--dxc-duration, 500ms) * var(--A, 1)) cubic-bezier(0.16, 1, 0.3, 1) calc(var(--dxc-delay, 0ms) * var(--A, 1)),
-    --dxc-k calc(var(--dxc-duration, 500ms) * var(--A, 1)) cubic-bezier(0.16, 1, 0.3, 1) calc(var(--dxc-delay, 0ms) * var(--A, 1)),
-    --dxc-u calc(var(--dxc-duration, 500ms) * var(--A, 1)) cubic-bezier(0.16, 1, 0.3, 1) calc(var(--dxc-delay, 0ms) * var(--A, 1)),
-    --dxc-dec calc(var(--dxc-duration, 500ms) * var(--A, 1)) cubic-bezier(0.16, 1, 0.3, 1) calc(var(--dxc-delay, 0ms) * var(--A, 1)) !important;
+    --dxc-b calc(var(--dxc-duration, 500ms) * var(--A, 1)) cubic-bezier(0, 0, 0.2, 1) calc(var(--dxc-delay, 0ms) * var(--A, 1)),
+    --dxc-m calc(var(--dxc-duration, 500ms) * var(--A, 1)) cubic-bezier(0, 0, 0.2, 1) calc(var(--dxc-delay, 0ms) * var(--A, 1)),
+    --dxc-k calc(var(--dxc-duration, 500ms) * var(--A, 1)) cubic-bezier(0, 0, 0.2, 1) calc(var(--dxc-delay, 0ms) * var(--A, 1)),
+    --dxc-u calc(var(--dxc-duration, 500ms) * var(--A, 1)) cubic-bezier(0, 0, 0.2, 1) calc(var(--dxc-delay, 0ms) * var(--A, 1)),
+    --dxc-dec calc(var(--dxc-duration, 500ms) * var(--A, 1)) cubic-bezier(0, 0, 0.2, 1) calc(var(--dxc-delay, 0ms) * var(--A, 1)) !important;
 }
 dx-counter:not([data-static]) {
-  animation: dx-counter-intro calc(var(--dxc-duration, 600ms) * var(--A, 1)) cubic-bezier(0.16, 1, 0.3, 1) calc(var(--dxc-delay, 0ms) * var(--A, 1)) backwards;
+  animation: dx-counter-intro calc(var(--dxc-duration, 600ms) * var(--A, 1)) cubic-bezier(0, 0, 0.2, 1) calc(var(--dxc-delay, 0ms) * var(--A, 1)) backwards;
 }
 :is(.action-bar, .action-bar-wrapper) dx-counter:not([data-static]) {
   animation: none;
@@ -57,7 +57,7 @@ dx-counter:not([data-static]) {
 :is(.showing-action-bar, .show-action-bar) dx-counter.ui-add-to-cart-total:not([data-static]),
 :is(.showing-action-bar, .show-action-bar) :is(.action-bar, .action-bar-wrapper) dx-counter:not([data-static]),
 :is(.action-bar, .action-bar-wrapper):is(.showing-action-bar, .show-action-bar) dx-counter:not([data-static]) {
-  animation: dx-counter-intro calc(var(--dxc-duration, 1000ms) * var(--A, 1)) cubic-bezier(0.16, 1, 0.3, 1) calc(var(--dxc-delay, 150ms) * var(--A, 1)) backwards !important;
+  animation: dx-counter-intro calc(var(--dxc-duration, 1000ms) * var(--A, 1)) cubic-bezier(0, 0, 0.2, 1) calc(var(--dxc-delay, 150ms) * var(--A, 1)) backwards !important;
 }
 @keyframes dx-counter-intro {
   from {

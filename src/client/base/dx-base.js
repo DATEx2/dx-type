@@ -16,9 +16,6 @@ import { DX_ANIM } from './dx-scheduler.js';
 export class DxBase extends BaseHTMLElement {
     constructor() {
         super();
-        if (typeof document !== 'undefined' && document.body?.classList?.contains('dx-type-record')) {
-            if (this.innerHTML) this._pristineHTML = this.innerHTML;
-        }
     }
 
     /**

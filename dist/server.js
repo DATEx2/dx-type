@@ -123,26 +123,7 @@ function generateRibbonHtml(numericValue, type = "int", comma = ",", prefix = ""
   return `${pfxHtml}<b>${digitsHtml}</b>${sfxHtml}`;
 }
 function ssrDxNumber(numericValue, formattedText, cls = "", type = "number") {
-  if (!numericValue && numericValue !== 0) return "";
-  const m = /(.*?-?)(\d(?:[\d\s]*\d)?)([,.]?)(\d*)(.*)/.exec(formattedText || String(numericValue));
-  const number = parseInt((m?.[2] || "0").replace(/\s/g, ""), 10);
-  const decimal = parseInt((m?.[3] && m?.[4] ? m[4] : "0").padEnd(2, "0").substring(0, 2), 10);
-  const comma = m?.[3] || "";
-  const rawSuffix = m?.[5] || "";
-  const suffix = rawSuffix === " \u20AC" ? " \u20AC" : rawSuffix.trim();
-  const percent = number + decimal / 100;
-  let computedType = type || "number";
-  if (!comma && (computedType === "number" || computedType === "int")) {
-    computedType = "int";
-  }
-  if (computedType === "number" || computedType === "int" || computedType.startsWith("number-") || computedType.startsWith("int-")) {
-    const baseType = computedType.split("-")[0];
-    computedType = baseType + (number >= 1e6 ? "-millions" : number >= 1e3 ? "-thousands" : "");
-  }
-  const prefixText = (m?.[1] || "").trim();
-  const cleanText = number + (comma ? comma + (m?.[4] || "00") : "");
-  const classAttr = cls ? ` class="${cls}"` : "";
-  return `<dx-number${classAttr} type="${computedType}" percent="${percent}" prefix="${prefixText || ""}" suffix="${suffix || ""}" comma="${comma}">${cleanText}</dx-number>`;
+  return ssrDxCounter(numericValue, formattedText, cls, type);
 }
 function ssrDxOdometer(numericValue, options = {}) {
   const {

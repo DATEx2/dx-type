@@ -31,7 +31,7 @@ export default function testServerTokenizer() {
 
     // 4. ssrDxNumber test
     const numHtml = ssrDxNumber(159.99, '159,99 €', 'ui-price', 'number');
-    assert(numHtml.includes('<dx-number class="ui-price"'), 'Should output <dx-number>');
+    assert(numHtml.includes('<dx-counter class="ui-price"'), 'Should output <dx-counter>');
     assert(numHtml.includes('percent="159.99"'), 'Should have percent 159.99');
     assert(numHtml.includes('suffix=" €"'), 'Should have suffix');
 

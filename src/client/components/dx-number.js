@@ -91,12 +91,12 @@ export class DxNumber extends DxMeter {
 
     isReadyToAnimate() {
         if (this._inViewport && !this._parentReady) {
-            const parentC = this.closest('c');
-            const parentReveal = this.closest(REVEAL_PARENT_SEL);
+            const parentC = typeof this.closest === 'function' ? this.closest('c') : null;
+            const parentReveal = typeof this.closest === 'function' ? this.closest(REVEAL_PARENT_SEL) : null;
             if (!parentC && !parentReveal) {
                 this._parentReady = true;
             } else if (parentReveal) {
-                if (parentReveal.classList.contains(DX_ANIM.REVEALED) || parentReveal.classList.contains(DX_ANIM.REVEALING) || parentReveal.classList.contains('revealed') || parentReveal.classList.contains('revealing') || parentReveal.hasAttribute('data-static')) {
+                if (parentReveal.classList && (parentReveal.classList.contains(DX_ANIM.REVEALED) || parentReveal.classList.contains(DX_ANIM.REVEALING) || parentReveal.classList.contains('revealed') || parentReveal.classList.contains('revealing') || (parentReveal.hasAttribute && parentReveal.hasAttribute('data-static')))) {
                     this._parentReady = true;
                 }
             }
@@ -105,11 +105,11 @@ export class DxNumber extends DxMeter {
     }
 
     getDuration() {
-        if (this.hasAttribute('duration')) {
+        if (this.hasAttribute && this.hasAttribute('duration')) {
             const parsed = parseFloat(this.getAttribute('duration'));
             if (!isNaN(parsed) && parsed > 0) return parsed;
         }
-        const t = parseFloat(this.style.getPropertyValue('--t')) || parseFloat(this.closest('[style*="--t"]')?.style.getPropertyValue('--t')) || 0;
+        const t = parseFloat(this.style?.getPropertyValue?.('--t') || '') || parseFloat(typeof this.closest === 'function' ? this.closest('[style*="--t"]')?.style?.getPropertyValue?.('--t') : 0) || 0;
         return t > 0 ? t : 600;
     }
 
@@ -131,7 +131,7 @@ export class DxNumber extends DxMeter {
             if (this._value !== targetVal) {
                 this._animationStarted = true;
                 const dur = this.getDuration();
-                const d = parseFloat(this.style.getPropertyValue('--d')) || parseFloat(this.closest('[style*="--d"]')?.style.getPropertyValue('--d')) || 0;
+                const d = parseFloat(this.style?.getPropertyValue?.('--d') || '') || parseFloat(typeof this.closest === 'function' ? this.closest('[style*="--d"]')?.style?.getPropertyValue?.('--d') : 0) || 0;
                 if (d > 0) {
                     setTimeout(() => this.val(targetVal, dur), d);
                 } else {
@@ -152,18 +152,19 @@ export class DxNumber extends DxMeter {
             this._timeoutId = null;
         }
 
-        const isStatic = this.classList.contains('data-static') || this.isStatic || !!this.closest('s-t');
+        const inST = typeof this.closest === 'function' ? !!this.closest('s-t') : false;
+        const isStatic = (this.classList && this.classList.contains('data-static')) || this.isStatic || inST;
         const targetVal = (this._targetValue !== undefined && !isNaN(this._targetValue) && this._targetValue !== 0)
             ? this._targetValue
             : (parseFloat(this.getAttribute('percent')) || this.getNumericValue() || 0);
         this._targetValue = targetVal;
 
         const hasSsr = typeof this.querySelector === 'function' && Boolean(this.querySelector('.ui-num'));
-        if (isStatic || !this.hasAttribute('start')) {
+        if (isStatic || (this.hasAttribute && !this.hasAttribute('start'))) {
             this._value = targetVal;
             this._animationStarted = true;
         } else {
-            this._value = parseFloat(this.getAttribute('start')) || 0;
+            this._value = (this.hasAttribute && parseFloat(this.getAttribute('start'))) || 0;
         }
 
         if (!hasSsr) {
@@ -184,11 +185,11 @@ export class DxNumber extends DxMeter {
         });
 
         // 2. Condition #2: Parent animation readiness
-        const parentC = this.closest('c');
-        const parentReveal = this.closest(REVEAL_PARENT_SEL);
+        const parentC = typeof this.closest === 'function' ? this.closest('c') : null;
+        const parentReveal = typeof this.closest === 'function' ? this.closest(REVEAL_PARENT_SEL) : null;
 
         if (parentC) {
-            const parentType = this.closest(TYPE_PARENT_SEL);
+            const parentType = typeof this.closest === 'function' ? this.closest(TYPE_PARENT_SEL) : null;
             if (parentType && (parentType.classList.contains(DX_ANIM.TYPED) || parentType.classList.contains('typed') || parentType.hasAttribute('data-static'))) {
                 this._parentReady = true;
             } else {
@@ -203,7 +204,7 @@ export class DxNumber extends DxMeter {
                 }, { once: true });
             }
         } else if (parentReveal) {
-            if (parentReveal.classList.contains(DX_ANIM.REVEALED) || parentReveal.classList.contains(DX_ANIM.REVEALING) || parentReveal.classList.contains('revealed') || parentReveal.classList.contains('revealing') || parentReveal.hasAttribute('data-static')) {
+            if (parentReveal.classList && (parentReveal.classList.contains(DX_ANIM.REVEALED) || parentReveal.classList.contains(DX_ANIM.REVEALING) || parentReveal.classList.contains('revealed') || parentReveal.classList.contains('revealing') || (parentReveal.hasAttribute && parentReveal.hasAttribute('data-static')))) {
                 this._parentReady = true;
             } else {
                 const onParentAnim = () => {
@@ -213,7 +214,7 @@ export class DxNumber extends DxMeter {
                 parentReveal.addEventListener('animationstart', onParentAnim, { once: true });
                 parentReveal.addEventListener('transitionstart', onParentAnim, { once: true });
                 parentReveal.addEventListener('animationend', onParentAnim, { once: true });
-                const choiceParent = this.closest('.form-control--checkbox-button, .details-product-option');
+                const choiceParent = typeof this.closest === 'function' ? this.closest('.form-control--checkbox-button, .details-product-option') : null;
                 if (choiceParent && choiceParent !== parentReveal) {
                     choiceParent.addEventListener('animationstart', onParentAnim, { once: true });
                     choiceParent.addEventListener('transitionstart', onParentAnim, { once: true });
@@ -276,7 +277,7 @@ export class DxNumber extends DxMeter {
     }
 
     animateTo(targetValue, duration) {
-        this.removeAttribute('data-static');
+        if (typeof this.removeAttribute === 'function') this.removeAttribute('data-static');
         this._targetValue = targetValue;
         this._animStartValue = this._value;
         this._animDuration = duration;

@@ -7,15 +7,20 @@
 // exports: DxCounter
 // used_by: src/client/index.js
 
-import { DxMeter } from '../base/dx-meter.js';
+import { DxNumber } from './dx-number.js';
 import { rootWin, defCustomElement } from '../base/dx-base.js';
-import { DX_ANIM, observeIO } from '../base/dx-scheduler.js';
+import { DX_ANIM, observeIO, unregisterRAF } from '../base/dx-scheduler.js';
 
 const TYPE_PARENT_SEL = 'dx-type-sda, dx-type, .type-sda, .type, .TYPE-, ui-type, ui-type-sda';
 const REVEAL_PARENT_SEL = 'dx-reveal-sda, dx-reveal, .reveal-sda, .reveal, .REVEAL-, ui-reveal-sda, ui-reveal';
 
-// Inregistrare proprietati CSS GPU (--dxc-*) via CSS.registerProperty
-if (typeof CSS !== 'undefined' && typeof CSS.registerProperty === 'function') {
+// ─── 1. Cache Unic la Nivel de Modul pentru CSS Houdini ──────────────────────
+const SUPPORTS_HOUDINI = typeof window !== 'undefined'
+    && typeof window.CSS !== 'undefined'
+    && typeof window.CSS.registerProperty === 'function';
+
+// Inregistrare proprietati CSS GPU (--dxc-*) via CSS.registerProperty dacă browserul suportă
+if (SUPPORTS_HOUDINI) {
     const props = [
         '--dxc-b', '--dxc-m', '--dxc-k', '--dxc-u', '--dxc-dec',
         '--dxc-from-b', '--dxc-to-b', '--dxc-from-m', '--dxc-to-m',
@@ -34,9 +39,33 @@ if (typeof CSS !== 'undefined' && typeof CSS.registerProperty === 'function') {
     });
 }
 
-export class DxCounter extends DxMeter {
+let _supportsHoudiniOverride = null;
+
+export class DxCounter extends DxNumber {
     static get observedAttributes() {
         return ['prefix', 'suffix', 'comma', 'type', 'percent', 'value', 'duration'];
+    }
+
+    static get supportsHoudini() {
+        if (_supportsHoudiniOverride !== null) return _supportsHoudiniOverride;
+        return SUPPORTS_HOUDINI;
+    }
+
+    static set supportsHoudini(val) {
+        _supportsHoudiniOverride = val;
+    }
+
+    get value() {
+        return this._value;
+    }
+
+    set value(val) {
+        this.val(val);
+    }
+
+    constructor() {
+        super();
+        this._onAnimEndBound = this._onAnimEnd.bind(this);
     }
 
     attributeChangedCallback(name, oldVal, newVal) {
@@ -64,25 +93,6 @@ export class DxCounter extends DxMeter {
             if (radix) radix.textContent = newVal || ',';
         }
         // 'type' changes only affect future formatValue calls, no DOM surgery needed
-    }
-
-    get value() {
-        return this._value;
-    }
-
-    set value(val) {
-        this.val(val);
-    }
-
-    constructor() {
-        super();
-        this._animationStarted = false;
-        this._inViewport = false;
-        this._parentReady = false;
-        this._pendingVal = null;
-        this._timeoutId = null;
-        this._isRendering = false;
-        this._onAnimEndBound = this._onAnimEnd.bind(this);
     }
 
     connectedCallback() {
@@ -318,24 +328,6 @@ export class DxCounter extends DxMeter {
         this._cachedCfg = this.getFormatConfig();
     }
 
-    _onAnimEnd(e) {
-        if (e && e.target && !e.target.classList.contains('dx-num')) return;
-        this._value = this._targetValue;
-        this._updateCounterVars(this._value);
-
-        this.classList.remove('dx-counter-running');
-        this.makeStatic();
-
-        const st = this.querySelector('s-t');
-        if (st) {
-            st.textContent = this.formatValue(this._value);
-        }
-        const num = this.querySelector('.dx-num');
-        if (num) {
-            num.removeEventListener('animationend', this._onAnimEndBound);
-        }
-    }
-
     _updateCounterVars(currentVal) {
         if (!this._elDec && !this._elRadix) {
             this._cacheDOMElements();
@@ -375,124 +367,27 @@ export class DxCounter extends DxMeter {
         }
     }
 
-    _checkAndTrigger() {
-        const ready = this.isReadyToAnimate();
-        if (!ready) return;
-
-        if (this._pendingVal) {
-            const { targetValue, duration } = this._pendingVal;
-            this._pendingVal = null;
-            this._animationStarted = true;
-            this.val(targetValue, duration);
-            return;
-        }
-
-        if (!this._animationStarted) {
-            const targetVal = (this._targetValue !== undefined && !isNaN(this._targetValue)) ? this._targetValue : this.getNumericValue();
-            this._animationStarted = true;
-
-            if (this._value !== targetVal) {
-                const isActionBar = this.classList && this.classList.contains('ui-add-to-cart-total');
-                const dur = this.hasAttribute('duration') ? parseFloat(this.getAttribute('duration')) : (isActionBar ? 1000 : this.getDuration());
-                const d = this.hasAttribute('delay') ? parseFloat(this.getAttribute('delay')) : (isActionBar ? 150 : 0);
-
-                this.style.setProperty('--dxc-duration', `${dur}ms`);
-                this.style.setProperty('--dxc-delay', `${d}ms`);
-                this.style.setProperty('--t', `${dur}ms`);
-                this.style.setProperty('--delay', `${d}ms`);
-                this._updateCounterVars(targetVal);
-            }
-        }
+    _updateFrameDisplay(targetVal) {
+        this._updateCounterVars(this._value);
     }
 
-    init() {
-        if (this._initialized) return;
-        this._initialized = true;
-        this._animationStarted = false;
-        if (this._timeoutId) {
-            clearTimeout(this._timeoutId);
-            this._timeoutId = null;
+    _onAnimEnd(e) {
+        if (e && e.target && !e.target.classList.contains('dx-num')) return;
+        this._value = this._targetValue;
+        this._updateCounterVars(this._value);
+
+        this.classList.remove('dx-counter-running');
+        this.makeStatic();
+
+        const st = this.querySelector('s-t');
+        if (st) {
+            st.textContent = this.formatValue(this._value);
         }
-
-        const inST = typeof this.closest === 'function' ? !!this.closest('s-t') : false;
-        const isStatic = inST || this.hasAttribute('data-static') || (this.classList && this.classList.contains('data-static') && !this.classList.contains('ui-add-to-cart-total'));
-        const targetVal = (this._targetValue !== undefined && !isNaN(this._targetValue) && this._targetValue !== 0)
-            ? this._targetValue
-            : (parseFloat(this.getAttribute('percent')) || this.getNumericValue() || 0);
-        const hasSsrMarkup = typeof this.querySelector === 'function' && Boolean(this.querySelector('.dx-num-wrap'));
-        const isActionBar = this.classList && this.classList.contains('ui-add-to-cart-total');
-        if (isStatic || (!this.hasAttribute('start') && hasSsrMarkup && !isActionBar)) {
-            this._value = targetVal;
-            this._animationStarted = true;
-        } else {
-            this._value = this.hasAttribute('start') ? (parseFloat(this.getAttribute('start')) || 0) : 0;
+        const num = this.querySelector('.dx-num');
+        if (num) {
+            num.removeEventListener('animationend', this._onAnimEndBound);
+            num.removeEventListener('transitionend', this._onAnimEndBound);
         }
-
-        if (!hasSsrMarkup) {
-            this.render();
-        } else {
-            this._cacheDOMElements();
-        }
-        this.setAccessibility(targetVal);
-
-        // Action bar elements are visible immediately
-        const parentC = typeof this.closest === 'function' ? this.closest('c') : null;
-        const parentReveal = typeof this.closest === 'function' ? this.closest(REVEAL_PARENT_SEL) : null;
-        const noScrollParent = !parentC && !parentReveal;
-
-        if (noScrollParent || isStatic) {
-            this._inViewport = true;
-            this._parentReady = true;
-        } else {
-            observeIO(this, () => {
-                this._inViewport = true;
-                this._checkAndTrigger();
-            });
-        }
-
-        if (isStatic) {
-            this.makeStatic();
-            return;
-        }
-
-        if (parentC) {
-            const parentType = this.closest(TYPE_PARENT_SEL);
-            if (parentType && (parentType.classList.contains(DX_ANIM.TYPED) || parentType.classList.contains('typed') || parentType.hasAttribute('data-static'))) {
-                this._parentReady = true;
-            } else {
-                parentC.addEventListener('animationstart', (e) => {
-                    if (e.target === parentC) {
-                        this._parentReady = true;
-                        this._checkAndTrigger();
-                    }
-                }, { once: true });
-            }
-        } else if (parentReveal) {
-            if (parentReveal.classList.contains(DX_ANIM.REVEALED) || parentReveal.classList.contains(DX_ANIM.REVEALING) || parentReveal.classList.contains('revealed') || parentReveal.classList.contains('revealing') || parentReveal.hasAttribute('data-static')) {
-                this._parentReady = true;
-            } else {
-                const onParentAnim = () => {
-                    this._parentReady = true;
-                    this._checkAndTrigger();
-                };
-                parentReveal.addEventListener('animationstart', onParentAnim, { once: true });
-                parentReveal.addEventListener('transitionstart', onParentAnim, { once: true });
-                parentReveal.addEventListener('animationend', onParentAnim, { once: true });
-                const choiceParent = this.closest('.form-control--checkbox-button, .details-product-option');
-                if (choiceParent && choiceParent !== parentReveal) {
-                    choiceParent.addEventListener('animationstart', onParentAnim, { once: true });
-                    choiceParent.addEventListener('transitionstart', onParentAnim, { once: true });
-                }
-            }
-        } else {
-            this._parentReady = true;
-        }
-
-        this._checkAndTrigger();
-    }
-
-    disconnectedCallback() {
-        if (this._timeoutId) { clearTimeout(this._timeoutId); this._timeoutId = null; }
     }
 
     val(newValue, duration) {
@@ -529,10 +424,16 @@ export class DxCounter extends DxMeter {
         const st = this.querySelector('s-t');
         if (st) st.textContent = this.formatValue(parsedValue);
 
-        // 100% pure declarative GPU CSS transition with threshold calculation
-        this._setupTiming(startVal, parsedValue, animDuration);
+        if (DxCounter.supportsHoudini) {
+            // ── Mode 1: 100% pure declarative GPU CSS transition with threshold calculation ──
+            unregisterRAF(this);
+            this._setupTiming(startVal, parsedValue, animDuration);
+            return this;
+        }
 
-        return this;
+        // ── Mode 2 (Non-Houdini Fallback): use inherited rAF loop (updates --dxc-* custom properties via _updateFrameDisplay) ──
+        this._value = startVal;
+        return super.val(parsedValue, animDuration);
     }
 }
 
