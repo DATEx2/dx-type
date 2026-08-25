@@ -17,7 +17,7 @@ dx-counter,
 :host(dx-odometer),
 :host(dx-counter),
 :is(dx-type, dx-type-sda) :is(s-t, t, w, c),
-:is(dx-odometer, ui-odometer) :is(s-t, b, d, span, .ui-pfx, .ui-sfx),
+:is(dx-odometer, ui-odometer) :is(s-t, b, d, span, .ui-pfx, .ui-sfx, .ui-radix),
 dx-number :is(.ui-num-wrap, .ui-num, .ui-pad, .ui-pfx, .ui-sfx),
 dx-counter :is(s-t, .dx-num-wrap, .dx-b, .dx-m, .dx-k, .dx-u, .dx-dec, .dx-pfx, .dx-sfx, .dx-radix) {
     font-family: inherit !important;
@@ -204,6 +204,12 @@ dx-odometer, ui-odometer {
         overflow: hidden !important;
     }
 
+    & .ui-radix {
+        display: inline-block !important;
+        vertical-align: baseline !important;
+        line-height: inherit !important;
+    }
+
     /* Static text — hidden during animation, shown after */
     & s-t { display: none !important; }
 
@@ -211,7 +217,7 @@ dx-odometer, ui-odometer {
     &.data-static s-t { display: inline !important; }
     &.data-static d::before,
     &.data-static b,
-    &.data-static :is(.ui-pfx, .ui-sfx) {
+    &.data-static :is(.ui-pfx, .ui-sfx, .ui-radix) {
         animation: none !important;
         transform: translateY(var(--p, 0%));
         display: none !important;

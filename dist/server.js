@@ -114,6 +114,8 @@ function generateRibbonHtml(numericValue, type = "int", comma = ",", prefix = ""
       const finalPosPercent = totalItems > 1 ? -(finalIndex / totalItems * 100).toFixed(4) : 0;
       const seqStr = drumValues.map((v) => v === " " ? " " : v).join("&#10;");
       digitsHtml += `<d data-seq="${seqStr}" style="--p:${finalPosPercent}%;--r:${digitR}">${char}</d>`;
+    } else {
+      digitsHtml += `<span class="ui-radix">${char}</span>`;
     }
   }
   const pfxHtml = prefixText ? `<span class="ui-pfx">${prefixText}${prefix.endsWith(" ") ? "" : " "}</span>` : "";

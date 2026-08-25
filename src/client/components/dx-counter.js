@@ -14,10 +14,25 @@ import { DX_ANIM, observeIO } from '../base/dx-scheduler.js';
 const TYPE_PARENT_SEL = 'dx-type-sda, dx-type, .type-sda, .type, .TYPE-, ui-type, ui-type-sda';
 const REVEAL_PARENT_SEL = 'dx-reveal-sda, dx-reveal, .reveal-sda, .reveal, .REVEAL-, ui-reveal-sda, ui-reveal';
 
-// Proprietățile CSS GPU (--dxc-*) sunt înregistrate declarativ în dx-counter.css via @property.
-// Nu este necesară înregistrarea din JS (ar fi redundantă și ignorată de browser).
-
-
+// Inregistrare proprietati CSS GPU (--dxc-*) via CSS.registerProperty
+if (typeof CSS !== 'undefined' && typeof CSS.registerProperty === 'function') {
+    const props = [
+        '--dxc-b', '--dxc-m', '--dxc-k', '--dxc-u', '--dxc-dec',
+        '--dxc-from-b', '--dxc-to-b', '--dxc-from-m', '--dxc-to-m',
+        '--dxc-from-k', '--dxc-to-k', '--dxc-from-u', '--dxc-to-u',
+        '--dxc-from-dec', '--dxc-to-dec'
+    ];
+    props.forEach(p => {
+        try {
+            CSS.registerProperty({
+                name: p,
+                syntax: '<integer>',
+                initialValue: 0,
+                inherits: true
+            });
+        } catch (e) {}
+    });
+}
 
 export class DxCounter extends DxMeter {
     static get observedAttributes() {
@@ -27,7 +42,14 @@ export class DxCounter extends DxMeter {
     attributeChangedCallback(name, oldVal, newVal) {
         if (oldVal === newVal || !this._initialized || this._isRendering) return;
         // percent/value/duration changes are handled exclusively by val() — never re-render
-        if (name === 'percent' || name === 'value' || name === 'duration') return;
+        if (name === 'percent' || name === 'value') {
+            const p = parseFloat(newVal);
+            if (!isNaN(p) && p !== this._value && this._initialized) {
+                this.val(p);
+            }
+            return;
+        }
+        if (name === 'duration') return;
         // prefix/suffix/comma/type: patch existing DOM elements in-place, no render()
         const wrap = this.querySelector('.dx-num-wrap');
         if (!wrap) return; // not yet rendered — init() will handle it
@@ -42,6 +64,14 @@ export class DxCounter extends DxMeter {
             if (radix) radix.textContent = newVal || ',';
         }
         // 'type' changes only affect future formatValue calls, no DOM surgery needed
+    }
+
+    get value() {
+        return this._value;
+    }
+
+    set value(val) {
+        this.val(val);
     }
 
     constructor() {
@@ -390,7 +420,8 @@ export class DxCounter extends DxMeter {
             ? this._targetValue
             : (parseFloat(this.getAttribute('percent')) || this.getNumericValue() || 0);
         const hasSsrMarkup = typeof this.querySelector === 'function' && Boolean(this.querySelector('.dx-num-wrap'));
-        if (isStatic || (!this.hasAttribute('start') && hasSsrMarkup)) {
+        const isActionBar = this.classList && this.classList.contains('ui-add-to-cart-total');
+        if (isStatic || (!this.hasAttribute('start') && hasSsrMarkup && !isActionBar)) {
             this._value = targetVal;
             this._animationStarted = true;
         } else {
@@ -471,12 +502,14 @@ export class DxCounter extends DxMeter {
         const parsedValue = parseFloat(newValue) || 0;
         this._targetValue = parsedValue;
 
-        if (this._initialized && this._value === parsedValue && !this._pendingVal) {
+        const startVal = (this._value !== undefined && !isNaN(this._value)) ? this._value : 0;
+
+        if (this._initialized && startVal === parsedValue && !this._pendingVal) {
             this.setAccessibility(parsedValue);
             return this;
         }
 
-        const animDuration = (duration !== undefined && duration !== null) ? duration : this.getDuration();
+        const animDuration = (duration !== undefined && duration !== null) ? duration : (this.getDuration() || 600);
         const ready = this.isReadyToAnimate();
 
         if (!ready && animDuration > 0) {
@@ -496,13 +529,8 @@ export class DxCounter extends DxMeter {
         const st = this.querySelector('s-t');
         if (st) st.textContent = this.formatValue(parsedValue);
 
-        // 100% pure declarative GPU CSS transition
-        this.style.setProperty('--dxc-duration', `${animDuration}ms`);
-        this.style.setProperty('--dxc-delay', '0ms');
-        this.style.setProperty('--t', `${animDuration}ms`);
-        this.style.setProperty('--d', '0ms');
-        this.style.setProperty('--delay', '0ms');
-        this._updateCounterVars(parsedValue);
+        // 100% pure declarative GPU CSS transition with threshold calculation
+        this._setupTiming(startVal, parsedValue, animDuration);
 
         return this;
     }

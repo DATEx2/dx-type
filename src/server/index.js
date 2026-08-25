@@ -148,9 +148,9 @@ export function generateRibbonHtml(numericValue, type = 'int', comma = ',', pref
             const seqStr = drumValues.map(v => v === ' ' ? ' ' : v).join('&#10;');
 
             digitsHtml += `<d data-seq="${seqStr}" style="--p:${finalPosPercent}%;--r:${digitR}">${char}</d>`;
+        } else {
+            digitsHtml += `<span class="ui-radix">${char}</span>`;
         }
-        // Formatting marks (spaces, radix) are not rendered as separate elements
-        // They're handled by the prefix/suffix or parent layout
     }
 
     const pfxHtml = prefixText ? `<span class="ui-pfx">${prefixText}${prefix.endsWith(' ') ? '' : ' '}</span>` : '';
