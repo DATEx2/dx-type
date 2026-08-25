@@ -14,6 +14,13 @@ export function getTypewriterObserver(win) {
 export function unpackTemplate(el) {
     if (!el) return false;
     if (el.classList && el.classList.contains(DX_ANIM.TYPED)) return false;
+
+    // If user prefers reduced motion, never unpack template into live DOM.
+    if (typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+        el.classList.add(DX_ANIM.TYPED);
+        return false;
+    }
+
     const tpl = el.querySelector(':scope > template');
     if (tpl && tpl.content) {
         if (!el.getAttribute('role')) el.setAttribute('role', 'text');

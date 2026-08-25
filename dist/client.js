@@ -231,6 +231,10 @@ function getTypewriterObserver(win) {
 function unpackTemplate(el2) {
   if (!el2) return false;
   if (el2.classList && el2.classList.contains(DX_ANIM.TYPED)) return false;
+  if (typeof window !== "undefined" && window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+    el2.classList.add(DX_ANIM.TYPED);
+    return false;
+  }
   const tpl = el2.querySelector(":scope > template");
   if (tpl && tpl.content) {
     if (!el2.getAttribute("role")) el2.setAttribute("role", "text");

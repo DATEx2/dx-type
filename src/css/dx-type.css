@@ -515,14 +515,25 @@ dx-type.dx-typed c,
 
 /* ─── 11. Accessibility: Reduced Motion ──────────────────────────────────── */
 @media (prefers-reduced-motion: reduce) {
-    dx-type c,
-    dx-type-sda c,
-    dx-reveal,
-    dx-reveal-sda {
+    :is(dx-type, dx-type-sda) > s-t,
+    :is(dx-type, dx-type-sda):not(.dx-typed) > s-t,
+    :is(dx-type, dx-type-sda):not(.dx-typed) > s-t * {
+        color: inherit !important;
+        -webkit-text-fill-color: currentColor !important;
+        opacity: 1 !important;
+        visibility: visible !important;
+    }
+
+    :is(dx-type, dx-type-sda) > t {
+        display: none !important;
+    }
+
+    :is(dx-reveal, dx-reveal-sda) {
         animation: none !important;
         transition: none !important;
         opacity: 1 !important;
         transform: none !important;
+        visibility: visible !important;
     }
 
     dx-odometer d::before {
