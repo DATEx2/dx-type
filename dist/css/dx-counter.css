@@ -1,16 +1,28 @@
 /* src/css/dx-counter.css */
-@property --b { syntax: "<integer>"; initial-value: 0; inherits: false; }
-@property --m { syntax: "<integer>"; initial-value: 0; inherits: false; }
-@property --k { syntax: "<integer>"; initial-value: 0; inherits: false; }
-@property --u { syntax: "<integer>"; initial-value: 0; inherits: false; }
-@property --dec { syntax: "<integer>"; initial-value: 0; inherits: false; }
+@property --b { syntax: "<integer>"; initial-value: 0; inherits: true; }
+@property --m { syntax: "<integer>"; initial-value: 0; inherits: true; }
+@property --k { syntax: "<integer>"; initial-value: 0; inherits: true; }
+@property --u { syntax: "<integer>"; initial-value: 0; inherits: true; }
+@property --dec { syntax: "<integer>"; initial-value: 0; inherits: true; }
+@property --start-b { syntax: "<integer>"; initial-value: 0; inherits: true; }
+@property --target-b { syntax: "<integer>"; initial-value: 0; inherits: true; }
+@property --start-m { syntax: "<integer>"; initial-value: 0; inherits: true; }
+@property --target-m { syntax: "<integer>"; initial-value: 0; inherits: true; }
+@property --start-k { syntax: "<integer>"; initial-value: 0; inherits: true; }
+@property --target-k { syntax: "<integer>"; initial-value: 0; inherits: true; }
+@property --start-u { syntax: "<integer>"; initial-value: 0; inherits: true; }
+@property --target-u { syntax: "<integer>"; initial-value: 0; inherits: true; }
+@property --start-dec { syntax: "<integer>"; initial-value: 0; inherits: true; }
+@property --target-dec { syntax: "<integer>"; initial-value: 0; inherits: true; }
 dx-counter,
 :host(dx-counter) {
   display: inline-block !important;
   vertical-align: baseline !important;
   position: relative !important;
+  contain: layout style !important;
   line-height: inherit !important;
   font-family: inherit !important;
+  font-size: inherit !important;
   font-weight: inherit !important;
   letter-spacing: inherit !important;
   font-variant-numeric: tabular-nums !important;
@@ -18,50 +30,67 @@ dx-counter,
   white-space: nowrap !important;
   color: inherit !important;
   -webkit-text-fill-color: currentColor !important;
-  --start-b: 0;
-  --target-b: 0;
-  --start-m: 0;
-  --target-m: 0;
-  --start-k: 0;
-  --target-k: 0;
-  --start-u: 0;
-  --target-u: 0;
-  --start-dec: 0;
-  --target-dec: 0;
-  --b: var(--start-b);
-  --m: var(--start-m);
-  --k: var(--start-k);
-  --u: var(--start-u);
-  --dec: var(--start-dec);
+  --b: 0;
+  --m: 0;
+  --k: 0;
+  --u: 0;
+  --dec: 0;
+  transition:
+    --b calc(var(--t, 600ms) * var(--A, 1)) cubic-bezier(0, 0, 0.2, 1) calc(var(--d, 0ms) * var(--A, 1)),
+    --m calc(var(--t, 600ms) * var(--A, 1)) cubic-bezier(0, 0, 0.2, 1) calc(var(--d, 0ms) * var(--A, 1)),
+    --k calc(var(--t, 600ms) * var(--A, 1)) cubic-bezier(0, 0, 0.2, 1) calc(var(--d, 0ms) * var(--A, 1)),
+    --u calc(var(--t, 600ms) * var(--A, 1)) cubic-bezier(0, 0, 0.2, 1) calc(var(--d, 0ms) * var(--A, 1)),
+    --dec calc(var(--t, 600ms) * var(--A, 1)) cubic-bezier(0, 0, 0.2, 1) calc(var(--d, 0ms) * var(--A, 1)) !important;
+}
+dx-counter:not([data-static]) {
+  animation: dx-counter-intro calc(var(--t, 1000ms) * var(--A, 1)) cubic-bezier(0, 0, 0.2, 1) calc(var(--d, 0ms) * var(--A, 1)) backwards;
+}
+:is(.action-bar, .action-bar-wrapper) dx-counter:not([data-static]) {
+  animation: none;
+  --b: 0;
+  --m: 0;
+  --k: 0;
+  --u: 0;
+  --dec: 0;
+}
+:is(.showing-action-bar, .show-action-bar) dx-counter.ui-add-to-cart-total:not([data-static]),
+:is(.showing-action-bar, .show-action-bar) :is(.action-bar, .action-bar-wrapper) dx-counter:not([data-static]),
+:is(.action-bar, .action-bar-wrapper):is(.showing-action-bar, .show-action-bar) dx-counter:not([data-static]) {
+  animation: dx-counter-intro calc(var(--t, 1000ms) * var(--A, 1)) cubic-bezier(0, 0, 0.2, 1) calc((var(--d, 0ms) + 300ms) * var(--A, 1)) backwards !important;
+}
+@keyframes dx-counter-intro {
+  from {
+    --b: 0;
+    --m: 0;
+    --k: 0;
+    --u: 0;
+    --dec: 0;
+  }
 }
 dx-counter > s-t,
 dx-counter > s-t * {
-  position: relative !important;
-  z-index: 1 !important;
-  display: inline !important;
-  vertical-align: baseline !important;
-  color: inherit !important;
-  -webkit-text-fill-color: currentColor !important;
-  opacity: 1 !important;
-  visibility: visible !important;
-}
-dx-counter.dx-counter-running > s-t {
-  display: none !important;
+  position: absolute !important;
+  width: 1px !important;
+  height: 1px !important;
+  padding: 0 !important;
+  margin: -1px !important;
+  overflow: hidden !important;
+  clip: rect(0, 0, 0, 0) !important;
+  white-space: nowrap !important;
+  border: 0 !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+  color: transparent !important;
+  -webkit-text-fill-color: transparent !important;
 }
 dx-counter > .dx-num-wrap {
+  display: inline-flex !important;
   position: relative !important;
-  z-index: 0 !important;
-  display: none !important;
+  z-index: 1 !important;
   align-items: baseline !important;
   vertical-align: baseline !important;
   color: inherit !important;
   -webkit-text-fill-color: currentColor !important;
-}
-dx-counter.dx-counter-running > .dx-num-wrap {
-  display: inline-flex !important;
-}
-dx-counter.data-static > .dx-num-wrap {
-  display: none !important;
 }
 dx-counter .dx-b,
 dx-counter .dx-m,
@@ -73,5 +102,31 @@ dx-counter .dx-sfx,
 dx-counter .dx-radix {
   color: inherit !important;
   -webkit-text-fill-color: currentColor !important;
+}
+dx-counter .dx-b::after {
+  counter-reset: b var(--b);
+  content: counter(b);
+}
+dx-counter .dx-m::after {
+  counter-reset: m var(--m);
+  content: counter(m);
+}
+dx-counter .dx-k::after {
+  counter-reset: k var(--k);
+  content: counter(k);
+}
+dx-counter .dx-u::after {
+  counter-reset: u var(--u);
+  content: counter(u);
+}
+dx-counter .dx-dec::after {
+  counter-reset: dec var(--dec);
+  content: counter(dec, decimal-leading-zero);
+}
+@media (prefers-reduced-motion: reduce) {
+  dx-counter {
+    animation: none !important;
+    transition: none !important;
+  }
 }
 /*# sourceMappingURL=dx-counter.css.map */
