@@ -4,20 +4,7 @@
  * dynamic numbers, typewriter characters, accessibility layers and animations.
  */
 
-/* ─── 0. Houdini @property Declarations for Strongly-Typed Animation Physics ─ */
-@property --d { syntax: "<number>"; initial-value: 0; inherits: true; }
-@property --t { syntax: "<number>"; initial-value: 580; inherits: true; }
-@property --u { syntax: "<number>"; initial-value: 40; inherits: true; }
-@property --a { syntax: "<number>"; initial-value: 0; inherits: true; }
-@property --b { syntax: "<number>"; initial-value: 0; inherits: true; }
-@property --w { syntax: "<number>"; initial-value: 0; inherits: true; }
-@property --i { syntax: "<number>"; initial-value: 0; inherits: true; }
-@property --I { syntax: "<number>"; initial-value: 0; inherits: true; }
-@property --c { syntax: "<number>"; initial-value: 0; inherits: true; }
-@property --A { syntax: "<number>"; initial-value: 1; inherits: true; }
-@property --r { syntax: "<number>"; initial-value: 0; inherits: true; }
-
-/* ─── 0.1 Universal Library Preflight & Reset ────────────────────────────── */
+/* ─── 0. Universal Library Preflight & Reset ─────────────────────────────── */
 dx-type,
 dx-type-sda,
 dx-number,
