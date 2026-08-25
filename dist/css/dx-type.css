@@ -1,29 +1,20 @@
 /* src/css/dx-type.css */
 dx-type,
 dx-type-sda,
-dx-reveal,
-dx-reveal-sda,
 dx-number,
 dx-odometer,
 ui-odometer,
 dx-counter,
 :host(dx-type),
 :host(dx-type-sda),
-:host(dx-reveal),
-:host(dx-reveal-sda),
 :host(dx-number),
 :host(dx-odometer),
 :host(dx-counter),
-dx-type *,
-dx-type-sda *,
-dx-reveal *,
-dx-reveal-sda *,
-dx-number *,
-dx-odometer *,
-ui-odometer *,
-dx-counter * {
+:is(dx-type, dx-type-sda) :is(s-t, t, w, c),
+:is(dx-odometer, ui-odometer) :is(s-t, b, d, span, .ui-pfx, .ui-sfx),
+dx-number :is(.ui-num-wrap, .ui-num, .ui-pad, .ui-pfx, .ui-sfx),
+dx-counter :is(s-t, .dx-num-wrap, .dx-b, .dx-m, .dx-k, .dx-u, .dx-dec, .dx-pfx, .dx-sfx, .dx-radix) {
   font-family: inherit !important;
-  font-size: inherit !important;
   font-weight: inherit !important;
   font-style: inherit !important;
   line-height: inherit !important;
@@ -32,6 +23,12 @@ dx-counter * {
   vertical-align: inherit !important;
   text-align: inherit !important;
   text-transform: inherit !important;
+  box-sizing: border-box !important;
+}
+dx-reveal,
+dx-reveal-sda,
+:host(dx-reveal),
+:host(dx-reveal-sda) {
   box-sizing: border-box !important;
 }
 dx-type,
@@ -245,7 +242,6 @@ dx-number {
     width: auto !important;
     height: auto !important;
     overflow: visible !important;
-    font-size: inherit !important;
     font-weight: inherit !important;
     line-height: inherit !important;
     color: inherit !important;
