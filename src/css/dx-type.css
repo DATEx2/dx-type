@@ -152,7 +152,7 @@ dx-type-ready {
 dx-reveal,
 dx-reveal-sda {
     display: block;
-    contain: layout style;
+    contain: layout style !important;
     width: 100%;
 
     &.inline,
