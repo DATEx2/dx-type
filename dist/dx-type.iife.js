@@ -1617,8 +1617,10 @@ var DxType = (() => {
         this._animationStarted = true;
         if (this._value !== targetVal) {
           const isActionBar = this.classList && this.classList.contains("ui-add-to-cart-total");
-          const dur = this.hasAttribute("duration") ? parseFloat(this.getAttribute("duration")) : isActionBar ? 600 : this.getDuration();
-          const d = this.hasAttribute("delay") ? parseFloat(this.getAttribute("delay")) : isActionBar ? 60 : 0;
+          const dur = this.hasAttribute("duration") ? parseFloat(this.getAttribute("duration")) : isActionBar ? 700 : this.getDuration();
+          const d = this.hasAttribute("delay") ? parseFloat(this.getAttribute("delay")) : isActionBar ? 380 : 0;
+          this.style.setProperty("--dxc-duration", `${dur}ms`);
+          this.style.setProperty("--dxc-delay", `${d}ms`);
           this.style.setProperty("--t", `${dur}ms`);
           this.style.setProperty("--delay", `${d}ms`);
           this._updateCounterVars(targetVal);
@@ -1729,8 +1731,11 @@ var DxType = (() => {
       this.setAccessibility(parsedValue);
       const st = this.querySelector("s-t");
       if (st) st.textContent = this.formatValue(parsedValue);
+      this.style.setProperty("--dxc-duration", `${animDuration}ms`);
+      this.style.setProperty("--dxc-delay", "0ms");
       this.style.setProperty("--t", `${animDuration}ms`);
       this.style.setProperty("--d", "0ms");
+      this.style.setProperty("--delay", "0ms");
       this._updateCounterVars(parsedValue);
       return this;
     }

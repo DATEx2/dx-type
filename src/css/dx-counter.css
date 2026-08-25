@@ -74,7 +74,7 @@ dx-counter:not([data-static]) {
 :is(.showing-action-bar, .show-action-bar) dx-counter.ui-add-to-cart-total:not([data-static]),
 :is(.showing-action-bar, .show-action-bar) :is(.action-bar, .action-bar-wrapper) dx-counter:not([data-static]),
 :is(.action-bar, .action-bar-wrapper):is(.showing-action-bar, .show-action-bar) dx-counter:not([data-static]) {
-    animation: dx-counter-intro calc(var(--dxc-duration, 600ms) * var(--A, 1)) cubic-bezier(0.16, 1, 0.3, 1) calc(var(--dxc-delay, 60ms) * var(--A, 1)) backwards !important;
+    animation: dx-counter-intro calc(var(--dxc-duration, 700ms) * var(--A, 1)) cubic-bezier(0.16, 1, 0.3, 1) calc(var(--dxc-delay, 380ms) * var(--A, 1)) backwards !important;
 }
 
 @keyframes dx-counter-intro {
