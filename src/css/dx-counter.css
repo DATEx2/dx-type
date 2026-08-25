@@ -1,20 +1,36 @@
-/* dx-counter.css — Standalone Pure CSS / GPU Counter Component */
-@property --dxc-b { syntax: "<integer>"; initial-value: 0; inherits: true; }
-@property --dxc-m { syntax: "<integer>"; initial-value: 0; inherits: true; }
-@property --dxc-k { syntax: "<integer>"; initial-value: 0; inherits: true; }
-@property --dxc-u { syntax: "<integer>"; initial-value: 0; inherits: true; }
-@property --dxc-dec { syntax: "<integer>"; initial-value: 0; inherits: true; }
+/* dx-counter.css — Standalone Pure CSS / GPU Counter Component
+ * 
+ * Variabilele sunt prefixate strict cu `--dxc-` (DX Counter) pentru a preveni orice coliziune
+ * cu alte componente (ex: `--u` din typewriter).
+ * 
+ * Structura numerică pe grupe de cifre:
+ *   b   = Billions  (miliarde: 10^9)
+ *   m   = Millions  (milioane: 10^6)
+ *   k   = Thousands (mii: 10^3)
+ *   u   = Units     (unități: 0-999)
+ *   dec = Decimals  (zecimale: 0-99)
+ */
 
-@property --dxc-from-b { syntax: "<integer>"; initial-value: 0; inherits: true; }
-@property --dxc-to-b { syntax: "<integer>"; initial-value: 0; inherits: true; }
-@property --dxc-from-m { syntax: "<integer>"; initial-value: 0; inherits: true; }
-@property --dxc-to-m { syntax: "<integer>"; initial-value: 0; inherits: true; }
-@property --dxc-from-k { syntax: "<integer>"; initial-value: 0; inherits: true; }
-@property --dxc-to-k { syntax: "<integer>"; initial-value: 0; inherits: true; }
-@property --dxc-from-u { syntax: "<integer>"; initial-value: 0; inherits: true; }
-@property --dxc-to-u { syntax: "<integer>"; initial-value: 0; inherits: true; }
-@property --dxc-from-dec { syntax: "<integer>"; initial-value: 0; inherits: true; }
-@property --dxc-to-dec { syntax: "<integer>"; initial-value: 0; inherits: true; }
+/* ── 1. Valori curente interpolate GPU (folosite de `counter()` în pseudo-elementele ::after) ── */
+@property --dxc-b   { syntax: "<integer>"; initial-value: 0; inherits: true; } /* Cifra miliardelor (0-999) */
+@property --dxc-m   { syntax: "<integer>"; initial-value: 0; inherits: true; } /* Cifra milioanelor (0-999) */
+@property --dxc-k   { syntax: "<integer>"; initial-value: 0; inherits: true; } /* Cifra miilor (0-999) */
+@property --dxc-u   { syntax: "<integer>"; initial-value: 0; inherits: true; } /* Cifra unităților (0-999) */
+@property --dxc-dec { syntax: "<integer>"; initial-value: 0; inherits: true; } /* Zecimalele (0-99) */
+
+/* ── 2. Valori inițiale de start (folosite la începutul tranziției / SSR) ── */
+@property --dxc-from-b   { syntax: "<integer>"; initial-value: 0; inherits: true; } /* Start miliarde */
+@property --dxc-from-m   { syntax: "<integer>"; initial-value: 0; inherits: true; } /* Start milioane */
+@property --dxc-from-k   { syntax: "<integer>"; initial-value: 0; inherits: true; } /* Start mii */
+@property --dxc-from-u   { syntax: "<integer>"; initial-value: 0; inherits: true; } /* Start unități */
+@property --dxc-from-dec { syntax: "<integer>"; initial-value: 0; inherits: true; } /* Start zecimale */
+
+/* ── 3. Valori țintă (folosite spre care se animează tranziția numerică) ── */
+@property --dxc-to-b   { syntax: "<integer>"; initial-value: 0; inherits: true; } /* Țintă miliarde */
+@property --dxc-to-m   { syntax: "<integer>"; initial-value: 0; inherits: true; } /* Țintă milioane */
+@property --dxc-to-k   { syntax: "<integer>"; initial-value: 0; inherits: true; } /* Țintă mii */
+@property --dxc-to-u   { syntax: "<integer>"; initial-value: 0; inherits: true; } /* Țintă unități */
+@property --dxc-to-dec { syntax: "<integer>"; initial-value: 0; inherits: true; } /* Țintă zecimale */
 
 dx-counter,
 :host(dx-counter) {

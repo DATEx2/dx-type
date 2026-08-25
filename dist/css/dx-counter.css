@@ -5,14 +5,14 @@
 @property --dxc-u { syntax: "<integer>"; initial-value: 0; inherits: true; }
 @property --dxc-dec { syntax: "<integer>"; initial-value: 0; inherits: true; }
 @property --dxc-from-b { syntax: "<integer>"; initial-value: 0; inherits: true; }
-@property --dxc-to-b { syntax: "<integer>"; initial-value: 0; inherits: true; }
 @property --dxc-from-m { syntax: "<integer>"; initial-value: 0; inherits: true; }
-@property --dxc-to-m { syntax: "<integer>"; initial-value: 0; inherits: true; }
 @property --dxc-from-k { syntax: "<integer>"; initial-value: 0; inherits: true; }
-@property --dxc-to-k { syntax: "<integer>"; initial-value: 0; inherits: true; }
 @property --dxc-from-u { syntax: "<integer>"; initial-value: 0; inherits: true; }
-@property --dxc-to-u { syntax: "<integer>"; initial-value: 0; inherits: true; }
 @property --dxc-from-dec { syntax: "<integer>"; initial-value: 0; inherits: true; }
+@property --dxc-to-b { syntax: "<integer>"; initial-value: 0; inherits: true; }
+@property --dxc-to-m { syntax: "<integer>"; initial-value: 0; inherits: true; }
+@property --dxc-to-k { syntax: "<integer>"; initial-value: 0; inherits: true; }
+@property --dxc-to-u { syntax: "<integer>"; initial-value: 0; inherits: true; }
 @property --dxc-to-dec { syntax: "<integer>"; initial-value: 0; inherits: true; }
 dx-counter,
 :host(dx-counter) {

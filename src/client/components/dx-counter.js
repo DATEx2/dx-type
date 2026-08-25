@@ -14,26 +14,8 @@ import { DX_ANIM, observeIO } from '../base/dx-scheduler.js';
 const TYPE_PARENT_SEL = 'dx-type-sda, dx-type, .type-sda, .type, .TYPE-, ui-type, ui-type-sda';
 const REVEAL_PARENT_SEL = 'dx-reveal-sda, dx-reveal, .reveal-sda, .reveal, .REVEAL-, ui-reveal-sda, ui-reveal';
 
-// Register GPU CSS @property custom properties in Houdini runtime with unique --dxc-* namespace
-if (typeof window !== 'undefined' && window.CSS && typeof window.CSS.registerProperty === 'function') {
-    [
-        '--dxc-b', '--dxc-m', '--dxc-k', '--dxc-u', '--dxc-dec',
-        '--dxc-from-b', '--dxc-to-b',
-        '--dxc-from-m', '--dxc-to-m',
-        '--dxc-from-k', '--dxc-to-k',
-        '--dxc-from-u', '--dxc-to-u',
-        '--dxc-from-dec', '--dxc-to-dec'
-    ].forEach(name => {
-        try {
-            window.CSS.registerProperty({
-                name,
-                syntax: '<integer>',
-                inherits: true,
-                initialValue: '0'
-            });
-        } catch (e) {}
-    });
-}
+// Proprietățile CSS GPU (--dxc-*) sunt înregistrate declarativ în dx-counter.css via @property.
+// Nu este necesară înregistrarea din JS (ar fi redundantă și ignorată de browser).
 
 
 

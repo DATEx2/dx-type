@@ -1257,35 +1257,6 @@ defCustomElement("ui-odometer", DxOdometer);
 // src/client/components/dx-counter.js
 var TYPE_PARENT_SEL3 = "dx-type-sda, dx-type, .type-sda, .type, .TYPE-, ui-type, ui-type-sda";
 var REVEAL_PARENT_SEL2 = "dx-reveal-sda, dx-reveal, .reveal-sda, .reveal, .REVEAL-, ui-reveal-sda, ui-reveal";
-if (typeof window !== "undefined" && window.CSS && typeof window.CSS.registerProperty === "function") {
-  [
-    "--dxc-b",
-    "--dxc-m",
-    "--dxc-k",
-    "--dxc-u",
-    "--dxc-dec",
-    "--dxc-from-b",
-    "--dxc-to-b",
-    "--dxc-from-m",
-    "--dxc-to-m",
-    "--dxc-from-k",
-    "--dxc-to-k",
-    "--dxc-from-u",
-    "--dxc-to-u",
-    "--dxc-from-dec",
-    "--dxc-to-dec"
-  ].forEach((name) => {
-    try {
-      window.CSS.registerProperty({
-        name,
-        syntax: "<integer>",
-        inherits: true,
-        initialValue: "0"
-      });
-    } catch (e) {
-    }
-  });
-}
 var DxCounter = class extends DxMeter {
   static get observedAttributes() {
     return ["prefix", "suffix", "comma", "type", "percent", "value", "duration"];
