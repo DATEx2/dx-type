@@ -1,4 +1,20 @@
 /* dx-counter.css — Standalone Pure CSS / GPU Counter Component */
+@property --cnt-b { syntax: "<integer>"; initial-value: 0; inherits: true; }
+@property --cnt-m { syntax: "<integer>"; initial-value: 0; inherits: true; }
+@property --cnt-k { syntax: "<integer>"; initial-value: 0; inherits: true; }
+@property --cnt-u { syntax: "<integer>"; initial-value: 0; inherits: true; }
+@property --cnt-dec { syntax: "<integer>"; initial-value: 0; inherits: true; }
+
+@property --cnt-start-b { syntax: "<integer>"; initial-value: 0; inherits: true; }
+@property --cnt-target-b { syntax: "<integer>"; initial-value: 0; inherits: true; }
+@property --cnt-start-m { syntax: "<integer>"; initial-value: 0; inherits: true; }
+@property --cnt-target-m { syntax: "<integer>"; initial-value: 0; inherits: true; }
+@property --cnt-start-k { syntax: "<integer>"; initial-value: 0; inherits: true; }
+@property --cnt-target-k { syntax: "<integer>"; initial-value: 0; inherits: true; }
+@property --cnt-start-u { syntax: "<integer>"; initial-value: 0; inherits: true; }
+@property --cnt-target-u { syntax: "<integer>"; initial-value: 0; inherits: true; }
+@property --cnt-start-dec { syntax: "<integer>"; initial-value: 0; inherits: true; }
+@property --cnt-target-dec { syntax: "<integer>"; initial-value: 0; inherits: true; }
 
 dx-counter,
 :host(dx-counter) {
@@ -16,42 +32,42 @@ dx-counter,
     white-space: nowrap !important;
     color: inherit !important;
     -webkit-text-fill-color: currentColor !important;
-    --d: 0ms;
-    --b: 0;
-    --m: 0;
-    --k: 0;
-    --u: 0;
-    --dec: 0;
+    --cnt-d: 0ms;
+    --cnt-b: 0;
+    --cnt-m: 0;
+    --cnt-k: 0;
+    --cnt-u: 0;
+    --cnt-dec: 0;
     transition: 
-        --b calc(var(--t, 500ms) * var(--A, 1)) cubic-bezier(0.16, 1, 0.3, 1) calc(var(--d, 0ms) * var(--A, 1)),
-        --m calc(var(--t, 500ms) * var(--A, 1)) cubic-bezier(0.16, 1, 0.3, 1) calc(var(--d, 0ms) * var(--A, 1)),
-        --k calc(var(--t, 500ms) * var(--A, 1)) cubic-bezier(0.16, 1, 0.3, 1) calc(var(--d, 0ms) * var(--A, 1)),
-        --u calc(var(--t, 500ms) * var(--A, 1)) cubic-bezier(0.16, 1, 0.3, 1) calc(var(--d, 0ms) * var(--A, 1)),
-        --dec calc(var(--t, 500ms) * var(--A, 1)) cubic-bezier(0.16, 1, 0.3, 1) calc(var(--d, 0ms) * var(--A, 1)) !important;
+        --cnt-b calc(var(--cnt-t, 500ms) * var(--A, 1)) cubic-bezier(0.16, 1, 0.3, 1) calc(var(--cnt-d, 0ms) * var(--A, 1)),
+        --cnt-m calc(var(--cnt-t, 500ms) * var(--A, 1)) cubic-bezier(0.16, 1, 0.3, 1) calc(var(--cnt-d, 0ms) * var(--A, 1)),
+        --cnt-k calc(var(--cnt-t, 500ms) * var(--A, 1)) cubic-bezier(0.16, 1, 0.3, 1) calc(var(--cnt-d, 0ms) * var(--A, 1)),
+        --cnt-u calc(var(--cnt-t, 500ms) * var(--A, 1)) cubic-bezier(0.16, 1, 0.3, 1) calc(var(--cnt-d, 0ms) * var(--A, 1)),
+        --cnt-dec calc(var(--cnt-t, 500ms) * var(--A, 1)) cubic-bezier(0.16, 1, 0.3, 1) calc(var(--cnt-d, 0ms) * var(--A, 1)) !important;
 }
 
 dx-counter:not([data-static]) {
-    animation: dx-counter-intro calc(var(--t, 600ms) * var(--A, 1)) cubic-bezier(0.16, 1, 0.3, 1) calc(var(--delay, 0ms) * var(--A, 1)) backwards;
+    animation: dx-counter-intro calc(var(--cnt-t, 600ms) * var(--A, 1)) cubic-bezier(0.16, 1, 0.3, 1) calc(var(--cnt-delay, 0ms) * var(--A, 1)) backwards;
 }
 
 :is(.action-bar, .action-bar-wrapper) dx-counter:not([data-static]) {
     animation: none;
-    --b: 0; --m: 0; --k: 0; --u: 0; --dec: 0;
+    --cnt-b: 0; --cnt-m: 0; --cnt-k: 0; --cnt-u: 0; --cnt-dec: 0;
 }
 
 :is(.showing-action-bar, .show-action-bar) dx-counter.ui-add-to-cart-total:not([data-static]),
 :is(.showing-action-bar, .show-action-bar) :is(.action-bar, .action-bar-wrapper) dx-counter:not([data-static]),
 :is(.action-bar, .action-bar-wrapper):is(.showing-action-bar, .show-action-bar) dx-counter:not([data-static]) {
-    animation: dx-counter-intro calc(var(--t, 600ms) * var(--A, 1)) cubic-bezier(0.16, 1, 0.3, 1) calc(var(--delay, 60ms) * var(--A, 1)) backwards !important;
+    animation: dx-counter-intro calc(var(--cnt-t, 600ms) * var(--A, 1)) cubic-bezier(0.16, 1, 0.3, 1) calc(var(--cnt-delay, 60ms) * var(--A, 1)) backwards !important;
 }
 
 @keyframes dx-counter-intro {
     from {
-        --b: 0;
-        --m: 0;
-        --k: 0;
-        --u: 0;
-        --dec: 0;
+        --cnt-b: 0;
+        --cnt-m: 0;
+        --cnt-k: 0;
+        --cnt-u: 0;
+        --cnt-dec: 0;
     }
 }
 
@@ -96,11 +112,11 @@ dx-counter .dx-radix {
     -webkit-text-fill-color: currentColor !important;
 }
 
-dx-counter .dx-b::after { counter-reset: b var(--b); content: counter(b); }
-dx-counter .dx-m::after { counter-reset: m var(--m); content: counter(m); }
-dx-counter .dx-k::after { counter-reset: k var(--k); content: counter(k); }
-dx-counter .dx-u::after { counter-reset: u var(--u); content: counter(u); }
-dx-counter .dx-dec::after { counter-reset: dec var(--dec); content: counter(dec, decimal-leading-zero); }
+dx-counter .dx-b::after { counter-reset: b var(--cnt-b); content: counter(b); }
+dx-counter .dx-m::after { counter-reset: m var(--cnt-m); content: counter(m); }
+dx-counter .dx-k::after { counter-reset: k var(--cnt-k); content: counter(k); }
+dx-counter .dx-u::after { counter-reset: u var(--cnt-u); content: counter(u); }
+dx-counter .dx-dec::after { counter-reset: dec var(--cnt-dec); content: counter(dec, decimal-leading-zero); }
 
 @media (prefers-reduced-motion: reduce) {
     dx-counter { animation: none !important; transition: none !important; }
