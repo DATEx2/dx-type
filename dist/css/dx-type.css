@@ -284,6 +284,7 @@ c,
   -webkit-backface-visibility: hidden;
   opacity: 0;
   transition: none !important;
+  animation-duration: inherit !important;
   &.c-ui-num {
     display: inline !important;
     vertical-align: baseline !important;
@@ -297,6 +298,7 @@ dx-type-sda w {
   line-height: inherit !important;
   letter-spacing: inherit !important;
   word-spacing: inherit !important;
+  animation-duration: inherit !important;
 }
 c-0 {
   animation-delay: 0ms !important;
@@ -938,7 +940,6 @@ c-2000 {
 :is(.dx-type-ready, dx-type.dx-typing, dx-type.dx-typed, dx-type, .hero-header, #hero) :is(w, dx-type w) > * {
   visibility: visible !important;
   animation-name: type-in !important;
-  animation-duration: inherit !important;
   animation-timing-function: linear !important;
   animation-fill-mode: both !important;
 }
@@ -950,7 +951,6 @@ c-2000 {
 :is(dx-type-sda.dx-typing, dx-type-sda.dx-typed, dx-type-sda[data-static]) :is(w, dx-type-sda w) > * {
   visibility: visible !important;
   animation-name: type-in !important;
-  animation-duration: inherit !important;
   animation-timing-function: linear !important;
   animation-fill-mode: both !important;
 }

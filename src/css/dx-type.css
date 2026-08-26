@@ -320,6 +320,7 @@ c, :is(w, dx-type w, dx-type-sda w) > * {
     -webkit-backface-visibility: hidden;
     opacity: 0;
     transition: none !important;
+    animation-duration: inherit !important;
 
     &.c-ui-num {
         display: inline !important;
@@ -333,6 +334,7 @@ w, dx-type w, dx-type-sda w {
     line-height: inherit !important;
     letter-spacing: inherit !important;
     word-spacing: inherit !important;
+    animation-duration: inherit !important;
 }
 
 /* ─── 5. Quantized Delay Rules (0ms to 2000ms in 10ms steps) ─────────────── */
@@ -580,7 +582,6 @@ c-2000 { animation-delay: 2000ms !important; }
 :is(.dx-type-ready, dx-type.dx-typing, dx-type.dx-typed, dx-type, .hero-header, #hero) :is(w, dx-type w) > * {
     visibility: visible !important;
     animation-name: type-in !important;
-    animation-duration: inherit !important;
     animation-timing-function: linear !important;
     animation-fill-mode: both !important;
 }
@@ -595,7 +596,6 @@ c-2000 { animation-delay: 2000ms !important; }
 :is(dx-type-sda.dx-typing, dx-type-sda.dx-typed, dx-type-sda[data-static]) :is(w, dx-type-sda w) > * {
     visibility: visible !important;
     animation-name: type-in !important;
-    animation-duration: inherit !important;
     animation-timing-function: linear !important;
     animation-fill-mode: both !important;
 }
