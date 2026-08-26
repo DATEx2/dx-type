@@ -312,10 +312,12 @@ function ssrDxType(content, options = {}) {
     }
     return `<dx-odometer ${mergedAttrs}><s-t>${cleanText}</s-t></dx-odometer>`;
   }) : content;
+  const charDur = Math.round(res.speed * 3.5);
+  const tStyle = ` style="animation-duration: ${charDur}ms;"`;
   if (isSda) {
-    return `<${tagName}${classAttr} style="${res.style}"${ariaAttr}><s-t>${stContent}</s-t><template><t aria-hidden="true">${res.html}</t></template></${tagName}>`;
+    return `<${tagName}${classAttr} style="${res.style}"${ariaAttr}><s-t>${stContent}</s-t><template><t${tStyle} aria-hidden="true">${res.html}</t></template></${tagName}>`;
   }
-  return `<${tagName}${classAttr} style="${res.style}"${ariaAttr}><s-t>${stContent}</s-t><t aria-hidden="true">${res.html}</t></${tagName}>`;
+  return `<${tagName}${classAttr} style="${res.style}"${ariaAttr}><s-t>${stContent}</s-t><t${tStyle} aria-hidden="true">${res.html}</t></${tagName}>`;
 }
 function ssrDxReveal(content, options = {}) {
   const tagName = options.tagName || (options.isSda ? "dx-reveal-sda" : "dx-reveal");
