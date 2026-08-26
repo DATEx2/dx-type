@@ -907,24 +907,20 @@ c2000 {
   0% {
     opacity: 0.001;
     transform: translate3d(0, 6px, 0);
-    visibility: visible;
   }
   100% {
     opacity: 1;
     transform: translate3d(0, 0, 0);
-    visibility: visible;
   }
 }
 @keyframes reveal-in {
   0% {
     opacity: 0.001;
     transform: translate3d(0, 15px, 0);
-    visibility: visible;
   }
   100% {
     opacity: 1;
     transform: translate3d(0, 0, 0);
-    visibility: visible;
   }
 }
 @keyframes dx-reveal-sda {
@@ -937,7 +933,7 @@ c2000 {
     transform: translateY(0);
   }
 }
-:is(.dx-type-ready, dx-type.dx-typing, dx-type.dx-typed, dx-type, .hero-header, #hero) :is(w, dx-type w) > * {
+:is(.dx-type-ready, dx-type-ready.dx-type-ready, dx-type.dx-typing, dx-type.dx-typed) :is(w, dx-type w) > * {
   visibility: visible !important;
   animation-name: type-in !important;
   animation-timing-function: linear !important;
