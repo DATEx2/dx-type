@@ -309,7 +309,7 @@ dx-number {
 }
 
 /* ─── 4. Typewriter Character & Word Nodes ───────────────────────────────── */
-c, dx-type c, dx-type-sda c {
+c, [class*="c-"], :is(w, dx-type w, dx-type-sda w) > * {
     display: inline-block !important;
     vertical-align: baseline !important;
     line-height: inherit !important;
@@ -318,7 +318,8 @@ c, dx-type c, dx-type-sda c {
     will-change: transform, opacity;
     backface-visibility: hidden;
     -webkit-backface-visibility: hidden;
-    --I: calc(var(--w, 0) + var(--i, 0));
+    opacity: 0;
+    transition: none !important;
 
     &.c-ui-num {
         display: inline !important;
@@ -334,57 +335,208 @@ w, dx-type w, dx-type-sda w {
     word-spacing: inherit !important;
 }
 
-/* Sibling index fallback for characters within word <w> (1..50) */
-c:nth-child(1)  { --i: 0; }
-c:nth-child(2)  { --i: 1; }
-c:nth-child(3)  { --i: 2; }
-c:nth-child(4)  { --i: 3; }
-c:nth-child(5)  { --i: 4; }
-c:nth-child(6)  { --i: 5; }
-c:nth-child(7)  { --i: 6; }
-c:nth-child(8)  { --i: 7; }
-c:nth-child(9)  { --i: 8; }
-c:nth-child(10) { --i: 9; }
-c:nth-child(11) { --i: 10; }
-c:nth-child(12) { --i: 11; }
-c:nth-child(13) { --i: 12; }
-c:nth-child(14) { --i: 13; }
-c:nth-child(15) { --i: 14; }
-c:nth-child(16) { --i: 15; }
-c:nth-child(17) { --i: 16; }
-c:nth-child(18) { --i: 17; }
-c:nth-child(19) { --i: 18; }
-c:nth-child(20) { --i: 19; }
-c:nth-child(21) { --i: 20; }
-c:nth-child(22) { --i: 21; }
-c:nth-child(23) { --i: 22; }
-c:nth-child(24) { --i: 23; }
-c:nth-child(25) { --i: 24; }
-c:nth-child(26) { --i: 25; }
-c:nth-child(27) { --i: 26; }
-c:nth-child(28) { --i: 27; }
-c:nth-child(29) { --i: 28; }
-c:nth-child(30) { --i: 29; }
-c:nth-child(31) { --i: 30; }
-c:nth-child(32) { --i: 31; }
-c:nth-child(33) { --i: 32; }
-c:nth-child(34) { --i: 33; }
-c:nth-child(35) { --i: 34; }
-c:nth-child(36) { --i: 35; }
-c:nth-child(37) { --i: 36; }
-c:nth-child(38) { --i: 37; }
-c:nth-child(39) { --i: 38; }
-c:nth-child(40) { --i: 39; }
-c:nth-child(41) { --i: 40; }
-c:nth-child(42) { --i: 41; }
-c:nth-child(43) { --i: 42; }
-c:nth-child(44) { --i: 43; }
-c:nth-child(45) { --i: 44; }
-c:nth-child(46) { --i: 45; }
-c:nth-child(47) { --i: 46; }
-c:nth-child(48) { --i: 47; }
-c:nth-child(49) { --i: 48; }
-c:nth-child(50) { --i: 49; }
+/* ─── 5. Quantized Delay Rules (0ms to 2000ms in 10ms steps) ─────────────── */
+c-0 { animation-delay: 0ms !important; }
+c-10 { animation-delay: 10ms !important; }
+c-20 { animation-delay: 20ms !important; }
+c-30 { animation-delay: 30ms !important; }
+c-40 { animation-delay: 40ms !important; }
+c-50 { animation-delay: 50ms !important; }
+c-60 { animation-delay: 60ms !important; }
+c-70 { animation-delay: 70ms !important; }
+c-80 { animation-delay: 80ms !important; }
+c-90 { animation-delay: 90ms !important; }
+c-100 { animation-delay: 100ms !important; }
+c-110 { animation-delay: 110ms !important; }
+c-120 { animation-delay: 120ms !important; }
+c-130 { animation-delay: 130ms !important; }
+c-140 { animation-delay: 140ms !important; }
+c-150 { animation-delay: 150ms !important; }
+c-160 { animation-delay: 160ms !important; }
+c-170 { animation-delay: 170ms !important; }
+c-180 { animation-delay: 180ms !important; }
+c-190 { animation-delay: 190ms !important; }
+c-200 { animation-delay: 200ms !important; }
+c-210 { animation-delay: 210ms !important; }
+c-220 { animation-delay: 220ms !important; }
+c-230 { animation-delay: 230ms !important; }
+c-240 { animation-delay: 240ms !important; }
+c-250 { animation-delay: 250ms !important; }
+c-260 { animation-delay: 260ms !important; }
+c-270 { animation-delay: 270ms !important; }
+c-280 { animation-delay: 280ms !important; }
+c-290 { animation-delay: 290ms !important; }
+c-300 { animation-delay: 300ms !important; }
+c-310 { animation-delay: 310ms !important; }
+c-320 { animation-delay: 320ms !important; }
+c-330 { animation-delay: 330ms !important; }
+c-340 { animation-delay: 340ms !important; }
+c-350 { animation-delay: 350ms !important; }
+c-360 { animation-delay: 360ms !important; }
+c-370 { animation-delay: 370ms !important; }
+c-380 { animation-delay: 380ms !important; }
+c-390 { animation-delay: 390ms !important; }
+c-400 { animation-delay: 400ms !important; }
+c-410 { animation-delay: 410ms !important; }
+c-420 { animation-delay: 420ms !important; }
+c-430 { animation-delay: 430ms !important; }
+c-440 { animation-delay: 440ms !important; }
+c-450 { animation-delay: 450ms !important; }
+c-460 { animation-delay: 460ms !important; }
+c-470 { animation-delay: 470ms !important; }
+c-480 { animation-delay: 480ms !important; }
+c-490 { animation-delay: 490ms !important; }
+c-500 { animation-delay: 500ms !important; }
+c-510 { animation-delay: 510ms !important; }
+c-520 { animation-delay: 520ms !important; }
+c-530 { animation-delay: 530ms !important; }
+c-540 { animation-delay: 540ms !important; }
+c-550 { animation-delay: 550ms !important; }
+c-560 { animation-delay: 560ms !important; }
+c-570 { animation-delay: 570ms !important; }
+c-580 { animation-delay: 580ms !important; }
+c-590 { animation-delay: 590ms !important; }
+c-600 { animation-delay: 600ms !important; }
+c-610 { animation-delay: 610ms !important; }
+c-620 { animation-delay: 620ms !important; }
+c-630 { animation-delay: 630ms !important; }
+c-640 { animation-delay: 640ms !important; }
+c-650 { animation-delay: 650ms !important; }
+c-660 { animation-delay: 660ms !important; }
+c-670 { animation-delay: 670ms !important; }
+c-680 { animation-delay: 680ms !important; }
+c-690 { animation-delay: 690ms !important; }
+c-700 { animation-delay: 700ms !important; }
+c-710 { animation-delay: 710ms !important; }
+c-720 { animation-delay: 720ms !important; }
+c-730 { animation-delay: 730ms !important; }
+c-740 { animation-delay: 740ms !important; }
+c-750 { animation-delay: 750ms !important; }
+c-760 { animation-delay: 760ms !important; }
+c-770 { animation-delay: 770ms !important; }
+c-780 { animation-delay: 780ms !important; }
+c-790 { animation-delay: 790ms !important; }
+c-800 { animation-delay: 800ms !important; }
+c-810 { animation-delay: 810ms !important; }
+c-820 { animation-delay: 820ms !important; }
+c-830 { animation-delay: 830ms !important; }
+c-840 { animation-delay: 840ms !important; }
+c-850 { animation-delay: 850ms !important; }
+c-860 { animation-delay: 860ms !important; }
+c-870 { animation-delay: 870ms !important; }
+c-880 { animation-delay: 880ms !important; }
+c-890 { animation-delay: 890ms !important; }
+c-900 { animation-delay: 900ms !important; }
+c-910 { animation-delay: 910ms !important; }
+c-920 { animation-delay: 920ms !important; }
+c-930 { animation-delay: 930ms !important; }
+c-940 { animation-delay: 940ms !important; }
+c-950 { animation-delay: 950ms !important; }
+c-960 { animation-delay: 960ms !important; }
+c-970 { animation-delay: 970ms !important; }
+c-980 { animation-delay: 980ms !important; }
+c-990 { animation-delay: 990ms !important; }
+c-1000 { animation-delay: 1000ms !important; }
+c-1010 { animation-delay: 1010ms !important; }
+c-1020 { animation-delay: 1020ms !important; }
+c-1030 { animation-delay: 1030ms !important; }
+c-1040 { animation-delay: 1040ms !important; }
+c-1050 { animation-delay: 1050ms !important; }
+c-1060 { animation-delay: 1060ms !important; }
+c-1070 { animation-delay: 1070ms !important; }
+c-1080 { animation-delay: 1080ms !important; }
+c-1090 { animation-delay: 1090ms !important; }
+c-1100 { animation-delay: 1100ms !important; }
+c-1110 { animation-delay: 1110ms !important; }
+c-1120 { animation-delay: 1120ms !important; }
+c-1130 { animation-delay: 1130ms !important; }
+c-1140 { animation-delay: 1140ms !important; }
+c-1150 { animation-delay: 1150ms !important; }
+c-1160 { animation-delay: 1160ms !important; }
+c-1170 { animation-delay: 1170ms !important; }
+c-1180 { animation-delay: 1180ms !important; }
+c-1190 { animation-delay: 1190ms !important; }
+c-1200 { animation-delay: 1200ms !important; }
+c-1210 { animation-delay: 1210ms !important; }
+c-1220 { animation-delay: 1220ms !important; }
+c-1230 { animation-delay: 1230ms !important; }
+c-1240 { animation-delay: 1240ms !important; }
+c-1250 { animation-delay: 1250ms !important; }
+c-1260 { animation-delay: 1260ms !important; }
+c-1270 { animation-delay: 1270ms !important; }
+c-1280 { animation-delay: 1280ms !important; }
+c-1290 { animation-delay: 1290ms !important; }
+c-1300 { animation-delay: 1300ms !important; }
+c-1310 { animation-delay: 1310ms !important; }
+c-1320 { animation-delay: 1320ms !important; }
+c-1330 { animation-delay: 1330ms !important; }
+c-1340 { animation-delay: 1340ms !important; }
+c-1350 { animation-delay: 1350ms !important; }
+c-1360 { animation-delay: 1360ms !important; }
+c-1370 { animation-delay: 1370ms !important; }
+c-1380 { animation-delay: 1380ms !important; }
+c-1390 { animation-delay: 1390ms !important; }
+c-1400 { animation-delay: 1400ms !important; }
+c-1410 { animation-delay: 1410ms !important; }
+c-1420 { animation-delay: 1420ms !important; }
+c-1430 { animation-delay: 1430ms !important; }
+c-1440 { animation-delay: 1440ms !important; }
+c-1450 { animation-delay: 1450ms !important; }
+c-1460 { animation-delay: 1460ms !important; }
+c-1470 { animation-delay: 1470ms !important; }
+c-1480 { animation-delay: 1480ms !important; }
+c-1490 { animation-delay: 1490ms !important; }
+c-1500 { animation-delay: 1500ms !important; }
+c-1510 { animation-delay: 1510ms !important; }
+c-1520 { animation-delay: 1520ms !important; }
+c-1530 { animation-delay: 1530ms !important; }
+c-1540 { animation-delay: 1540ms !important; }
+c-1550 { animation-delay: 1550ms !important; }
+c-1560 { animation-delay: 1560ms !important; }
+c-1570 { animation-delay: 1570ms !important; }
+c-1580 { animation-delay: 1580ms !important; }
+c-1590 { animation-delay: 1590ms !important; }
+c-1600 { animation-delay: 1600ms !important; }
+c-1610 { animation-delay: 1610ms !important; }
+c-1620 { animation-delay: 1620ms !important; }
+c-1630 { animation-delay: 1630ms !important; }
+c-1640 { animation-delay: 1640ms !important; }
+c-1650 { animation-delay: 1650ms !important; }
+c-1660 { animation-delay: 1660ms !important; }
+c-1670 { animation-delay: 1670ms !important; }
+c-1680 { animation-delay: 1680ms !important; }
+c-1690 { animation-delay: 1690ms !important; }
+c-1700 { animation-delay: 1700ms !important; }
+c-1710 { animation-delay: 1710ms !important; }
+c-1720 { animation-delay: 1720ms !important; }
+c-1730 { animation-delay: 1730ms !important; }
+c-1740 { animation-delay: 1740ms !important; }
+c-1750 { animation-delay: 1750ms !important; }
+c-1760 { animation-delay: 1760ms !important; }
+c-1770 { animation-delay: 1770ms !important; }
+c-1780 { animation-delay: 1780ms !important; }
+c-1790 { animation-delay: 1790ms !important; }
+c-1800 { animation-delay: 1800ms !important; }
+c-1810 { animation-delay: 1810ms !important; }
+c-1820 { animation-delay: 1820ms !important; }
+c-1830 { animation-delay: 1830ms !important; }
+c-1840 { animation-delay: 1840ms !important; }
+c-1850 { animation-delay: 1850ms !important; }
+c-1860 { animation-delay: 1860ms !important; }
+c-1870 { animation-delay: 1870ms !important; }
+c-1880 { animation-delay: 1880ms !important; }
+c-1890 { animation-delay: 1890ms !important; }
+c-1900 { animation-delay: 1900ms !important; }
+c-1910 { animation-delay: 1910ms !important; }
+c-1920 { animation-delay: 1920ms !important; }
+c-1930 { animation-delay: 1930ms !important; }
+c-1940 { animation-delay: 1940ms !important; }
+c-1950 { animation-delay: 1950ms !important; }
+c-1960 { animation-delay: 1960ms !important; }
+c-1970 { animation-delay: 1970ms !important; }
+c-1980 { animation-delay: 1980ms !important; }
+c-1990 { animation-delay: 1990ms !important; }
+c-2000 { animation-delay: 2000ms !important; }
 
 /* ─── 6. Keyframes Definition ────────────────────────────────────────────── */
 @keyframes type-in {
@@ -425,18 +577,9 @@ c:nth-child(50) { --i: 49; }
 }
 
 /* ─── 7. Hero Domain (<dx-type>, <dx-reveal>, <dx-type-ready>) ───────────── */
-dx-type c {
-    opacity: 0;
-    visibility: hidden;
-    display: inline-block;
-    vertical-align: baseline;
-    transition: none !important;
-}
-
-.dx-type-ready dx-type c,
-:is(dx-type.dx-typing, dx-type.dx-typed) c {
+:is(.dx-type-ready, dx-type.dx-typing, dx-type.dx-typed, dx-type, .hero-header, #hero) :is(w, dx-type w) > * {
     visibility: visible !important;
-    animation: type-in calc(var(--u, 40) * 3.5 * var(--A, 1) * 1ms) linear calc((var(--d, 0) + var(--w, 0) * var(--u, 40) + var(--i, 0) * var(--u, 40) + var(--c, 0)) * var(--A, 1) * 1ms) both !important;
+    animation: type-in 100ms linear both !important;
 }
 
 .dx-type-ready dx-reveal,
@@ -446,21 +589,14 @@ dx-type c {
 }
 
 /* ─── 8. SDA Domain (<dx-type-sda>, <dx-reveal-sda>) ─────────────────────── */
-dx-type-sda c {
-    opacity: 0;
-    display: inline-block;
-    vertical-align: baseline;
-    transition: none !important;
-}
-
-:is(dx-type-sda.dx-typing, dx-type-sda.dx-typed, dx-type-sda[data-static]) c {
-    animation: type-in calc(var(--u, 40) * 3.5 * var(--A, 1) * 1ms) linear calc((var(--d, 0) + var(--w, 0) * var(--u, 40) + var(--i, 0) * var(--u, 40) + var(--c, 0)) * var(--A, 1) * 1ms) both !important;
+:is(dx-type-sda.dx-typing, dx-type-sda.dx-typed, dx-type-sda[data-static]) :is(w, dx-type-sda w) > * {
+    visibility: visible !important;
+    animation: type-in 100ms linear both !important;
 }
 
 :is(dx-reveal-sda.dx-revealing, dx-reveal-sda.dx-revealed, dx-reveal-sda[data-static]) {
     animation: dx-reveal-sda calc(var(--t, 500) * var(--A, 1) * 1ms) cubic-bezier(0.16, 1, 0.3, 1) calc(var(--d, 0) * var(--A, 1) * 1ms) both !important;
 }
-
 
 /* ─── 10. Final State & Static Cleanup ───────────────────────────────────── */
 dx-odometer.data-static d::before,
@@ -481,18 +617,7 @@ dx-odometer.data-static :is(.ui-pfx, .ui-sfx) {
     display: inline !important;
 }
 
-dx-type-sda.dx-typed,
-dx-type.dx-typed,
-.dx-typed,
-.TYPED {
-    animation: none !important;
-    animation-timeline: none !important;
-}
-
-dx-type-sda.dx-typed c,
-dx-type.dx-typed c,
-.dx-typed c,
-.TYPED c {
+:is(dx-type-sda, dx-type, .dx-typed, .TYPED).dx-typed :is(w, dx-type-sda w, dx-type w) > * {
     animation: none !important;
     animation-timeline: none !important;
     opacity: 1 !important;
@@ -543,4 +668,3 @@ dx-type.dx-typed c,
     dx-odometer b { display: none !important; }
     dx-odometer s-t { display: inline !important; }
 }
-
