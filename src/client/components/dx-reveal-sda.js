@@ -12,14 +12,29 @@ import { unpackTemplate } from '../base/dx-typing.js';
 import { defCustomElement } from '../base/dx-base.js';
 import { observeIO, DX_ANIM } from '../base/dx-scheduler.js';
 
+const REVEAL_CONTAINER_SEL = 'dx-reveal-sda, dx-reveal, .reveal-sda, .reveal, ui-reveal-sda, ui-reveal';
+
 export class DxRevealSda extends DxRevealing {
     connectedCallback() {
         if (this.isRevealed) return;
         this._syncTimingAttributes();
 
+        this._triggerChildren = () => {
+            this.querySelectorAll('dx-counter, dx-number').forEach(child => {
+                if (typeof child._checkAndTrigger === 'function') {
+                    if (child.closest(REVEAL_CONTAINER_SEL) === this) {
+                        child._inViewport = true;
+                        child._parentReady = true;
+                        child._checkAndTrigger();
+                    }
+                }
+            });
+        };
+
         observeIO(this, (el) => {
             unpackTemplate(el);
             el.classList.add(DX_ANIM.REVEALING);
+            this._triggerChildren();
         });
 
         this.addEventListener('animationend', this._onAnimEnd);

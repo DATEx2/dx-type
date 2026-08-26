@@ -8,14 +8,12 @@ const rootWin = typeof window !== 'undefined' ? window : (typeof global !== 'und
 // ─── Constants ───────────────────────────────────────────────────────────────
 export const DX_ANIM = Object.freeze({
     // Final-state classes (normalized to dx-* prefix)
-    TYPED:     'dx-typed',
-    TYPING:    'dx-typing',
-    REVEALED:  'dx-revealed',
-    REVEALING: 'dx-revealing',
-
-    // SSR guard markers — prevent re-transpiling
-    TYPE_GUARD:   'TYPE-',
-    REVEAL_GUARD: 'REVEAL-',
+    TYPED:        'dx-typed',
+    TYPING:       'dx-typing',
+    REVEALED:     'dx-revealed',
+    REVEALING:    'dx-revealing',
+    TYPE_GUARD:   'type-guard',
+    REVEAL_GUARD: 'reveal-guard',
 
     // Keyframe names emitted by CSS
     KF_TYPE_SDA:      'dx-type-sda',
@@ -38,7 +36,7 @@ let ioInstance = null;
 const ioCallbacks = new WeakMap();
 
 let _sdaTopGap = '0%';
-let _sdaBottomGap = '50px';
+let _sdaBottomGap = '0px';
 
 export function formatMarginValue(v) {
     if (!v || v === '0' || v === '0%' || v === '0px' || v === 0) return '0px';

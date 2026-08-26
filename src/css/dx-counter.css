@@ -11,26 +11,26 @@
  *   dec = Decimals  (zecimale: 0-99)
  */
 
-/* ── 1. Valori curente interpolate GPU (folosite de `counter()` în pseudo-elementele ::after) ── */
-@property --dxc-b   { syntax: "<integer>"; initial-value: 0; inherits: true; } /* Cifra miliardelor (0-999) */
-@property --dxc-m   { syntax: "<integer>"; initial-value: 0; inherits: true; } /* Cifra milioanelor (0-999) */
-@property --dxc-k   { syntax: "<integer>"; initial-value: 0; inherits: true; } /* Cifra miilor (0-999) */
-@property --dxc-u   { syntax: "<integer>"; initial-value: 0; inherits: true; } /* Cifra unităților (0-999) */
-@property --dxc-dec { syntax: "<integer>"; initial-value: 0; inherits: true; } /* Zecimalele (0-99) */
+/* ── 1. Valori curente interpolate GPU (folosite de `counter()` în pseudo-elementele ::before/::after) ── */
+@property --dxc-b   { syntax: "<integer>"; initial-value: 0; inherits: false; } /* Cifra miliardelor (0-999) */
+@property --dxc-m   { syntax: "<integer>"; initial-value: 0; inherits: false; } /* Cifra milioanelor (0-999) */
+@property --dxc-k   { syntax: "<integer>"; initial-value: 0; inherits: false; } /* Cifra miilor (0-999) */
+@property --dxc-u   { syntax: "<integer>"; initial-value: 0; inherits: false; } /* Cifra unităților (0-999) */
+@property --dxc-dec { syntax: "<integer>"; initial-value: 0; inherits: false; } /* Zecimalele (0-99) */
 
 /* ── 2. Valori inițiale de start (folosite la începutul tranziției / SSR) ── */
-@property --dxc-from-b   { syntax: "<integer>"; initial-value: 0; inherits: true; } /* Start miliarde */
-@property --dxc-from-m   { syntax: "<integer>"; initial-value: 0; inherits: true; } /* Start milioane */
-@property --dxc-from-k   { syntax: "<integer>"; initial-value: 0; inherits: true; } /* Start mii */
-@property --dxc-from-u   { syntax: "<integer>"; initial-value: 0; inherits: true; } /* Start unități */
-@property --dxc-from-dec { syntax: "<integer>"; initial-value: 0; inherits: true; } /* Start zecimale */
+@property --dxc-from-b   { syntax: "<integer>"; initial-value: 0; inherits: false; } /* Start miliarde */
+@property --dxc-from-m   { syntax: "<integer>"; initial-value: 0; inherits: false; } /* Start milioane */
+@property --dxc-from-k   { syntax: "<integer>"; initial-value: 0; inherits: false; } /* Start mii */
+@property --dxc-from-u   { syntax: "<integer>"; initial-value: 0; inherits: false; } /* Start unități */
+@property --dxc-from-dec { syntax: "<integer>"; initial-value: 0; inherits: false; } /* Start zecimale */
 
 /* ── 3. Valori țintă (folosite spre care se animează tranziția numerică) ── */
-@property --dxc-to-b   { syntax: "<integer>"; initial-value: 0; inherits: true; } /* Țintă miliarde */
-@property --dxc-to-m   { syntax: "<integer>"; initial-value: 0; inherits: true; } /* Țintă milioane */
-@property --dxc-to-k   { syntax: "<integer>"; initial-value: 0; inherits: true; } /* Țintă mii */
-@property --dxc-to-u   { syntax: "<integer>"; initial-value: 0; inherits: true; } /* Țintă unități */
-@property --dxc-to-dec { syntax: "<integer>"; initial-value: 0; inherits: true; } /* Țintă zecimale */
+@property --dxc-to-b   { syntax: "<integer>"; initial-value: 0; inherits: false; } /* Țintă miliarde */
+@property --dxc-to-m   { syntax: "<integer>"; initial-value: 0; inherits: false; } /* Țintă milioane */
+@property --dxc-to-k   { syntax: "<integer>"; initial-value: 0; inherits: false; } /* Țintă mii */
+@property --dxc-to-u   { syntax: "<integer>"; initial-value: 0; inherits: false; } /* Țintă unități */
+@property --dxc-to-dec { syntax: "<integer>"; initial-value: 0; inherits: false; } /* Țintă zecimale */
 
 dx-counter,
 :host(dx-counter) {
@@ -48,43 +48,21 @@ dx-counter,
     white-space: nowrap !important;
     color: inherit !important;
     -webkit-text-fill-color: currentColor !important;
-    --dxc-delay: 0ms;
+}
+
+/* Counters inside unrevealed parents remain at initial state */
+:is(dx-reveal-sda, .reveal-sda, dx-reveal, .reveal):not(.dx-revealed):not(.dx-revealing):not(.revealed):not(.revealing) dx-counter:not([data-static]),
+:is(dx-reveal-sda, .reveal-sda, dx-reveal, .reveal):not(.dx-revealed):not(.dx-revealing):not(.revealed):not(.revealing) dx-counter:not([data-static]) :is(.dx-b, .dx-m, .dx-k, .dx-u, .dx-dec) {
     --dxc-b: 0;
     --dxc-m: 0;
     --dxc-k: 0;
     --dxc-u: 0;
     --dxc-dec: 0;
-    transition: 
-        --dxc-b calc(var(--dxc-duration, 500ms) * var(--A, 1)) cubic-bezier(0, 0, 0.2, 1) calc(var(--dxc-delay, 0ms) * var(--A, 1)),
-        --dxc-m calc(var(--dxc-duration, 500ms) * var(--A, 1)) cubic-bezier(0, 0, 0.2, 1) calc(var(--dxc-delay, 0ms) * var(--A, 1)),
-        --dxc-k calc(var(--dxc-duration, 500ms) * var(--A, 1)) cubic-bezier(0, 0, 0.2, 1) calc(var(--dxc-delay, 0ms) * var(--A, 1)),
-        --dxc-u calc(var(--dxc-duration, 500ms) * var(--A, 1)) cubic-bezier(0, 0, 0.2, 1) calc(var(--dxc-delay, 0ms) * var(--A, 1)),
-        --dxc-dec calc(var(--dxc-duration, 500ms) * var(--A, 1)) cubic-bezier(0, 0, 0.2, 1) calc(var(--dxc-delay, 0ms) * var(--A, 1)) !important;
 }
 
-dx-counter:not([data-static]) {
-    animation: dx-counter-intro calc(var(--dxc-duration, 600ms) * var(--A, 1)) cubic-bezier(0, 0, 0.2, 1) calc(var(--dxc-delay, 0ms) * var(--A, 1)) backwards;
-}
-
-:is(.action-bar, .action-bar-wrapper) dx-counter:not([data-static]) {
-    animation: none;
+:is(.action-bar, .action-bar-wrapper):not(.showing-action-bar):not(.show-action-bar) dx-counter:not([data-static]),
+:is(.action-bar, .action-bar-wrapper):not(.showing-action-bar):not(.show-action-bar) dx-counter:not([data-static]) :is(.dx-b, .dx-m, .dx-k, .dx-u, .dx-dec) {
     --dxc-b: 0; --dxc-m: 0; --dxc-k: 0; --dxc-u: 0; --dxc-dec: 0;
-}
-
-:is(.showing-action-bar, .show-action-bar) dx-counter.ui-add-to-cart-total:not([data-static]),
-:is(.showing-action-bar, .show-action-bar) :is(.action-bar, .action-bar-wrapper) dx-counter:not([data-static]),
-:is(.action-bar, .action-bar-wrapper):is(.showing-action-bar, .show-action-bar) dx-counter:not([data-static]) {
-    animation: dx-counter-intro calc(var(--dxc-duration, 1000ms) * var(--A, 1)) cubic-bezier(0, 0, 0.2, 1) calc(var(--dxc-delay, 150ms) * var(--A, 1)) backwards !important;
-}
-
-@keyframes dx-counter-intro {
-    from {
-        --dxc-b: 0;
-        --dxc-m: 0;
-        --dxc-k: 0;
-        --dxc-u: 0;
-        --dxc-dec: 0;
-    }
 }
 
 /* <s-t> is ALWAYS invisible visually, but preserved in DOM for SEO, screen readers and Ctrl+F */
@@ -105,7 +83,7 @@ dx-counter > s-t * {
     -webkit-text-fill-color: transparent !important;
 }
 
-/* .dx-num-wrap is ALWAYS the visible element (before, during, and after animation) */
+/* .dx-num-wrap is ALWAYS the visible element */
 dx-counter > .dx-num-wrap {
     display: inline-flex !important;
     position: relative !important;
@@ -122,18 +100,49 @@ dx-counter .dx-k,
 dx-counter .dx-u,
 dx-counter .dx-dec,
 dx-counter .dx-pfx,
-dx-counter .dx-sfx,
-dx-counter .dx-radix {
+dx-counter .dx-sfx {
     color: inherit !important;
     -webkit-text-fill-color: currentColor !important;
 }
 
-dx-counter .dx-b::after { counter-reset: b var(--dxc-b); content: counter(b); }
-dx-counter .dx-m::after { counter-reset: m var(--dxc-m); content: counter(m); }
-dx-counter .dx-k::after { counter-reset: k var(--dxc-k); content: counter(k); }
+/* Grupul Miliardelor (b): Cifră în ::before + separator spațiu în ::after */
+dx-counter .dx-b {
+    --dxc-b: 0;
+    transition: --dxc-b calc(var(--dxc-duration, 500ms) * var(--A, 1)) cubic-bezier(0, 0, 0.2, 1) calc(var(--dxc-delay-b, 0ms) * var(--A, 1)) !important;
+}
+dx-counter .dx-b::before { counter-reset: b var(--dxc-b); content: counter(b); }
+dx-counter .dx-b::after { content: "\00a0"; }
+
+/* Grupul Milioanelor (m): Cifră în ::before + separator spațiu în ::after */
+dx-counter .dx-m {
+    --dxc-m: 0;
+    transition: --dxc-m calc(var(--dxc-duration, 500ms) * var(--A, 1)) cubic-bezier(0, 0, 0.2, 1) calc(var(--dxc-delay-m, 0ms) * var(--A, 1)) !important;
+}
+dx-counter .dx-m::before { counter-reset: m var(--dxc-m); content: counter(m); }
+dx-counter .dx-m::after { content: "\00a0"; }
+
+/* Grupul Miilor (k): Cifră în ::before + separator spațiu în ::after */
+dx-counter .dx-k {
+    --dxc-k: 0;
+    transition: --dxc-k calc(var(--dxc-duration, 500ms) * var(--A, 1)) cubic-bezier(0, 0, 0.2, 1) calc(var(--dxc-delay-k, 0ms) * var(--A, 1)) !important;
+}
+dx-counter .dx-k::before { counter-reset: k var(--dxc-k); content: counter(k); }
+dx-counter .dx-k::after { content: "\00a0"; }
+
+/* Grupul Unităților (u): Cifră în ::after */
+dx-counter .dx-u {
+    --dxc-u: 0;
+    transition: --dxc-u calc(var(--dxc-duration, 500ms) * var(--A, 1)) cubic-bezier(0, 0, 0.2, 1) calc(var(--dxc-delay, 0ms) * var(--A, 1)) !important;
+}
 dx-counter .dx-u::after { counter-reset: u var(--dxc-u); content: counter(u); }
+
+/* Grupul Zecimalelor (dec): Text = Radix (`,`), ::after = Cifre zecimale */
+dx-counter .dx-dec {
+    --dxc-dec: 0;
+    transition: --dxc-dec calc(var(--dxc-duration, 500ms) * var(--A, 1)) cubic-bezier(0, 0, 0.2, 1) calc(var(--dxc-delay, 0ms) * var(--A, 1)) !important;
+}
 dx-counter .dx-dec::after { counter-reset: dec var(--dxc-dec); content: counter(dec, decimal-leading-zero); }
 
 @media (prefers-reduced-motion: reduce) {
-    dx-counter { animation: none !important; transition: none !important; }
+    dx-counter, dx-counter .dx-b, dx-counter .dx-m, dx-counter .dx-k, dx-counter .dx-u, dx-counter .dx-dec { animation: none !important; transition: none !important; }
 }

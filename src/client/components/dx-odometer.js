@@ -12,7 +12,7 @@ import { DxMeter } from '../base/dx-meter.js';
 import { rootWin, defCustomElement } from '../base/dx-base.js';
 import { DX_ANIM, observeIO } from '../base/dx-scheduler.js';
 
-const TYPE_PARENT_SEL = 'dx-type-sda, dx-type, .type-sda, .type, .TYPE-, ui-type, ui-type-sda';
+const TYPE_PARENT_SEL = 'dx-type-sda, dx-type, .type-sda, .type, ui-type, ui-type-sda';
 
 export class DxOdometer extends DxMeter {
     constructor() {

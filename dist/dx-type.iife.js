@@ -63,9 +63,8 @@ var DxType = (() => {
     TYPING: "dx-typing",
     REVEALED: "dx-revealed",
     REVEALING: "dx-revealing",
-    // SSR guard markers — prevent re-transpiling
-    TYPE_GUARD: "TYPE-",
-    REVEAL_GUARD: "REVEAL-",
+    TYPE_GUARD: "type-guard",
+    REVEAL_GUARD: "reveal-guard",
     // Keyframe names emitted by CSS
     KF_TYPE_SDA: "dx-type-sda",
     KF_REVEAL_SDA: "dx-reveal-sda",
@@ -83,7 +82,7 @@ var DxType = (() => {
   var ioInstance = null;
   var ioCallbacks = /* @__PURE__ */ new WeakMap();
   var _sdaTopGap = "0%";
-  var _sdaBottomGap = "50px";
+  var _sdaBottomGap = "0px";
   function formatMarginValue(v) {
     if (!v || v === "0" || v === "0%" || v === "0px" || v === 0) return "0px";
     if (typeof v === "number") return `${v}px`;
@@ -695,6 +694,7 @@ var DxType = (() => {
   defCustomElement("ui-type-sda", DxTypeSda);
 
   // src/client/components/dx-reveal.js
+  var REVEAL_CONTAINER_SEL = "dx-reveal-sda, dx-reveal, .reveal-sda, .reveal, ui-reveal-sda, ui-reveal";
   var DxReveal = class extends DxRevealing {
     connectedCallback() {
       if (this.isRevealed) return;
@@ -704,6 +704,15 @@ var DxType = (() => {
         observeIO(this, (el2) => {
           unpackTemplate(el2);
           el2.classList.add(DX_ANIM.REVEALING);
+          el2.querySelectorAll("dx-counter, dx-number").forEach((child) => {
+            if (typeof child._checkAndTrigger === "function") {
+              if (child.closest(REVEAL_CONTAINER_SEL) === el2) {
+                child._inViewport = true;
+                child._parentReady = true;
+                child._checkAndTrigger();
+              }
+            }
+          });
         });
       }
       this.addEventListener("animationend", this._onAnimEnd);
@@ -723,13 +732,26 @@ var DxType = (() => {
   defCustomElement("ui-reveal", DxReveal);
 
   // src/client/components/dx-reveal-sda.js
+  var REVEAL_CONTAINER_SEL2 = "dx-reveal-sda, dx-reveal, .reveal-sda, .reveal, ui-reveal-sda, ui-reveal";
   var DxRevealSda = class extends DxRevealing {
     connectedCallback() {
       if (this.isRevealed) return;
       this._syncTimingAttributes();
+      this._triggerChildren = () => {
+        this.querySelectorAll("dx-counter, dx-number").forEach((child) => {
+          if (typeof child._checkAndTrigger === "function") {
+            if (child.closest(REVEAL_CONTAINER_SEL2) === this) {
+              child._inViewport = true;
+              child._parentReady = true;
+              child._checkAndTrigger();
+            }
+          }
+        });
+      };
       observeIO(this, (el2) => {
         unpackTemplate(el2);
         el2.classList.add(DX_ANIM.REVEALING);
+        this._triggerChildren();
       });
       this.addEventListener("animationend", this._onAnimEnd);
     }
@@ -769,16 +791,17 @@ var DxType = (() => {
   defCustomElement("dx-type-ready", DxTypeReady);
 
   // src/client/components/dx-number.js
-  var TYPE_PARENT_SEL = "dx-type-sda, dx-type, .type-sda, .type, .TYPE-, ui-type, ui-type-sda";
-  var REVEAL_PARENT_SEL = "dx-reveal-sda, dx-reveal, .reveal-sda, .reveal, .REVEAL-, ui-reveal-sda, ui-reveal";
+  var TYPE_PARENT_SEL = "dx-type-sda, dx-type, .type-sda, .type, ui-type, ui-type-sda";
+  var REVEAL_PARENT_SEL = "dx-reveal-sda, dx-reveal, .reveal-sda, .reveal, ui-reveal-sda, ui-reveal";
   var DxNumber = class extends DxMeter {
     static get observedAttributes() {
-      return ["prefix", "suffix", "comma", "type", "hide-zero", "empty-zero"];
+      return ["prefix", "suffix", "comma", "type", "percent", "value", "duration", "start"];
     }
-    attributeChangedCallback(name, oldVal, newVal) {
-      if (oldVal !== newVal && this._initialized && !this._isRendering) {
-        this.render();
-      }
+    get value() {
+      return this._value;
+    }
+    set value(val) {
+      this.val(val);
     }
     constructor() {
       super();
@@ -787,49 +810,69 @@ var DxType = (() => {
       this._parentReady = false;
       this._pendingVal = null;
       this._timeoutId = null;
-      this._numSpan = null;
       this._isRendering = false;
+      this._animReqId = null;
+      this._animStartTime = null;
+      this._animStartValue = 0;
+      this._animDuration = 0;
+    }
+    attributeChangedCallback(name, oldVal, newVal) {
+      if (oldVal === newVal || !this._initialized || this._isRendering) return;
+      if (name === "percent" || name === "value") {
+        const p = parseFloat(newVal);
+        if (!isNaN(p) && p !== this._value && this._initialized) {
+          this.val(p);
+        }
+        return;
+      }
+      if (name === "duration") return;
+      this.render();
     }
     connectedCallback() {
-      if (this.isStatic) return;
       if (this._initialized) return;
-      const inST = typeof this.closest === "function" && !!this.closest("s-t");
+      const inST = typeof this.closest === "function" ? !!this.closest("s-t") : false;
       if (inST) {
         this.makeStatic();
         this.innerHTML = this.getStaticHTML();
         return;
       }
-      const isSsr = typeof this.querySelector === "function" && Boolean(this.querySelector(".ui-num"));
+      const isSsr = typeof this.querySelector === "function" && Boolean(this.querySelector(".ui-num, .dx-num-wrap"));
       if (isSsr) {
         this.init();
         return;
       }
-      if (this.childNodes.length && typeof this.querySelector === "function" && !this.querySelector(".ui-num")) {
-        this.textContent = "";
-      }
-      const schedule = typeof queueMicrotask === "function" ? queueMicrotask : ((cb) => setTimeout(cb, 0));
-      schedule(() => {
+      setTimeout(() => {
         if (this.isConnected && !this._initialized) {
           this.init();
         }
-      });
+      }, 0);
     }
     getStaticHTML() {
       const valAttr = this.getAttribute("percent") || this.getAttribute("value") || this.textContent;
       const numericValue = parseFloat(valAttr);
       if (isNaN(numericValue)) return this.textContent.trim();
-      if ((this.hasAttribute("hide-zero") || this.hasAttribute("empty-zero")) && numericValue === 0) {
-        return "";
-      }
       return this.formatValue(numericValue);
     }
     isReadyToAnimate() {
+      const parentC = typeof this.closest === "function" ? this.closest("c") : null;
+      const parentReveal = typeof this.closest === "function" ? this.closest(REVEAL_PARENT_SEL) : null;
+      const parentActionBar = typeof this.closest === "function" ? this.closest(".action-bar, .action-bar-wrapper") : null;
+      if (parentActionBar) {
+        const isAbShowing = !!this.closest(".show-action-bar, .showing-action-bar") || typeof document !== "undefined" && document.body && (document.body.classList.contains("show-action-bar") || document.body.classList.contains("showing-action-bar"));
+        if (!isAbShowing) {
+          return false;
+        }
+        this._inViewport = true;
+        this._parentReady = true;
+        return true;
+      }
+      if (!parentC && !parentReveal) {
+        this._inViewport = true;
+        this._parentReady = true;
+        return true;
+      }
       if (this._inViewport && !this._parentReady) {
-        const parentC = typeof this.closest === "function" ? this.closest("c") : null;
-        const parentReveal = typeof this.closest === "function" ? this.closest(REVEAL_PARENT_SEL) : null;
-        if (!parentC && !parentReveal) {
-          this._parentReady = true;
-        } else if (parentReveal) {
+        if (parentReveal) {
           if (parentReveal.classList && (parentReveal.classList.contains(DX_ANIM.REVEALED) || parentReveal.classList.contains(DX_ANIM.REVEALING) || parentReveal.classList.contains("revealed") || parentReveal.classList.contains("revealing") || parentReveal.hasAttribute && parentReveal.hasAttribute("data-static"))) {
             this._parentReady = true;
           }
@@ -883,12 +926,15 @@ var DxType = (() => {
       const isStatic = this.classList && this.classList.contains("data-static") || this.isStatic || inST;
       const targetVal = this._targetValue !== void 0 && !isNaN(this._targetValue) && this._targetValue !== 0 ? this._targetValue : parseFloat(this.getAttribute("percent")) || this.getNumericValue() || 0;
       this._targetValue = targetVal;
-      const hasSsr = typeof this.querySelector === "function" && Boolean(this.querySelector(".ui-num"));
-      if (isStatic || this.hasAttribute && !this.hasAttribute("start")) {
+      const hasSsr = typeof this.querySelector === "function" && Boolean(this.querySelector(".ui-num, .dx-num-wrap"));
+      const parentC = typeof this.closest === "function" ? this.closest("c") : null;
+      const parentReveal = typeof this.closest === "function" ? this.closest(REVEAL_PARENT_SEL) : null;
+      const hasParent = Boolean(parentC || parentReveal);
+      if (isStatic) {
         this._value = targetVal;
         this._animationStarted = true;
       } else {
-        this._value = this.hasAttribute && parseFloat(this.getAttribute("start")) || 0;
+        this._value = this.hasAttribute && this.hasAttribute("start") ? parseFloat(this.getAttribute("start")) || 0 : 0;
       }
       if (!hasSsr) {
         this.render();
@@ -899,12 +945,20 @@ var DxType = (() => {
         this._cacheTextNodes();
       }
       this._inViewport = false;
-      observeIO(this, () => {
+      if (!hasParent || isStatic) {
         this._inViewport = true;
+        this._parentReady = true;
         this._checkAndTrigger();
-      });
-      const parentC = typeof this.closest === "function" ? this.closest("c") : null;
-      const parentReveal = typeof this.closest === "function" ? this.closest(REVEAL_PARENT_SEL) : null;
+      } else {
+        observeIO(this, () => {
+          this._inViewport = true;
+          this._checkAndTrigger();
+        });
+      }
+      if (isStatic) {
+        this.makeStatic();
+        return;
+      }
       if (parentC) {
         const parentType = typeof this.closest === "function" ? this.closest(TYPE_PARENT_SEL) : null;
         if (parentType && (parentType.classList.contains(DX_ANIM.TYPED) || parentType.classList.contains("typed") || parentType.hasAttribute("data-static"))) {
@@ -1226,7 +1280,7 @@ var DxType = (() => {
   defCustomElement("ui-number", DxNumber);
 
   // src/client/components/dx-odometer.js
-  var TYPE_PARENT_SEL2 = "dx-type-sda, dx-type, .type-sda, .type, .TYPE-, ui-type, ui-type-sda";
+  var TYPE_PARENT_SEL2 = "dx-type-sda, dx-type, .type-sda, .type, ui-type, ui-type-sda";
   var DxOdometer = class extends DxMeter {
     constructor() {
       super();
@@ -1314,8 +1368,7 @@ var DxType = (() => {
   defCustomElement("ui-odometer", DxOdometer);
 
   // src/client/components/dx-counter.js
-  var REVEAL_PARENT_SEL2 = "dx-reveal-sda, dx-reveal, .reveal-sda, .reveal, .REVEAL-, ui-reveal-sda, ui-reveal";
-  var SUPPORTS_HOUDINI = typeof window !== "undefined" && typeof window.CSS !== "undefined" && typeof window.CSS.registerProperty === "function";
+  var SUPPORTS_HOUDINI = false;
   if (SUPPORTS_HOUDINI) {
     const props = [
       "--dxc-b",
@@ -1368,6 +1421,15 @@ var DxType = (() => {
       super();
       this._onAnimEndBound = this._onAnimEnd.bind(this);
     }
+    init() {
+      if (this._initialized) return;
+      this._cacheDOMElements();
+      if (!this.isStatic && (!this.hasAttribute || !this.hasAttribute("start") || this.getAttribute("start") === "0")) {
+        const startVal = this.hasAttribute && this.hasAttribute("start") ? parseFloat(this.getAttribute("start")) || 0 : 0;
+        this._updateCounterVars(startVal);
+      }
+      super.init();
+    }
     attributeChangedCallback(name, oldVal, newVal) {
       if (oldVal === newVal || !this._initialized || this._isRendering) return;
       if (name === "percent" || name === "value") {
@@ -1390,56 +1452,6 @@ var DxType = (() => {
         const radix = wrap.querySelector(".dx-radix");
         if (radix) radix.textContent = newVal || ",";
       }
-    }
-    connectedCallback() {
-      if (this._initialized) return;
-      const inST = typeof this.closest === "function" ? !!this.closest("s-t") : false;
-      if (inST) {
-        this.makeStatic();
-        this.innerHTML = this.getStaticHTML();
-        return;
-      }
-      const isSsr = typeof this.querySelector === "function" && Boolean(this.querySelector(".dx-num-wrap"));
-      if (isSsr) {
-        this.init();
-        return;
-      }
-      setTimeout(() => {
-        if (this.isConnected && !this._initialized) {
-          this.init();
-        }
-      }, 0);
-    }
-    getStaticHTML() {
-      const valAttr = this.getAttribute("percent") || this.getAttribute("value") || this.textContent;
-      const numericValue = parseFloat(valAttr);
-      if (isNaN(numericValue)) return this.textContent.trim();
-      return this.formatValue(numericValue);
-    }
-    isReadyToAnimate() {
-      const parentC = typeof this.closest === "function" ? this.closest("c") : null;
-      const parentReveal = typeof this.closest === "function" ? this.closest(REVEAL_PARENT_SEL2) : null;
-      if (!parentC && !parentReveal) {
-        this._inViewport = true;
-        this._parentReady = true;
-        return true;
-      }
-      if (this._inViewport && !this._parentReady) {
-        if (parentReveal) {
-          if (parentReveal.classList && (parentReveal.classList.contains(DX_ANIM.REVEALED) || parentReveal.classList.contains(DX_ANIM.REVEALING) || parentReveal.classList.contains("revealed") || parentReveal.classList.contains("revealing") || parentReveal.hasAttribute && parentReveal.hasAttribute("data-static"))) {
-            this._parentReady = true;
-          }
-        }
-      }
-      return Boolean(this._inViewport && this._parentReady);
-    }
-    getDuration() {
-      if (this.hasAttribute("duration")) {
-        const parsed = parseFloat(this.getAttribute("duration"));
-        if (!isNaN(parsed) && parsed > 0) return parsed;
-      }
-      const t = parseFloat(this.style.getPropertyValue("--t")) || parseFloat(this.closest('[style*="--t"]')?.style.getPropertyValue("--t")) || 0;
-      return t > 0 ? t : 600;
     }
     _decompose(val) {
       const num = Math.abs(parseFloat(val) || 0);
@@ -1495,6 +1507,39 @@ var DxType = (() => {
           }
         }
       }
+      if (this._elB?.style) {
+        this._elB.style.setProperty("--dxc-from-b", String(sParts.b));
+        this._elB.style.setProperty("--dxc-to-b", String(tParts.b));
+        this._elB.style.setProperty("--dxc-b", String(tParts.b));
+        this._elB.style.setProperty("--dxc-duration", `${dur}ms`);
+        this._elB.style.setProperty("--dxc-delay-b", `${delayB}ms`);
+      }
+      if (this._elM?.style) {
+        this._elM.style.setProperty("--dxc-from-m", String(sParts.m));
+        this._elM.style.setProperty("--dxc-to-m", String(tParts.m));
+        this._elM.style.setProperty("--dxc-m", String(tParts.m));
+        this._elM.style.setProperty("--dxc-duration", `${dur}ms`);
+        this._elM.style.setProperty("--dxc-delay-m", `${delayM}ms`);
+      }
+      if (this._elK?.style) {
+        this._elK.style.setProperty("--dxc-from-k", String(sParts.k));
+        this._elK.style.setProperty("--dxc-to-k", String(tParts.k));
+        this._elK.style.setProperty("--dxc-k", String(tParts.k));
+        this._elK.style.setProperty("--dxc-duration", `${dur}ms`);
+        this._elK.style.setProperty("--dxc-delay-k", `${delayK}ms`);
+      }
+      if (this._elU?.style) {
+        this._elU.style.setProperty("--dxc-from-u", String(sParts.u));
+        this._elU.style.setProperty("--dxc-to-u", String(tParts.u));
+        this._elU.style.setProperty("--dxc-u", String(tParts.u));
+        this._elU.style.setProperty("--dxc-duration", `${dur}ms`);
+      }
+      if (this._elDec?.style) {
+        this._elDec.style.setProperty("--dxc-from-dec", String(sParts.dec));
+        this._elDec.style.setProperty("--dxc-to-dec", String(tParts.dec));
+        this._elDec.style.setProperty("--dxc-dec", String(tParts.dec));
+        this._elDec.style.setProperty("--dxc-duration", `${dur}ms`);
+      }
       const setProp = (p, v) => {
         const sVal = String(v);
         if (this.style.getPropertyValue(p) !== sVal) {
@@ -1522,33 +1567,21 @@ var DxType = (() => {
       setProp("--dxc-delay-b", `${delayB}ms`);
       if (delayKHide > 0) setProp("--dxc-delay-k-hide", `${delayKHide}ms`);
       if (delayMHide > 0) setProp("--dxc-delay-m-hide", `${delayMHide}ms`);
-      const wrap = this.querySelector(".dx-num");
-      if (wrap) {
-        const elB = wrap.querySelector(".dx-b");
-        const elSepB = wrap.querySelector(".dx-sep-b");
-        const elM = wrap.querySelector(".dx-m");
-        const elSepM = wrap.querySelector(".dx-sep-m");
-        const elK = wrap.querySelector(".dx-k");
-        const elSepK = wrap.querySelector(".dx-sep-k");
-        const elRadix = wrap.querySelector(".dx-radix");
-        const elDec = wrap.querySelector(".dx-dec");
-        const hasB = target >= 1e9 || start >= 1e9;
-        const hasM = target >= 1e6 || start >= 1e6;
-        const hasK = target >= 1e3 || start >= 1e3;
-        const cfg = this.getFormatConfig();
-        const hasDec = cfg.comma !== "" && cfg.type !== "int" && (tParts.dec > 0 || sParts.dec > 0 || cfg.type.includes("number"));
-        const setDisp = (el2, v) => {
-          if (el2 && el2.style.display !== v) el2.style.display = v;
-        };
-        setDisp(elB, hasB ? "inline" : "none");
-        setDisp(elSepB, hasB ? "inline" : "none");
-        setDisp(elM, hasM ? "inline" : "none");
-        setDisp(elSepM, hasM ? "inline" : "none");
-        setDisp(elK, hasK ? "inline" : "none");
-        setDisp(elSepK, hasK ? "inline" : "none");
-        setDisp(elRadix, hasDec ? "inline" : "none");
-        setDisp(elDec, hasDec ? "inline" : "none");
+      if (!this._elDec && !this._elU) {
+        this._cacheDOMElements();
       }
+      const hasB = target >= 1e9 || start >= 1e9;
+      const hasM = target >= 1e6 || start >= 1e6;
+      const hasK = target >= 1e3 || start >= 1e3;
+      const cfg = this._cachedCfg || (typeof this.getFormatConfig === "function" ? this.getFormatConfig() : {});
+      const hasDec = cfg.comma !== "" && cfg.type !== "int" && (tParts.dec > 0 || sParts.dec > 0 || cfg.type && cfg.type.includes("number"));
+      const setDisp = (el2, v) => {
+        if (el2 && el2.style.display !== v) el2.style.display = v;
+      };
+      setDisp(this._elB, hasB ? "inline" : "none");
+      setDisp(this._elM, hasM ? "inline" : "none");
+      setDisp(this._elK, hasK ? "inline" : "none");
+      setDisp(this._elDec, hasDec ? "inline" : "none");
     }
     render() {
       this._isRendering = true;
@@ -1558,7 +1591,19 @@ var DxType = (() => {
       let wrap = this.querySelector(".dx-num-wrap");
       let st = this.querySelector("s-t");
       if (!wrap) {
-        this.innerHTML = `<s-t>${formattedFull}</s-t><span class="dx-num-wrap"><span class="dx-pfx">${cfg.prefix || ""}</span><span class="dx-num"><span class="dx-b" style="display: none;"></span><span class="dx-sep-b" style="display: none;"> </span><span class="dx-m" style="display: none;"></span><span class="dx-sep-m" style="display: none;"> </span><span class="dx-k" style="display: none;"></span><span class="dx-sep-k" style="display: none;"> </span><span class="dx-u"></span><span class="dx-radix">${cfg.comma || ","}</span><span class="dx-dec"></span></span><span class="dx-sfx">${cfg.suffix || ""}</span></span>`;
+        const hasB = targetVal >= 1e9;
+        const hasM = targetVal >= 1e6;
+        const hasK = targetVal >= 1e3;
+        const tParts = this._decompose(targetVal);
+        const hasDec = cfg.comma !== "" && cfg.type !== "int" && (tParts.dec > 0 || cfg.type && cfg.type.includes("number"));
+        const pfxHtml = cfg.prefix ? `<span class="dx-pfx">${cfg.prefix}</span>` : "";
+        const sfxHtml = cfg.suffix ? `<span class="dx-sfx">${cfg.suffix}</span>` : "";
+        const bHtml = `<span class="dx-b"${hasB ? "" : ' style="display: none;"'}></span>`;
+        const mHtml = `<span class="dx-m"${hasM ? "" : ' style="display: none;"'}></span>`;
+        const kHtml = `<span class="dx-k"${hasK ? "" : ' style="display: none;"'}></span>`;
+        const uHtml = `<span class="dx-u"></span>`;
+        const decHtml = `<span class="dx-dec"${hasDec ? "" : ' style="display: none;"'}>${cfg.comma || ","}</span>`;
+        this.innerHTML = `<s-t>${formattedFull}</s-t><span class="dx-num-wrap">${pfxHtml}${bHtml}${mHtml}${kHtml}${uHtml}${decHtml}${sfxHtml}</span>`;
       } else {
         if (st && st.textContent !== formattedFull) {
           st.textContent = formattedFull;
@@ -1570,69 +1615,87 @@ var DxType = (() => {
       this._isRendering = false;
     }
     _cacheDOMElements() {
-      const num = this.querySelector(".dx-num");
-      if (num) {
-        this._elB = num.querySelector(".dx-b");
-        this._elSepB = num.querySelector(".dx-sep-b");
-        this._elM = num.querySelector(".dx-m");
-        this._elSepM = num.querySelector(".dx-sep-m");
-        this._elK = num.querySelector(".dx-k");
-        this._elSepK = num.querySelector(".dx-sep-k");
-        this._elRadix = num.querySelector(".dx-radix");
-        this._elDec = num.querySelector(".dx-dec");
+      const wrap = typeof this.querySelector === "function" ? this.querySelector(".dx-num-wrap") : null;
+      if (wrap) {
+        this._elB = wrap.querySelector(".dx-b");
+        this._elM = wrap.querySelector(".dx-m");
+        this._elK = wrap.querySelector(".dx-k");
+        this._elU = wrap.querySelector(".dx-u");
+        this._elDec = wrap.querySelector(".dx-dec");
+        this._elPfx = wrap.querySelector(".dx-pfx");
+        this._elSfx = wrap.querySelector(".dx-sfx");
       }
-      this._cachedCfg = this.getFormatConfig();
+      this._cachedCfg = typeof this.getFormatConfig === "function" ? this.getFormatConfig() : {};
     }
     _updateCounterVars(currentVal) {
-      if (!this._elDec && !this._elRadix) {
+      if (!this._elDec && !this._elU) {
         this._cacheDOMElements();
       }
       const c = this._decompose(currentVal);
-      if (c.b !== this._lastB) {
-        this.style.setProperty("--dxc-b", String(c.b));
-        this._lastB = c.b;
+      if (this._elB?.style) {
+        if (c.b !== this._lastB) {
+          this._elB.style.setProperty("--dxc-b", String(c.b));
+          this._lastB = c.b;
+        }
       }
-      if (c.m !== this._lastM) {
-        this.style.setProperty("--dxc-m", String(c.m));
-        this._lastM = c.m;
+      if (this._elM?.style) {
+        if (c.m !== this._lastM) {
+          this._elM.style.setProperty("--dxc-m", String(c.m));
+          this._lastM = c.m;
+        }
       }
-      if (c.k !== this._lastK) {
-        this.style.setProperty("--dxc-k", String(c.k));
-        this._lastK = c.k;
+      if (this._elK?.style) {
+        if (c.k !== this._lastK) {
+          this._elK.style.setProperty("--dxc-k", String(c.k));
+          this._lastK = c.k;
+        }
       }
-      if (c.u !== this._lastU) {
-        this.style.setProperty("--dxc-u", String(c.u));
-        this._lastU = c.u;
+      if (this._elU?.style) {
+        if (c.u !== this._lastU) {
+          this._elU.style.setProperty("--dxc-u", String(c.u));
+          this._lastU = c.u;
+        }
       }
-      if (c.dec !== this._lastDec) {
-        this.style.setProperty("--dxc-dec", String(c.dec));
-        this._lastDec = c.dec;
+      if (this._elDec?.style) {
+        if (c.dec !== this._lastDec) {
+          this._elDec.style.setProperty("--dxc-dec", String(c.dec));
+          this._lastDec = c.dec;
+        }
+      }
+      if (this.style && typeof this.style.setProperty === "function") {
+        if (c.b !== this._lastB) {
+          this.style.setProperty("--dxc-b", String(c.b));
+          this._lastB = c.b;
+        }
+        if (c.m !== this._lastM) {
+          this.style.setProperty("--dxc-m", String(c.m));
+          this._lastM = c.m;
+        }
+        if (c.k !== this._lastK) {
+          this.style.setProperty("--dxc-k", String(c.k));
+          this._lastK = c.k;
+        }
+        if (c.u !== this._lastU) {
+          this.style.setProperty("--dxc-u", String(c.u));
+          this._lastU = c.u;
+        }
+        if (c.dec !== this._lastDec) {
+          this.style.setProperty("--dxc-dec", String(c.dec));
+          this._lastDec = c.dec;
+        }
       }
       const hasB = currentVal >= 1e9;
       const hasM = currentVal >= 1e6;
       const hasK = currentVal >= 1e3;
-      const cfg = this._cachedCfg || this.getFormatConfig();
-      const hasDec = cfg.comma !== "" && cfg.type !== "int" && (c.dec > 0 || cfg.type.includes("number"));
-      if (hasB !== this._lastHasB) {
-        if (this._elB) this._elB.style.display = hasB ? "inline" : "none";
-        if (this._elSepB) this._elSepB.style.display = hasB ? "inline" : "none";
-        this._lastHasB = hasB;
-      }
-      if (hasM !== this._lastHasM) {
-        if (this._elM) this._elM.style.display = hasM ? "inline" : "none";
-        if (this._elSepM) this._elSepM.style.display = hasM ? "inline" : "none";
-        this._lastHasM = hasM;
-      }
-      if (hasK !== this._lastHasK) {
-        if (this._elK) this._elK.style.display = hasK ? "inline" : "none";
-        if (this._elSepK) this._elSepK.style.display = hasK ? "inline" : "none";
-        this._lastHasK = hasK;
-      }
-      if (hasDec !== this._lastHasDec) {
-        if (this._elRadix) this._elRadix.style.display = hasDec ? "inline" : "none";
-        if (this._elDec) this._elDec.style.display = hasDec ? "inline" : "none";
-        this._lastHasDec = hasDec;
-      }
+      const cfg = this._cachedCfg || (typeof this.getFormatConfig === "function" ? this.getFormatConfig() : {});
+      const hasDec = cfg.comma !== "" && cfg.type !== "int" && (c.dec > 0 || cfg.type && cfg.type.includes("number"));
+      const setDisp = (el2, v) => {
+        if (el2 && el2.style.display !== v) el2.style.display = v;
+      };
+      setDisp(this._elB, hasB ? "inline" : "none");
+      setDisp(this._elM, hasM ? "inline" : "none");
+      setDisp(this._elK, hasK ? "inline" : "none");
+      setDisp(this._elDec, hasDec ? "inline" : "none");
     }
     _updateFrameDisplay(targetVal) {
       this._updateCounterVars(this._value);
@@ -1673,7 +1736,6 @@ var DxType = (() => {
       }
       this._animationStarted = true;
       this._pendingVal = null;
-      this._value = parsedValue;
       this.setAttribute("percent", parsedValue);
       this.setAccessibility(parsedValue);
       const st = this.querySelector("s-t");
