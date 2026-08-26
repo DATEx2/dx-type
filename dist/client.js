@@ -311,10 +311,8 @@ function onTypewriterEnd(cEl, event) {
     if (parent.querySelector(":scope > template")) return false;
     const isEmbed = cEl.tagName === "DX-ODOMETER" || cEl.tagName === "UI-ODOMETER" || cEl.tagName === "DX-NUMBER" || cEl.tagName === "UI-NUMBER";
     if (!parent._lastC) {
-      parent._lastC = parent.querySelector('[data-last="true"]') || (() => {
-        const allC = parent.querySelectorAll("t w > *, w > *, t c, c");
-        return allC.length ? allC[allC.length - 1] : null;
-      })();
+      const allC = parent.querySelectorAll("t c, c");
+      parent._lastC = allC.length ? allC[allC.length - 1] : null;
     }
     const lastC = parent._lastC;
     const isLastChar = !isEmbed && (cEl === lastC || cEl.getAttribute?.("data-last") === "true" || cEl.classList?.contains("last-char") || lastC && (cEl.contains(lastC) || lastC.contains(cEl)));
@@ -588,10 +586,8 @@ var DxType = class extends DxTyping {
         onTypewriterEnd(target, e);
       } else {
         if (!this._lastC) {
-          this._lastC = this.querySelector('[data-last="true"]') || (() => {
-            const allC = this.querySelectorAll("w > *, c");
-            return allC.length ? allC[allC.length - 1] : null;
-          })();
+          const allC = this.querySelectorAll("c");
+          this._lastC = allC.length ? allC[allC.length - 1] : null;
         }
         if (target === this._lastC) {
           onTypewriterEnd(target, e);
@@ -624,10 +620,8 @@ var DxTypeSda = class extends DxTyping {
         onTypewriterEnd(target, e);
       } else {
         if (!this._lastC) {
-          this._lastC = this.querySelector('[data-last="true"]') || (() => {
-            const allC = this.querySelectorAll("w > *, c");
-            return allC.length ? allC[allC.length - 1] : null;
-          })();
+          const allC = this.querySelectorAll("c");
+          this._lastC = allC.length ? allC[allC.length - 1] : null;
         }
         if (this._lastC && target === this._lastC) {
           onTypewriterEnd(target, e);
