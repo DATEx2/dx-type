@@ -4,7 +4,7 @@
 // used_by: src/client/components/dx-type.js, src/client/components/dx-type-sda.js
 
 import { DxBase, rootWin } from './dx-base.js';
-import { observeIO, getIO, DX_ANIM } from './dx-scheduler.js';
+import { observeIO, unobserveIO, queueIdleUnpack, removeFromIdleQueue, getIO, DX_ANIM } from './dx-scheduler.js';
 
 export function getTypewriterObserver(win) {
     return getIO(win);
@@ -34,17 +34,23 @@ export function unpackTemplate(el) {
         tpl.replaceWith(tpl.content);
         const t = el.querySelector(':scope > t');
         if (t) t.setAttribute('aria-hidden', 'true');
-        el.classList.add(DX_ANIM.TYPING);
         return true;
     }
     return false;
 }
 
-// ─── Observe element for JIT template unpack via Singleton IO ────────────────
+// ─── Observe element for JIT template unpack via Singleton IO & Idle Queue ───
 export function observeTypewriter(el) {
     if (!el) return;
     if (el.classList && el.classList.contains(DX_ANIM.TYPED)) return;
-    observeIO(el, unpackTemplate);
+    observeIO(el, (targetEl) => {
+        removeFromIdleQueue(targetEl);
+        unpackTemplate(targetEl);
+    });
+    queueIdleUnpack(el, (targetEl) => {
+        unobserveIO(targetEl);
+        unpackTemplate(targetEl);
+    });
 }
 
 // ─── Mount guard: only triggers on correct animation name ────────────────────

@@ -115,6 +115,56 @@ export function unobserveIO(el) {
     if (ioInstance) ioInstance.unobserve(el);
 }
 
+// ─── Idle Unpack Queue (1 template per requestIdleCallback) ───────────────────
+const idleQueue = [];
+let isIdleScheduled = false;
+
+const scheduleIdle = (typeof window !== 'undefined' && window.requestIdleCallback)
+    ? window.requestIdleCallback.bind(window)
+    : (cb => setTimeout(() => cb({ timeRemaining: () => 15, didTimeout: false }), 50));
+
+function processNextIdle() {
+    if (idleQueue.length === 0) {
+        isIdleScheduled = false;
+        return;
+    }
+    const item = idleQueue.shift();
+    if (item && item.el) {
+        try {
+            item.callback(item.el);
+        } catch (e) {
+            console.error('[dx-type] Idle unpack failed:', e);
+        }
+    }
+    if (idleQueue.length > 0) {
+        scheduleIdle(processNextIdle);
+    } else {
+        isIdleScheduled = false;
+    }
+}
+
+export function queueIdleUnpack(el, callback) {
+    if (!el) return;
+    // Prevent duplicate entries
+    for (let i = 0; i < idleQueue.length; i++) {
+        if (idleQueue[i].el === el) return;
+    }
+    idleQueue.push({ el, callback });
+    if (!isIdleScheduled) {
+        isIdleScheduled = true;
+        scheduleIdle(processNextIdle);
+    }
+}
+
+export function removeFromIdleQueue(el) {
+    if (!el) return;
+    for (let i = idleQueue.length - 1; i >= 0; i--) {
+        if (idleQueue[i].el === el) {
+            idleQueue.splice(i, 1);
+        }
+    }
+}
+
 if (rootWin) {
     Object.assign(rootWin, {
         setSdaGaps,

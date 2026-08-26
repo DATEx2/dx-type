@@ -13,6 +13,11 @@ export class DxTypeReady extends DxBase {
         if (!this._pristineHTML && typeof document !== 'undefined' && document.body?.classList?.contains('dx-type-record')) {
             this._pristineHTML = this.innerHTML;
         }
+        if (!this.classList.contains('dx-type-ready')) {
+            requestAnimationFrame(() => {
+                this.classList.add('dx-type-ready');
+            });
+        }
     }
 
     replay() {

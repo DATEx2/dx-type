@@ -9,7 +9,7 @@
 
 import { DxNumber } from './dx-number.js';
 import { rootWin, defCustomElement } from '../base/dx-base.js';
-import { DX_ANIM, observeIO, unregisterRAF } from '../base/dx-scheduler.js';
+import { DX_ANIM, observeIO, registerRAF, unregisterRAF } from '../base/dx-scheduler.js';
 
 const TYPE_PARENT_SEL = 'dx-type-sda, dx-type, .type-sda, .type, ui-type, ui-type-sda';
 const REVEAL_PARENT_SEL = 'dx-reveal-sda, dx-reveal, .reveal-sda, .reveal, ui-reveal-sda, ui-reveal';
@@ -307,11 +307,38 @@ export class DxCounter extends DxNumber {
             this._cacheDOMElements();
         }
         const c = this._decompose(currentVal);
-        if (this._elB?.style) { if (c.b !== this._lastB) { this._elB.style.setProperty('--dxc-b', String(c.b)); this._lastB = c.b; } }
-        if (this._elM?.style) { if (c.m !== this._lastM) { this._elM.style.setProperty('--dxc-m', String(c.m)); this._lastM = c.m; } }
-        if (this._elK?.style) { if (c.k !== this._lastK) { this._elK.style.setProperty('--dxc-k', String(c.k)); this._lastK = c.k; } }
-        if (this._elU?.style) { if (c.u !== this._lastU) { this._elU.style.setProperty('--dxc-u', String(c.u)); this._lastU = c.u; } }
-        if (this._elDec?.style) { if (c.dec !== this._lastDec) { this._elDec.style.setProperty('--dxc-dec', String(c.dec)); this._lastDec = c.dec; } }
+        const hasB = currentVal >= 1e9;
+        const hasM = currentVal >= 1e6;
+        const hasK = currentVal >= 1e3;
+        const cfg = this._cachedCfg || (typeof this.getFormatConfig === 'function' ? this.getFormatConfig() : {});
+        const radix = cfg.comma !== '' ? (cfg.comma || ',') : ',';
+        const hasDec = cfg.comma !== '' && cfg.type !== 'int' && (c.dec > 0 || (cfg.type && cfg.type.includes('number')));
+
+        if (this._elB) {
+            const bStr = hasB ? String(c.b) : '';
+            if (this._elB.textContent !== bStr) this._elB.textContent = bStr;
+            if (this._elB.style) this._elB.style.setProperty('--dxc-b', bStr || '0');
+        }
+        if (this._elM) {
+            const mStr = hasM ? (hasB ? String(c.m).padStart(3, '0') : String(c.m)) : '';
+            if (this._elM.textContent !== mStr) this._elM.textContent = mStr;
+            if (this._elM.style) this._elM.style.setProperty('--dxc-m', mStr || '0');
+        }
+        if (this._elK) {
+            const kStr = hasK ? (hasM ? String(c.k).padStart(3, '0') : String(c.k)) : '';
+            if (this._elK.textContent !== kStr) this._elK.textContent = kStr;
+            if (this._elK.style) this._elK.style.setProperty('--dxc-k', kStr || '0');
+        }
+        if (this._elU) {
+            const uStr = hasK ? String(c.u).padStart(3, '0') : String(c.u);
+            if (this._elU.textContent !== uStr) this._elU.textContent = uStr;
+            if (this._elU.style) this._elU.style.setProperty('--dxc-u', uStr || '0');
+        }
+        if (this._elDec) {
+            const decStr = hasDec ? `${radix}${String(c.dec).padStart(2, '0')}` : '';
+            if (this._elDec.textContent !== decStr) this._elDec.textContent = decStr;
+            if (this._elDec.style) this._elDec.style.setProperty('--dxc-dec', String(c.dec));
+        }
 
         if (this.style && typeof this.style.setProperty === 'function') {
             if (c.b !== this._lastB) { this.style.setProperty('--dxc-b', String(c.b)); this._lastB = c.b; }
@@ -320,12 +347,6 @@ export class DxCounter extends DxNumber {
             if (c.u !== this._lastU) { this.style.setProperty('--dxc-u', String(c.u)); this._lastU = c.u; }
             if (c.dec !== this._lastDec) { this.style.setProperty('--dxc-dec', String(c.dec)); this._lastDec = c.dec; }
         }
-
-        const hasB = currentVal >= 1e9;
-        const hasM = currentVal >= 1e6;
-        const hasK = currentVal >= 1e3;
-        const cfg = this._cachedCfg || (typeof this.getFormatConfig === 'function' ? this.getFormatConfig() : {});
-        const hasDec = cfg.comma !== '' && cfg.type !== 'int' && (c.dec > 0 || (cfg.type && cfg.type.includes('number')));
 
         const setDisp = (el, v) => {
             if (el && el.style.display !== v) el.style.display = v;
@@ -337,8 +358,37 @@ export class DxCounter extends DxNumber {
         setDisp(this._elDec, hasDec ? 'inline' : 'none');
     }
 
-    _updateFrameDisplay(targetVal) {
+    _stepAnimation(now) {
+        const elapsed = Math.max(0, now - this._animStartTime);
+        const duration = this._animDuration;
+        const targetValue = this._targetValue;
+        const startValue = this._animStartValue;
+
+        if (elapsed >= duration) {
+            this._value = targetValue;
+            this.setAttribute('percent', this._value);
+            this.makeStatic();
+            this.classList.remove('ui-number-running');
+            this._updateCounterVars(targetValue);
+            this.setAccessibility(targetValue);
+            unregisterRAF(this);
+        } else {
+            const progress = elapsed / duration;
+            const easeProgress = progress * (2 - progress);
+            this._value = startValue + (targetValue - startValue) * easeProgress;
+            this._updateCounterVars(this._value);
+        }
+    }
+
+    animateTo(targetValue, duration) {
+        if (typeof this.removeAttribute === 'function') this.removeAttribute('data-static');
+        this._targetValue = targetValue;
+        this._animStartValue = this._value;
+        this._animDuration = duration;
+        this._animStartTime = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
+        this.classList.add('ui-number-running');
         this._updateCounterVars(this._value);
+        registerRAF(this);
     }
 
     _onAnimEnd(e) {
@@ -402,7 +452,16 @@ export class DxCounter extends DxNumber {
 
         // ── Mode 2 (Default / Ultra-smooth 60-144 FPS Batched rAF): Zero layout thrashing ──
         this._value = startVal;
-        return super.val(parsedValue, animDuration);
+        if (animDuration > 0 && startVal !== parsedValue) {
+            this.animateTo(parsedValue, animDuration);
+        } else {
+            unregisterRAF(this);
+            this.classList.remove('ui-number-running');
+            this._value = parsedValue;
+            this._updateCounterVars(parsedValue);
+            this.setAccessibility(parsedValue);
+        }
+        return this;
     }
 }
 

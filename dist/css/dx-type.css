@@ -224,9 +224,12 @@ d::before {
   -webkit-text-fill-color: inherit !important;
   transform: translateY(0);
 }
-:is(dx-type-sda.dx-typing, dx-type-sda.dx-typed, dx-type.dx-typing, dx-type.dx-typed, .dx-type-ready) d::before,
 :is(dx-odometer.dx-typing, dx-odometer.dx-typed) d::before {
-  animation: run-odometer calc((var(--odo-dur, 1400ms) - (var(--r, 0) * var(--odo-stag, 60ms))) * var(--A, 1)) cubic-bezier(0.37, 0, 0.63, 1) calc((var(--d, 0) + var(--w, 0) * var(--u, 40) + var(--i, 0) * var(--u, 40) + var(--c, 0) + var(--u, 40) * 0.35 + var(--r, 0) * 60) * var(--A, 1) * 1ms) both !important;
+  animation: run-odometer calc((var(--odo-dur, 1400ms) - (var(--r, 0) * var(--odo-stag, 60ms))) * var(--A, 1)) cubic-bezier(0.37, 0, 0.63, 1) calc((var(--d, 0) * 1ms + var(--r, 0) * 60ms) * var(--A, 1)) both !important;
+  animation-play-state: running !important;
+}
+:is(dx-type-sda.dx-typing, dx-type-sda.dx-typed, dx-type.dx-typing, dx-type.dx-typed, .dx-type-ready) dx-odometer d::before {
+  animation: run-odometer calc((var(--odo-dur, 1400ms) - (var(--r, 0) * var(--odo-stag, 60ms))) * var(--A, 1)) cubic-bezier(0.37, 0, 0.63, 1) calc((var(--d, 0) * 1ms + var(--r, 0) * 60ms + 14ms) * var(--A, 1)) both !important;
   animation-play-state: running !important;
 }
 @keyframes run-odometer {
@@ -335,14 +338,14 @@ dx-type-sda s {
     transform: translateY(0);
   }
 }
-:is(.dx-type-ready, dx-type-ready.dx-type-ready, dx-type.dx-typing, dx-type.dx-typed) :is(w, s, dx-type w, dx-type s) > i {
+:is(.dx-type-ready, .type-ready, dx-type-ready.dx-type-ready, dx-type-ready.type-ready, dx-type.dx-typing, dx-type.dx-typed) :is(w, s, dx-type w, dx-type s) > i {
   visibility: visible !important;
   animation-name: type-in !important;
   animation-timing-function: linear !important;
   animation-fill-mode: both !important;
 }
-.dx-type-ready dx-reveal,
-:is(dx-reveal.dx-type-ready, dx-reveal.dx-revealing, dx-reveal.dx-revealed) {
+:is(.dx-type-ready, .type-ready, dx-type-ready.dx-type-ready, dx-type-ready.type-ready) dx-reveal,
+:is(dx-reveal.dx-type-ready, dx-reveal.type-ready, dx-reveal.dx-revealing, dx-reveal.dx-revealed) {
   visibility: visible !important;
   animation: reveal-in calc(var(--t, 600) * var(--A, 1) * 1ms) ease-out calc(var(--d, 0) * var(--A, 1) * 1ms) both !important;
 }

@@ -10,7 +10,7 @@
 import { DxRevealing, finishReveal } from '../base/dx-revealing.js';
 import { unpackTemplate } from '../base/dx-typing.js';
 import { defCustomElement } from '../base/dx-base.js';
-import { observeIO, DX_ANIM } from '../base/dx-scheduler.js';
+import { DX_ANIM, observeIO, queueIdleUnpack, removeFromIdleQueue } from '../base/dx-scheduler.js';
 
 const REVEAL_CONTAINER_SEL = 'dx-reveal-sda, dx-reveal, .reveal-sda, .reveal, ui-reveal-sda, ui-reveal';
 
@@ -32,9 +32,15 @@ export class DxRevealSda extends DxRevealing {
         };
 
         observeIO(this, (el) => {
+            removeFromIdleQueue(el);
             unpackTemplate(el);
             el.classList.add(DX_ANIM.REVEALING);
             this._triggerChildren();
+        });
+
+        // Background Pre-warm: 1 template per requestIdleCallback
+        queueIdleUnpack(this, (el) => {
+            unpackTemplate(el);
         });
 
         this.addEventListener('animationend', this._onAnimEnd);

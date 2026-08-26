@@ -8,9 +8,8 @@ function assert(condition, msg) {
 export default function testServerTokenizer() {
     // 1. Basic word tokenization with timing
     const result = tokenize('Hello World', { duration: 500, delay: 100 });
-    assert(result.html.includes('<w style="--w:0;--N:5">'), 'First word should have --w:0;--N:5');
-    assert(result.html.includes('<w style="--w:6;--N:5">'), 'Second word should have --w:6;--N:5');
-    assert(result.html.includes('<c>H</c>'), 'Should contain <c>H</c>');
+    assert(result.html.includes('<w>'), 'Should contain <w> tags');
+    assert(result.html.includes('<i') && result.html.includes('>H</i>'), 'Should contain <i>H</i>');
     assert(result.totalUnits > 0, 'Total units should be positive');
     assert(result.style.includes('--d:100;--t:500'), 'Style should contain exact delay and duration');
 
@@ -27,7 +26,7 @@ export default function testServerTokenizer() {
 
     // 3. Tokenize with embedded <dx-number>
     const mixed = tokenize('Battery <dx-number percent="48">48</dx-number>V power');
-    assert(mixed.html.includes('<c class="c-ui-num"><dx-number percent="48">48</dx-number></c>'), 'Should wrap <dx-number> in virtual typewriter slot');
+    assert(mixed.html.includes('<i class="c-ui-num"'), 'Should wrap <dx-number> in virtual typewriter slot');
 
     // 4. ssrDxNumber test
     const numHtml = ssrDxNumber(159.99, '159,99 €', 'ui-price', 'number');

@@ -93,6 +93,47 @@ function unobserveIO(el2) {
   ioCallbacks.delete(el2);
   if (ioInstance) ioInstance.unobserve(el2);
 }
+var idleQueue = [];
+var isIdleScheduled = false;
+var scheduleIdle = typeof window !== "undefined" && window.requestIdleCallback ? window.requestIdleCallback.bind(window) : ((cb) => setTimeout(() => cb({ timeRemaining: () => 15, didTimeout: false }), 50));
+function processNextIdle() {
+  if (idleQueue.length === 0) {
+    isIdleScheduled = false;
+    return;
+  }
+  const item = idleQueue.shift();
+  if (item && item.el) {
+    try {
+      item.callback(item.el);
+    } catch (e) {
+      console.error("[dx-type] Idle unpack failed:", e);
+    }
+  }
+  if (idleQueue.length > 0) {
+    scheduleIdle(processNextIdle);
+  } else {
+    isIdleScheduled = false;
+  }
+}
+function queueIdleUnpack(el2, callback) {
+  if (!el2) return;
+  for (let i = 0; i < idleQueue.length; i++) {
+    if (idleQueue[i].el === el2) return;
+  }
+  idleQueue.push({ el: el2, callback });
+  if (!isIdleScheduled) {
+    isIdleScheduled = true;
+    scheduleIdle(processNextIdle);
+  }
+}
+function removeFromIdleQueue(el2) {
+  if (!el2) return;
+  for (let i = idleQueue.length - 1; i >= 0; i--) {
+    if (idleQueue[i].el === el2) {
+      idleQueue.splice(i, 1);
+    }
+  }
+}
 if (rootWin) {
   Object.assign(rootWin, {
     setSdaGaps,
@@ -247,7 +288,6 @@ function unpackTemplate(el2) {
     tpl.replaceWith(tpl.content);
     const t = el2.querySelector(":scope > t");
     if (t) t.setAttribute("aria-hidden", "true");
-    el2.classList.add(DX_ANIM.TYPING);
     return true;
   }
   return false;
@@ -255,7 +295,14 @@ function unpackTemplate(el2) {
 function observeTypewriter(el2) {
   if (!el2) return;
   if (el2.classList && el2.classList.contains(DX_ANIM.TYPED)) return;
-  observeIO(el2, unpackTemplate);
+  observeIO(el2, (targetEl) => {
+    removeFromIdleQueue(targetEl);
+    unpackTemplate(targetEl);
+  });
+  queueIdleUnpack(el2, (targetEl) => {
+    unobserveIO(targetEl);
+    unpackTemplate(targetEl);
+  });
 }
 function mountTypewriter(el2, e) {
   if (e && e.animationName && e.animationName !== DX_ANIM.KF_TYPE_SDA) return;
@@ -609,8 +656,12 @@ var DxTypeSda = class extends DxTyping {
     this._syncTimingAttributes();
     this.addEventListener("animationend", this._onAnimEnd);
     observeIO(this, (el2) => {
+      removeFromIdleQueue(el2);
       unpackTemplate(el2);
       el2.classList.add(DX_ANIM.TYPING);
+    });
+    queueIdleUnpack(this, (el2) => {
+      unpackTemplate(el2);
     });
   }
   _onAnimEnd = (e) => {
@@ -692,9 +743,13 @@ var DxRevealSda = class extends DxRevealing {
       });
     };
     observeIO(this, (el2) => {
+      removeFromIdleQueue(el2);
       unpackTemplate(el2);
       el2.classList.add(DX_ANIM.REVEALING);
       this._triggerChildren();
+    });
+    queueIdleUnpack(this, (el2) => {
+      unpackTemplate(el2);
     });
     this.addEventListener("animationend", this._onAnimEnd);
   }
@@ -717,6 +772,11 @@ var DxTypeReady = class extends DxBase {
   connectedCallback() {
     if (!this._pristineHTML && typeof document !== "undefined" && document.body?.classList?.contains("dx-type-record")) {
       this._pristineHTML = this.innerHTML;
+    }
+    if (!this.classList.contains("dx-type-ready")) {
+      requestAnimationFrame(() => {
+        this.classList.add("dx-type-ready");
+      });
     }
   }
   replay() {
@@ -1575,35 +1635,36 @@ var DxCounter = class _DxCounter extends DxNumber {
       this._cacheDOMElements();
     }
     const c = this._decompose(currentVal);
-    if (this._elB?.style) {
-      if (c.b !== this._lastB) {
-        this._elB.style.setProperty("--dxc-b", String(c.b));
-        this._lastB = c.b;
-      }
+    const hasB = currentVal >= 1e9;
+    const hasM = currentVal >= 1e6;
+    const hasK = currentVal >= 1e3;
+    const cfg = this._cachedCfg || (typeof this.getFormatConfig === "function" ? this.getFormatConfig() : {});
+    const radix = cfg.comma !== "" ? cfg.comma || "," : ",";
+    const hasDec = cfg.comma !== "" && cfg.type !== "int" && (c.dec > 0 || cfg.type && cfg.type.includes("number"));
+    if (this._elB) {
+      const bStr = hasB ? String(c.b) : "";
+      if (this._elB.textContent !== bStr) this._elB.textContent = bStr;
+      if (this._elB.style) this._elB.style.setProperty("--dxc-b", bStr || "0");
     }
-    if (this._elM?.style) {
-      if (c.m !== this._lastM) {
-        this._elM.style.setProperty("--dxc-m", String(c.m));
-        this._lastM = c.m;
-      }
+    if (this._elM) {
+      const mStr = hasM ? hasB ? String(c.m).padStart(3, "0") : String(c.m) : "";
+      if (this._elM.textContent !== mStr) this._elM.textContent = mStr;
+      if (this._elM.style) this._elM.style.setProperty("--dxc-m", mStr || "0");
     }
-    if (this._elK?.style) {
-      if (c.k !== this._lastK) {
-        this._elK.style.setProperty("--dxc-k", String(c.k));
-        this._lastK = c.k;
-      }
+    if (this._elK) {
+      const kStr = hasK ? hasM ? String(c.k).padStart(3, "0") : String(c.k) : "";
+      if (this._elK.textContent !== kStr) this._elK.textContent = kStr;
+      if (this._elK.style) this._elK.style.setProperty("--dxc-k", kStr || "0");
     }
-    if (this._elU?.style) {
-      if (c.u !== this._lastU) {
-        this._elU.style.setProperty("--dxc-u", String(c.u));
-        this._lastU = c.u;
-      }
+    if (this._elU) {
+      const uStr = hasK ? String(c.u).padStart(3, "0") : String(c.u);
+      if (this._elU.textContent !== uStr) this._elU.textContent = uStr;
+      if (this._elU.style) this._elU.style.setProperty("--dxc-u", uStr || "0");
     }
-    if (this._elDec?.style) {
-      if (c.dec !== this._lastDec) {
-        this._elDec.style.setProperty("--dxc-dec", String(c.dec));
-        this._lastDec = c.dec;
-      }
+    if (this._elDec) {
+      const decStr = hasDec ? `${radix}${String(c.dec).padStart(2, "0")}` : "";
+      if (this._elDec.textContent !== decStr) this._elDec.textContent = decStr;
+      if (this._elDec.style) this._elDec.style.setProperty("--dxc-dec", String(c.dec));
     }
     if (this.style && typeof this.style.setProperty === "function") {
       if (c.b !== this._lastB) {
@@ -1627,11 +1688,6 @@ var DxCounter = class _DxCounter extends DxNumber {
         this._lastDec = c.dec;
       }
     }
-    const hasB = currentVal >= 1e9;
-    const hasM = currentVal >= 1e6;
-    const hasK = currentVal >= 1e3;
-    const cfg = this._cachedCfg || (typeof this.getFormatConfig === "function" ? this.getFormatConfig() : {});
-    const hasDec = cfg.comma !== "" && cfg.type !== "int" && (c.dec > 0 || cfg.type && cfg.type.includes("number"));
     const setDisp = (el2, v) => {
       if (el2 && el2.style.display !== v) el2.style.display = v;
     };
@@ -1640,8 +1696,35 @@ var DxCounter = class _DxCounter extends DxNumber {
     setDisp(this._elK, hasK ? "inline" : "none");
     setDisp(this._elDec, hasDec ? "inline" : "none");
   }
-  _updateFrameDisplay(targetVal) {
+  _stepAnimation(now) {
+    const elapsed = Math.max(0, now - this._animStartTime);
+    const duration = this._animDuration;
+    const targetValue = this._targetValue;
+    const startValue = this._animStartValue;
+    if (elapsed >= duration) {
+      this._value = targetValue;
+      this.setAttribute("percent", this._value);
+      this.makeStatic();
+      this.classList.remove("ui-number-running");
+      this._updateCounterVars(targetValue);
+      this.setAccessibility(targetValue);
+      unregisterRAF(this);
+    } else {
+      const progress = elapsed / duration;
+      const easeProgress = progress * (2 - progress);
+      this._value = startValue + (targetValue - startValue) * easeProgress;
+      this._updateCounterVars(this._value);
+    }
+  }
+  animateTo(targetValue, duration) {
+    if (typeof this.removeAttribute === "function") this.removeAttribute("data-static");
+    this._targetValue = targetValue;
+    this._animStartValue = this._value;
+    this._animDuration = duration;
+    this._animStartTime = typeof performance !== "undefined" && performance.now ? performance.now() : Date.now();
+    this.classList.add("ui-number-running");
     this._updateCounterVars(this._value);
+    registerRAF(this);
   }
   _onAnimEnd(e) {
     if (e && e.target && !e.target.classList.contains("dx-num")) return;
@@ -1689,7 +1772,16 @@ var DxCounter = class _DxCounter extends DxNumber {
       return this;
     }
     this._value = startVal;
-    return super.val(parsedValue, animDuration);
+    if (animDuration > 0 && startVal !== parsedValue) {
+      this.animateTo(parsedValue, animDuration);
+    } else {
+      unregisterRAF(this);
+      this.classList.remove("ui-number-running");
+      this._value = parsedValue;
+      this._updateCounterVars(parsedValue);
+      this.setAccessibility(parsedValue);
+    }
+    return this;
   }
 };
 defCustomElement("dx-counter", DxCounter);
@@ -1722,7 +1814,9 @@ export {
   observeTypewriter,
   onAllAnimationsEnd,
   onTypewriterEnd,
+  queueIdleUnpack,
   registerRAF,
+  removeFromIdleQueue,
   rootWin2 as rootWin,
   setSdaGaps,
   startReveal,

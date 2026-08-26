@@ -9,7 +9,7 @@
 
 import { DxTyping, unpackTemplate, onTypewriterEnd } from '../base/dx-typing.js';
 import { defCustomElement } from '../base/dx-base.js';
-import { DX_ANIM, observeIO } from '../base/dx-scheduler.js';
+import { DX_ANIM, observeIO, queueIdleUnpack, removeFromIdleQueue } from '../base/dx-scheduler.js';
 
 export class DxTypeSda extends DxTyping {
     connectedCallback() {
@@ -20,8 +20,14 @@ export class DxTypeSda extends DxTyping {
 
         // When scrolled into view, Singleton IO unpacks template and triggers time-based typing animation
         observeIO(this, (el) => {
+            removeFromIdleQueue(el);
             unpackTemplate(el);
             el.classList.add(DX_ANIM.TYPING);
+        });
+
+        // Background Pre-warm: 1 template per requestIdleCallback
+        queueIdleUnpack(this, (el) => {
+            unpackTemplate(el);
         });
     }
 

@@ -1,19 +1,19 @@
 /* src/css/dx-counter.css */
-@property --dxc-b { syntax: "<integer>"; initial-value: 0; inherits: false; }
-@property --dxc-m { syntax: "<integer>"; initial-value: 0; inherits: false; }
-@property --dxc-k { syntax: "<integer>"; initial-value: 0; inherits: false; }
-@property --dxc-u { syntax: "<integer>"; initial-value: 0; inherits: false; }
-@property --dxc-dec { syntax: "<integer>"; initial-value: 0; inherits: false; }
-@property --dxc-from-b { syntax: "<integer>"; initial-value: 0; inherits: false; }
-@property --dxc-from-m { syntax: "<integer>"; initial-value: 0; inherits: false; }
-@property --dxc-from-k { syntax: "<integer>"; initial-value: 0; inherits: false; }
-@property --dxc-from-u { syntax: "<integer>"; initial-value: 0; inherits: false; }
-@property --dxc-from-dec { syntax: "<integer>"; initial-value: 0; inherits: false; }
-@property --dxc-to-b { syntax: "<integer>"; initial-value: 0; inherits: false; }
-@property --dxc-to-m { syntax: "<integer>"; initial-value: 0; inherits: false; }
-@property --dxc-to-k { syntax: "<integer>"; initial-value: 0; inherits: false; }
-@property --dxc-to-u { syntax: "<integer>"; initial-value: 0; inherits: false; }
-@property --dxc-to-dec { syntax: "<integer>"; initial-value: 0; inherits: false; }
+@property --dxc-b { syntax: "<integer>"; initial-value: 0; inherits: true; }
+@property --dxc-m { syntax: "<integer>"; initial-value: 0; inherits: true; }
+@property --dxc-k { syntax: "<integer>"; initial-value: 0; inherits: true; }
+@property --dxc-u { syntax: "<integer>"; initial-value: 0; inherits: true; }
+@property --dxc-dec { syntax: "<integer>"; initial-value: 0; inherits: true; }
+@property --dxc-from-b { syntax: "<integer>"; initial-value: 0; inherits: true; }
+@property --dxc-from-m { syntax: "<integer>"; initial-value: 0; inherits: true; }
+@property --dxc-from-k { syntax: "<integer>"; initial-value: 0; inherits: true; }
+@property --dxc-from-u { syntax: "<integer>"; initial-value: 0; inherits: true; }
+@property --dxc-from-dec { syntax: "<integer>"; initial-value: 0; inherits: true; }
+@property --dxc-to-b { syntax: "<integer>"; initial-value: 0; inherits: true; }
+@property --dxc-to-m { syntax: "<integer>"; initial-value: 0; inherits: true; }
+@property --dxc-to-k { syntax: "<integer>"; initial-value: 0; inherits: true; }
+@property --dxc-to-u { syntax: "<integer>"; initial-value: 0; inherits: true; }
+@property --dxc-to-dec { syntax: "<integer>"; initial-value: 0; inherits: true; }
 dx-counter,
 :host(dx-counter) {
   display: inline-block !important;
@@ -39,8 +39,10 @@ dx-counter,
   --dxc-u: 0;
   --dxc-dec: 0;
 }
-:is(.action-bar, .action-bar-wrapper):not(.showing-action-bar):not(.show-action-bar) dx-counter:not([data-static]),
-:is(.action-bar, .action-bar-wrapper):not(.showing-action-bar):not(.show-action-bar) dx-counter:not([data-static]) :is(.dx-b, .dx-m, .dx-k, .dx-u, .dx-dec) {
+.action-bar-wrapper:not(.showing-action-bar):not(.show-action-bar) dx-counter:not([data-static]),
+.action-bar-wrapper:not(.showing-action-bar):not(.show-action-bar) dx-counter:not([data-static]) :is(.dx-b, .dx-m, .dx-k, .dx-u, .dx-dec),
+body:not(:has(.action-bar-wrapper)) .action-bar:not(.showing-action-bar):not(.show-action-bar) dx-counter:not([data-static]),
+body:not(:has(.action-bar-wrapper)) .action-bar:not(.showing-action-bar):not(.show-action-bar) dx-counter:not([data-static]) :is(.dx-b, .dx-m, .dx-k, .dx-u, .dx-dec) {
   --dxc-b: 0;
   --dxc-m: 0;
   --dxc-k: 0;
@@ -49,11 +51,12 @@ dx-counter,
 }
 dx-counter > s-t,
 dx-counter > s-t * {
+  display: none !important;
   position: absolute !important;
-  width: 1px !important;
-  height: 1px !important;
+  width: 0 !important;
+  height: 0 !important;
   padding: 0 !important;
-  margin: -1px !important;
+  margin: 0 !important;
   overflow: hidden !important;
   clip: rect(0, 0, 0, 0) !important;
   white-space: nowrap !important;
@@ -83,53 +86,28 @@ dx-counter .dx-sfx {
   -webkit-text-fill-color: currentColor !important;
 }
 dx-counter .dx-b {
-  --dxc-b: 0;
-  transition: --dxc-b calc(var(--dxc-duration, 500ms) * var(--A, 1)) cubic-bezier(0, 0, 0.2, 1) calc(var(--dxc-delay-b, 0ms) * var(--A, 1)) !important;
-}
-dx-counter .dx-b::before {
-  counter-reset: b var(--dxc-b);
-  content: counter(b);
+  display: inline !important;
 }
 dx-counter .dx-b::after {
   content: "\a0";
 }
 dx-counter .dx-m {
-  --dxc-m: 0;
-  transition: --dxc-m calc(var(--dxc-duration, 500ms) * var(--A, 1)) cubic-bezier(0, 0, 0.2, 1) calc(var(--dxc-delay-m, 0ms) * var(--A, 1)) !important;
-}
-dx-counter .dx-m::before {
-  counter-reset: m var(--dxc-m);
-  content: counter(m);
+  display: inline !important;
 }
 dx-counter .dx-m::after {
   content: "\a0";
 }
 dx-counter .dx-k {
-  --dxc-k: 0;
-  transition: --dxc-k calc(var(--dxc-duration, 500ms) * var(--A, 1)) cubic-bezier(0, 0, 0.2, 1) calc(var(--dxc-delay-k, 0ms) * var(--A, 1)) !important;
-}
-dx-counter .dx-k::before {
-  counter-reset: k var(--dxc-k);
-  content: counter(k);
+  display: inline !important;
 }
 dx-counter .dx-k::after {
   content: "\a0";
 }
 dx-counter .dx-u {
-  --dxc-u: 0;
-  transition: --dxc-u calc(var(--dxc-duration, 500ms) * var(--A, 1)) cubic-bezier(0, 0, 0.2, 1) calc(var(--dxc-delay, 0ms) * var(--A, 1)) !important;
-}
-dx-counter .dx-u::after {
-  counter-reset: u var(--dxc-u);
-  content: counter(u);
+  display: inline !important;
 }
 dx-counter .dx-dec {
-  --dxc-dec: 0;
-  transition: --dxc-dec calc(var(--dxc-duration, 500ms) * var(--A, 1)) cubic-bezier(0, 0, 0.2, 1) calc(var(--dxc-delay, 0ms) * var(--A, 1)) !important;
-}
-dx-counter .dx-dec::after {
-  counter-reset: dec var(--dxc-dec);
-  content: counter(dec, decimal-leading-zero);
+  display: inline !important;
 }
 @media (prefers-reduced-motion: reduce) {
   dx-counter,
