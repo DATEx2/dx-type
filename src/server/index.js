@@ -239,6 +239,59 @@ export function tokenize(html, options = {}) {
         else if (tokenMatch[3]) tokens.push({ type: 'text', value: tokenMatch[3] });
     }
 
+    // 1. Pre-scan totalUnits
+    let preUnits = 0;
+    for (let i = 0; i < tokens.length; i++) {
+        const token = tokens[i];
+        if (token.type === 'tag') {
+            if (/^<(?:dx|ui)-(?:number|odometer)\b/i.test(token.value)) {
+                preUnits += 1;
+                let depth = 1;
+                while (i + 1 < tokens.length && depth > 0) {
+                    i++;
+                    if (tokens[i].type === 'tag') {
+                        if (/^<(?:dx|ui)-(?:number|odometer)\b/i.test(tokens[i].value)) depth++;
+                        else if (/^<\/(?:dx|ui)-(?:number|odometer)>/i.test(tokens[i].value)) depth--;
+                    }
+                }
+            }
+        } else if (token.type === 'entity') {
+            preUnits += 1;
+        } else {
+            const parts = token.value.split(/(\s+)/);
+            for (let j = 0; j < parts.length; j++) {
+                const part = parts[j];
+                if (/^\s+$/.test(part)) {
+                    preUnits += 1;
+                } else if (part.length > 0) {
+                    let punct = '';
+                    if (i + 1 < tokens.length && tokens[i + 1].type === 'text') {
+                        const nextText = tokens[i + 1].value;
+                        const punctMatch = nextText.match(/^[.,;:!?\\"'"']+/);
+                        if (punctMatch) {
+                            punct = punctMatch[0];
+                        }
+                    }
+                    const wordChars = splitChars(part);
+                    const punctChars = splitChars(punct);
+                    preUnits += wordChars.length + punctChars.length;
+                }
+            }
+        }
+    }
+
+    const totalUnits = Math.max(1, preUnits);
+    const speed = duration / totalUnits;
+    const style = `--b:${offset};--a:${totalUnits};--d:${delay};--t:${duration};--u:${speed.toFixed(3)}`;
+
+    function makeCharTag(ch, idx, extraClass = '') {
+        const exactDelay = delay + (offset + idx) * speed;
+        const qDelay = Math.min(2000, Math.max(0, Math.round(exactDelay / 10) * 10));
+        const tag = `c-${qDelay}`;
+        const cClass = (ch === '·' || ch === '•') ? ` class="bullet-dot${extraClass ? ' ' + extraClass : ''}"` : (extraClass ? ` class="${extraClass}"` : '');
+        return `<${tag}${cClass}>${ch}</${tag}>`;
+    }
+
     let result = '';
     let charIdx = 0;
 
@@ -247,8 +300,6 @@ export function tokenize(html, options = {}) {
         if (token.type === 'tag') {
             if (/^<(?:dx|ui)-(?:number|odometer)\b/i.test(token.value)) {
                 const wordStart = charIdx;
-                charIdx += 1;
-
                 let compHTML = token.value;
                 let depth = 1;
                 while (i + 1 < tokens.length && depth > 0) {
@@ -259,13 +310,14 @@ export function tokenize(html, options = {}) {
                         else if (/^<\/(?:dx|ui)-(?:number|odometer)>/i.test(tokens[i].value)) depth--;
                     }
                 }
-                result += `<w style="--w:${wordStart};--N:1"><c class="c-ui-num">${compHTML}</c></w>`;
+                const compTag = makeCharTag(compHTML, charIdx++, 'c-ui-num');
+                result += `<w style="--w:${wordStart};--N:1">${compTag}</w>`;
             } else {
                 result += token.value;
             }
         } else if (token.type === 'entity') {
-            result += `<w style="--w:${charIdx};--N:1"><c>${token.value}</c></w>`;
-            charIdx++;
+            const entTag = makeCharTag(token.value, charIdx++);
+            result += `<w style="--w:${charIdx - 1};--N:1">${entTag}</w>`;
         } else {
             const parts = token.value.split(/(\s+)/);
             for (let j = 0; j < parts.length; j++) {
@@ -289,16 +341,8 @@ export function tokenize(html, options = {}) {
                     const punctChars = splitChars(punct);
                     const n = wordChars.length + punctChars.length;
 
-                    const cTags = wordChars.map((ch) => {
-                        charIdx++;
-                        const cClass = ch === '·' ? ' class="bullet-dot"' : '';
-                        return `<c${cClass}>${ch}</c>`;
-                    }).join('');
-                    const pTags = punctChars.map((ch) => {
-                        charIdx++;
-                        const pClass = ch === '·' ? ' class="bullet-dot"' : '';
-                        return `<c${pClass}>${ch}</c>`;
-                    }).join('');
+                    const cTags = wordChars.map((ch) => makeCharTag(ch, charIdx++)).join('');
+                    const pTags = punctChars.map((ch) => makeCharTag(ch, charIdx++)).join('');
 
                     const wClass = (part.includes('-') || punct.includes('-')) ? ' class="word"' : '';
                     result += `<w${wClass} style="--w:${wordStart};--N:${n}">${cTags}${pTags}</w>`;
@@ -307,14 +351,13 @@ export function tokenize(html, options = {}) {
         }
     }
 
-    const lastC = result.lastIndexOf('<c');
+    const lastC = result.lastIndexOf('<c-');
     if (lastC !== -1) {
-        result = result.slice(0, lastC + 2) + ' data-last="true" onanimationend="return onTypewriterEnd(this, event)"' + result.slice(lastC + 2);
+        const tagEnd = result.indexOf('>', lastC);
+        if (tagEnd !== -1) {
+            result = result.slice(0, tagEnd) + ' data-last="true" onanimationend="return onTypewriterEnd(this, event)"' + result.slice(tagEnd);
+        }
     }
-
-    const totalUnits = Math.max(1, charIdx);
-    const speed = duration / totalUnits;
-    const style = `--b:${offset};--a:${totalUnits};--d:${delay};--t:${duration};--u:${speed.toFixed(3)}`;
 
     return {
         html: result,
