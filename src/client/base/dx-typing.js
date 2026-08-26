@@ -71,8 +71,29 @@ export function unpackTemplate(el) {
         tpl.replaceWith(tpl.content);
         const t = el.querySelector(':scope > t');
         if (t) t.setAttribute('aria-hidden', 'true');
+
+        // Deterministic cleanup timer for whenever a typewriter is unpacked
+        const style = el.getAttribute('style') || '';
+        const tMatch = style.match(/--t:([\d.]+)/);
+        const dMatch = style.match(/--d:([\d.]+)/);
+        const dur = (tMatch ? parseFloat(tMatch[1]) : 600) + (dMatch ? parseFloat(dMatch[1]) : 0) + 400;
+        setTimeout(() => {
+            if (!el.classList.contains(DX_ANIM.TYPED)) {
+                if (typeof el.markTyped === 'function') el.markTyped();
+                else cleanupTypedDOM(el);
+            }
+        }, Math.max(500, Math.min(dur, 2500)));
+
         return true;
     }
+    return false;
+}
+
+export function isElementHidden(el) {
+    if (!el) return true;
+    if (el.closest('details:not([open])')) return true;
+    const hiddenParent = el.closest('.hidden, [hidden], .favorite-product__button--saved');
+    if (hiddenParent && !hiddenParent.closest('.favorite-product--saved')) return true;
     return false;
 }
 
@@ -81,6 +102,7 @@ export function observeTypewriter(el) {
     if (!el) return;
     if (el.classList && el.classList.contains(DX_ANIM.TYPED)) return;
     observeIO(el, (targetEl) => {
+        if (isElementHidden(targetEl)) return;
         removeFromIdleQueue(targetEl);
         unpackTemplate(targetEl);
         targetEl.classList.add(DX_ANIM.TYPING);
@@ -251,7 +273,12 @@ export class DxTyping extends DxBase {
 }
 
 const checkAndObserve = (el) => {
-    if (el?.querySelector && el.querySelector(':scope > template') && !el.classList.contains(DX_ANIM.TYPED)) {
+    if (!el?.querySelector || el.classList.contains(DX_ANIM.TYPED)) return;
+    // If inside a closed <details>, do not observe for viewport intersection until opened!
+    const closedDetails = el.closest('details:not([open])');
+    if (closedDetails) return;
+
+    if (el.querySelector(':scope > template')) {
         observeTypewriter(el);
     }
 };
@@ -271,6 +298,26 @@ if (typeof document !== 'undefined') {
     } else {
         bootstrapTypewriterObserver();
     }
+
+    // When a <details> accordion opens, unpack & trigger nested typewriters
+    document.addEventListener('toggle', (e) => {
+        const details = e.target;
+        if (details && details.tagName === 'DETAILS' && details.open) {
+            details.querySelectorAll('dx-type-sda, dx-type').forEach(typeEl => {
+                if (!typeEl.classList.contains(DX_ANIM.TYPED)) {
+                    unpackTemplate(typeEl);
+                    typeEl.classList.add(DX_ANIM.TYPING);
+                }
+            });
+            details.querySelectorAll('dx-counter, dx-number').forEach(child => {
+                if (typeof child._checkAndTrigger === 'function') {
+                    child._inViewport = true;
+                    child._parentReady = true;
+                    child._checkAndTrigger();
+                }
+            });
+        }
+    }, true);
 }
 
 // ─── Global Exports ──────────────────────────────────────────────────────────

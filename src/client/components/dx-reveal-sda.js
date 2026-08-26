@@ -21,6 +21,13 @@ export class DxRevealSda extends DxRevealing {
 
         this._triggerChildren = () => {
             this.querySelectorAll('dx-counter, dx-number, dx-type-sda, dx-type').forEach(child => {
+                // If child is inside a closed details/accordion or hidden button, DO NOT trigger it!
+                const closedDetails = child.closest('details:not([open])');
+                if (closedDetails && this.contains(closedDetails)) return;
+
+                const hiddenParent = child.closest('.hidden, [hidden], .favorite-product__button--saved');
+                if (hiddenParent && this.contains(hiddenParent) && !hiddenParent.closest('.favorite-product--saved')) return;
+
                 if (typeof child._checkAndTrigger === 'function') {
                     if (child.closest(REVEAL_CONTAINER_SEL) === this) {
                         child._inViewport = true;

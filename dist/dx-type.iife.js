@@ -379,14 +379,32 @@ var DxType = (() => {
       tpl.replaceWith(tpl.content);
       const t = el2.querySelector(":scope > t");
       if (t) t.setAttribute("aria-hidden", "true");
+      const style = el2.getAttribute("style") || "";
+      const tMatch = style.match(/--t:([\d.]+)/);
+      const dMatch = style.match(/--d:([\d.]+)/);
+      const dur = (tMatch ? parseFloat(tMatch[1]) : 600) + (dMatch ? parseFloat(dMatch[1]) : 0) + 400;
+      setTimeout(() => {
+        if (!el2.classList.contains(DX_ANIM.TYPED)) {
+          if (typeof el2.markTyped === "function") el2.markTyped();
+          else cleanupTypedDOM2(el2);
+        }
+      }, Math.max(500, Math.min(dur, 2500)));
       return true;
     }
+    return false;
+  }
+  function isElementHidden(el2) {
+    if (!el2) return true;
+    if (el2.closest("details:not([open])")) return true;
+    const hiddenParent = el2.closest(".hidden, [hidden], .favorite-product__button--saved");
+    if (hiddenParent && !hiddenParent.closest(".favorite-product--saved")) return true;
     return false;
   }
   function observeTypewriter(el2) {
     if (!el2) return;
     if (el2.classList && el2.classList.contains(DX_ANIM.TYPED)) return;
     observeIO(el2, (targetEl) => {
+      if (isElementHidden(targetEl)) return;
       removeFromIdleQueue(targetEl);
       unpackTemplate(targetEl);
       targetEl.classList.add(DX_ANIM.TYPING);
@@ -514,7 +532,10 @@ var DxType = (() => {
     }
   };
   var checkAndObserve = (el2) => {
-    if (el2?.querySelector && el2.querySelector(":scope > template") && !el2.classList.contains(DX_ANIM.TYPED)) {
+    if (!el2?.querySelector || el2.classList.contains(DX_ANIM.TYPED)) return;
+    const closedDetails = el2.closest("details:not([open])");
+    if (closedDetails) return;
+    if (el2.querySelector(":scope > template")) {
       observeTypewriter(el2);
     }
   };
@@ -531,6 +552,24 @@ var DxType = (() => {
     } else {
       bootstrapTypewriterObserver();
     }
+    document.addEventListener("toggle", (e) => {
+      const details = e.target;
+      if (details && details.tagName === "DETAILS" && details.open) {
+        details.querySelectorAll("dx-type-sda, dx-type").forEach((typeEl) => {
+          if (!typeEl.classList.contains(DX_ANIM.TYPED)) {
+            unpackTemplate(typeEl);
+            typeEl.classList.add(DX_ANIM.TYPING);
+          }
+        });
+        details.querySelectorAll("dx-counter, dx-number").forEach((child) => {
+          if (typeof child._checkAndTrigger === "function") {
+            child._inViewport = true;
+            child._parentReady = true;
+            child._checkAndTrigger();
+          }
+        });
+      }
+    }, true);
   }
   if (rootWin2) {
     Object.assign(rootWin2, {
@@ -747,6 +786,7 @@ var DxType = (() => {
       this._syncTimingAttributes();
       this.addEventListener("animationend", this._onAnimEnd);
       observeIO(this, (el2) => {
+        if (isElementHidden(el2)) return;
         removeFromIdleQueue(el2);
         unpackTemplate(el2);
         el2.classList.add(DX_ANIM.TYPING);
@@ -834,6 +874,10 @@ var DxType = (() => {
       this._syncTimingAttributes();
       this._triggerChildren = () => {
         this.querySelectorAll("dx-counter, dx-number, dx-type-sda, dx-type").forEach((child) => {
+          const closedDetails = child.closest("details:not([open])");
+          if (closedDetails && this.contains(closedDetails)) return;
+          const hiddenParent = child.closest(".hidden, [hidden], .favorite-product__button--saved");
+          if (hiddenParent && this.contains(hiddenParent) && !hiddenParent.closest(".favorite-product--saved")) return;
           if (typeof child._checkAndTrigger === "function") {
             if (child.closest(REVEAL_CONTAINER_SEL2) === this) {
               child._inViewport = true;
