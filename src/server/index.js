@@ -285,11 +285,10 @@ export function tokenize(html, options = {}) {
     const style = `--b:${offset};--a:${totalUnits};--d:${delay};--t:${duration};--u:${speed.toFixed(3)}`;
 
     function makeCharTag(ch, idx, extraClass = '') {
-        const exactDelay = delay + (offset + idx) * speed;
-        const qDelay = Math.min(2000, Math.max(0, Math.round(exactDelay / 10) * 10));
-        const tag = `c${qDelay}`;
+        const exactDelay = Math.round(delay + (offset + idx) * speed);
+        const styleAttr = ` style="animation-delay:${exactDelay}ms"`;
         const cClass = (ch === '·' || ch === '•') ? ` class="bullet-dot${extraClass ? ' ' + extraClass : ''}"` : (extraClass ? ` class="${extraClass}"` : '');
-        return `<${tag}${cClass}>${ch}</${tag}>`;
+        return `<i${cClass}${styleAttr}>${ch}</i>`;
     }
 
     let result = '';
@@ -351,10 +350,9 @@ export function tokenize(html, options = {}) {
         }
     }
 
-    const matches = [...result.matchAll(/<c\d+/g)];
-    if (matches.length > 0) {
-        const lastC = matches[matches.length - 1].index;
-        const tagEnd = result.indexOf('>', lastC);
+    const lastI = result.lastIndexOf('<i');
+    if (lastI !== -1) {
+        const tagEnd = result.indexOf('>', lastI);
         if (tagEnd !== -1) {
             result = result.slice(0, tagEnd) + ' data-last="true" onanimationend="return onTypewriterEnd(this, event)"' + result.slice(tagEnd);
         }
