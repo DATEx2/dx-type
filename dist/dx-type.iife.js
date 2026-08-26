@@ -34,7 +34,7 @@ var DxType = (() => {
     DxTypeSda: () => DxTypeSda,
     DxTyping: () => DxTyping,
     bootstrapTypewriterObserver: () => bootstrapTypewriterObserver,
-    cleanupTypedDOM: () => cleanupTypedDOM,
+    cleanupTypedDOM: () => cleanupTypedDOM2,
     ensureElementsUpToTarget: () => ensureElementsUpToTarget,
     finishReveal: () => finishReveal,
     getIO: () => getIO,
@@ -349,6 +349,12 @@ var DxType = (() => {
         }
         w.setAttribute("data-ready", "true");
       }
+      const allI = tLayer.querySelectorAll("i");
+      if (allI.length > 0) {
+        const lastI = allI[allI.length - 1];
+        lastI.setAttribute("data-last", "true");
+        lastI.classList.add("last-char");
+      }
     }
     return true;
   }
@@ -408,7 +414,7 @@ var DxType = (() => {
       unpackTemplate(el2);
     }
   }
-  function cleanupTypedDOM(typeEl) {
+  function cleanupTypedDOM2(typeEl) {
     if (!typeEl || typeEl._cleanedUp) return;
     typeEl._cleanedUp = true;
     const doc = typeEl.ownerDocument || (typeof document !== "undefined" ? document : null);
@@ -504,7 +510,7 @@ var DxType = (() => {
       if (typeof rootWin2?.__datex2TriggerPendingUiNumbers === "function") {
         rootWin2.__datex2TriggerPendingUiNumbers(this);
       }
-      cleanupTypedDOM(this);
+      cleanupTypedDOM2(this);
     }
   };
   var checkAndObserve = (el2) => {
@@ -536,7 +542,7 @@ var DxType = (() => {
       ensureElementsUpToTarget,
       onTypewriterEnd,
       __twEnd: onTypewriterEnd,
-      __datex2CleanupTypedDOM: cleanupTypedDOM,
+      __datex2CleanupTypedDOM: cleanupTypedDOM2,
       bootstrapTypewriterObserver
     });
   }
@@ -744,6 +750,16 @@ var DxType = (() => {
         removeFromIdleQueue(el2);
         unpackTemplate(el2);
         el2.classList.add(DX_ANIM.TYPING);
+        const style = el2.getAttribute("style") || "";
+        const tMatch = style.match(/--t:([\d.]+)/);
+        const dMatch = style.match(/--d:([\d.]+)/);
+        const dur = (tMatch ? parseFloat(tMatch[1]) : 600) + (dMatch ? parseFloat(dMatch[1]) : 0) + 300;
+        setTimeout(() => {
+          if (!el2.classList.contains(DX_ANIM.TYPED)) {
+            if (typeof el2.markTyped === "function") el2.markTyped();
+            else cleanupTypedDOM(el2);
+          }
+        }, Math.max(500, Math.min(dur, 2500)));
       });
       queueIdleUnpack(this, (el2) => {
         prepareTemplateContent(el2);

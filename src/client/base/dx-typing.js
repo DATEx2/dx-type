@@ -35,6 +35,13 @@ export function prepareTemplateContent(el) {
             }
             w.setAttribute('data-ready', 'true');
         }
+        // Guarantee data-last="true" and last-char class on the final <i>
+        const allI = tLayer.querySelectorAll('i');
+        if (allI.length > 0) {
+            const lastI = allI[allI.length - 1];
+            lastI.setAttribute('data-last', 'true');
+            lastI.classList.add('last-char');
+        }
     }
     return true;
 }

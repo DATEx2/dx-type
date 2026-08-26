@@ -23,6 +23,18 @@ export class DxTypeSda extends DxTyping {
             removeFromIdleQueue(el);
             unpackTemplate(el);
             el.classList.add(DX_ANIM.TYPING);
+
+            // Deterministic safety cleanup timer
+            const style = el.getAttribute('style') || '';
+            const tMatch = style.match(/--t:([\d.]+)/);
+            const dMatch = style.match(/--d:([\d.]+)/);
+            const dur = (tMatch ? parseFloat(tMatch[1]) : 600) + (dMatch ? parseFloat(dMatch[1]) : 0) + 300;
+            setTimeout(() => {
+                if (!el.classList.contains(DX_ANIM.TYPED)) {
+                    if (typeof el.markTyped === 'function') el.markTyped();
+                    else cleanupTypedDOM(el);
+                }
+            }, Math.max(500, Math.min(dur, 2500)));
         });
 
         // Background Pre-warm on Idle: ONLY inside <template>.content, NEVER in live DOM!
