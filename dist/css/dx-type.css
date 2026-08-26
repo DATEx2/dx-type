@@ -938,7 +938,10 @@ c-2000 {
 }
 :is(.dx-type-ready, dx-type.dx-typing, dx-type.dx-typed, dx-type, .hero-header, #hero) :is(w, dx-type w) > * {
   visibility: visible !important;
-  animation: type-in 100ms linear both !important;
+  animation-name: type-in !important;
+  animation-duration: 100ms !important;
+  animation-timing-function: linear !important;
+  animation-fill-mode: both !important;
 }
 .dx-type-ready dx-reveal,
 :is(dx-reveal.dx-type-ready, dx-reveal.dx-revealing, dx-reveal.dx-revealed) {
@@ -947,7 +950,10 @@ c-2000 {
 }
 :is(dx-type-sda.dx-typing, dx-type-sda.dx-typed, dx-type-sda[data-static]) :is(w, dx-type-sda w) > * {
   visibility: visible !important;
-  animation: type-in 100ms linear both !important;
+  animation-name: type-in !important;
+  animation-duration: 100ms !important;
+  animation-timing-function: linear !important;
+  animation-fill-mode: both !important;
 }
 :is(dx-reveal-sda.dx-revealing, dx-reveal-sda.dx-revealed, dx-reveal-sda[data-static]) {
   animation: dx-reveal-sda calc(var(--t, 500) * var(--A, 1) * 1ms) cubic-bezier(0.16, 1, 0.3, 1) calc(var(--d, 0) * var(--A, 1) * 1ms) both !important;
