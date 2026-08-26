@@ -292,13 +292,13 @@ export function tokenize(html, options = {}) {
     }
 
     let result = '';
+    let compactResult = '';
     let charIdx = 0;
 
     for (let i = 0; i < tokens.length; i++) {
         const token = tokens[i];
         if (token.type === 'tag') {
             if (/^<(?:dx|ui)-(?:number|odometer)\b/i.test(token.value)) {
-                const wordStart = charIdx;
                 let compHTML = token.value;
                 let depth = 1;
                 while (i + 1 < tokens.length && depth > 0) {
@@ -311,18 +311,22 @@ export function tokenize(html, options = {}) {
                 }
                 const compTag = makeCharTag(compHTML, charIdx++, 'c-ui-num');
                 result += `<w>${compTag}</w>`;
+                compactResult += `<w><i class="c-ui-num">${compHTML}</i></w>`;
             } else {
                 result += token.value;
+                compactResult += token.value;
             }
         } else if (token.type === 'entity') {
             const entTag = makeCharTag(token.value, charIdx++);
             result += `<w>${entTag}</w>`;
+            compactResult += `<w>${token.value}</w>`;
         } else {
             const parts = token.value.split(/(\s+)/);
             for (let j = 0; j < parts.length; j++) {
                 const part = parts[j];
                 if (/^\s+$/.test(part)) {
                     result += part;
+                    compactResult += part;
                     charIdx += 1;
                 } else if (part.length > 0) {
                     let punct = '';
@@ -335,16 +339,15 @@ export function tokenize(html, options = {}) {
                         }
                     }
 
-                    const wordStart = charIdx;
                     const wordChars = splitChars(part);
                     const punctChars = splitChars(punct);
-                    const n = wordChars.length + punctChars.length;
 
                     const cTags = wordChars.map((ch) => makeCharTag(ch, charIdx++)).join('');
                     const pTags = punctChars.map((ch) => makeCharTag(ch, charIdx++)).join('');
 
                     const wClass = (part.includes('-') || punct.includes('-')) ? ' class="word"' : '';
                     result += `<w${wClass}>${cTags}${pTags}</w>`;
+                    compactResult += `<w${wClass}>${part}${punct}</w>`;
                 }
             }
         }
@@ -360,6 +363,7 @@ export function tokenize(html, options = {}) {
 
     return {
         html: result,
+        compactHtml: compactResult,
         cleanText,
         totalUnits,
         speed,
@@ -413,7 +417,7 @@ export function ssrDxType(content, options = {}) {
     const tStyle = ` style="animation-duration:${charDur}ms"`;
 
     if (isSda) {
-        return `<${tagName}${classAttr} style="${res.style}"${ariaAttr}><s-t>${stContent}</s-t><template><t aria-hidden="true"${tStyle}>${res.html}</t></template></${tagName}>`;
+        return `<${tagName}${classAttr} style="${res.style}"${ariaAttr}><s-t>${stContent}</s-t><template><t aria-hidden="true"${tStyle}>${res.compactHtml || res.html}</t></template></${tagName}>`;
     }
     return `<${tagName}${classAttr} style="${res.style}"${ariaAttr}><s-t>${stContent}</s-t><t aria-hidden="true"${tStyle}>${res.html}</t></${tagName}>`;
 }

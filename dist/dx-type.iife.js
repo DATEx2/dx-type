@@ -338,16 +338,35 @@ var DxType = (() => {
     const tLayer = tpl.content.querySelector("t");
     if (tLayer) {
       const words = tLayer.querySelectorAll("w:not([data-ready])");
-      for (let i = 0; i < words.length; i++) {
-        const w = words[i];
-        if (!w.querySelector("i")) {
-          const text = w.textContent || "";
-          if (text) {
-            const chars = text.match(/&[a-z0-9]+;|./gu) || [];
-            w.innerHTML = chars.map((ch) => `<i>${ch}</i>`).join("");
+      if (words.length > 0) {
+        const style = el2.getAttribute("style") || "";
+        const dMatch = style.match(/--d:([\d.]+)/);
+        const bMatch = style.match(/--b:([\d.]+)/);
+        const uMatch = style.match(/--u:([\d.]+)/);
+        const delay = dMatch ? parseFloat(dMatch[1]) : 0;
+        const offset = bMatch ? parseFloat(bMatch[1]) : 0;
+        const speed = uMatch ? parseFloat(uMatch[1]) : 40;
+        let charIdx = 0;
+        for (let i = 0; i < words.length; i++) {
+          const w = words[i];
+          if (!w.querySelector("i")) {
+            const text = w.textContent || "";
+            if (text) {
+              const chars = text.match(/&[a-z0-9]+;|./gu) || [];
+              let inner = "";
+              for (let j = 0; j < chars.length; j++) {
+                const ch = chars[j];
+                const exactDelay = Math.round(delay + (offset + charIdx++) * speed);
+                const cClass = ch === "\xB7" || ch === "\u2022" ? ' class="bullet-dot"' : "";
+                inner += `<i${cClass} style="animation-delay:${exactDelay}ms">${ch}</i>`;
+              }
+              w.innerHTML = inner;
+            }
+          } else {
+            charIdx += w.querySelectorAll("i").length;
           }
+          w.setAttribute("data-ready", "true");
         }
-        w.setAttribute("data-ready", "true");
       }
       const allI = tLayer.querySelectorAll("i");
       if (allI.length > 0) {
