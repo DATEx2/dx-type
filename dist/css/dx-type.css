@@ -349,7 +349,7 @@ dx-type-sda s {
   visibility: visible !important;
   animation: reveal-in calc(var(--t, 600) * var(--A, 1) * 1ms) ease-out calc(var(--d, 0) * var(--A, 1) * 1ms) both !important;
 }
-:is(dx-type-sda.dx-typing, dx-type-sda.dx-typed, dx-type-sda[data-static]) :is(w, s, dx-type-sda w, dx-type-sda s) > i {
+:is(dx-type-sda.dx-typing, dx-type-sda.dx-typed, dx-type-sda[data-static], :is(dx-reveal-sda.dx-revealing, dx-reveal-sda.dx-revealed, .dx-revealed, .dx-revealing) dx-type-sda) :is(w, s, dx-type-sda w, dx-type-sda s) > i {
   visibility: visible !important;
   animation-name: type-in !important;
   animation-timing-function: linear !important;

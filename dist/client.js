@@ -268,6 +268,30 @@ var defCustomElement = (tag, cls) => {
 function getTypewriterObserver(win) {
   return getIO(win);
 }
+function prepareTemplateContent(el2) {
+  if (!el2) return false;
+  if (el2.classList && el2.classList.contains(DX_ANIM.TYPED)) return false;
+  const tpl = el2.querySelector(":scope > template");
+  if (!tpl || !tpl.content) return false;
+  if (tpl._prepared) return true;
+  tpl._prepared = true;
+  const tLayer = tpl.content.querySelector("t");
+  if (tLayer) {
+    const words = tLayer.querySelectorAll("w:not([data-ready])");
+    for (let i = 0; i < words.length; i++) {
+      const w = words[i];
+      if (!w.querySelector("i")) {
+        const text = w.textContent || "";
+        if (text) {
+          const chars = text.match(/&[a-z0-9]+;|./gu) || [];
+          w.innerHTML = chars.map((ch) => `<i>${ch}</i>`).join("");
+        }
+      }
+      w.setAttribute("data-ready", "true");
+    }
+  }
+  return true;
+}
 function unpackTemplate(el2) {
   if (!el2) return false;
   if (el2.classList && el2.classList.contains(DX_ANIM.TYPED)) return false;
@@ -277,6 +301,7 @@ function unpackTemplate(el2) {
   }
   const tpl = el2.querySelector(":scope > template");
   if (tpl && tpl.content) {
+    prepareTemplateContent(el2);
     if (!el2.getAttribute("role")) el2.setAttribute("role", "text");
     const st = el2.querySelector(":scope > s-t");
     if (st) {
@@ -298,10 +323,10 @@ function observeTypewriter(el2) {
   observeIO(el2, (targetEl) => {
     removeFromIdleQueue(targetEl);
     unpackTemplate(targetEl);
+    targetEl.classList.add(DX_ANIM.TYPING);
   });
   queueIdleUnpack(el2, (targetEl) => {
-    unobserveIO(targetEl);
-    unpackTemplate(targetEl);
+    prepareTemplateContent(targetEl);
   });
 }
 function mountTypewriter(el2, e) {
@@ -661,7 +686,7 @@ var DxTypeSda = class extends DxTyping {
       el2.classList.add(DX_ANIM.TYPING);
     });
     queueIdleUnpack(this, (el2) => {
-      unpackTemplate(el2);
+      prepareTemplateContent(el2);
     });
   }
   _onAnimEnd = (e) => {
@@ -732,12 +757,19 @@ var DxRevealSda = class extends DxRevealing {
     if (this.isRevealed) return;
     this._syncTimingAttributes();
     this._triggerChildren = () => {
-      this.querySelectorAll("dx-counter, dx-number").forEach((child) => {
+      this.querySelectorAll("dx-counter, dx-number, dx-type-sda, dx-type").forEach((child) => {
         if (typeof child._checkAndTrigger === "function") {
           if (child.closest(REVEAL_CONTAINER_SEL2) === this) {
             child._inViewport = true;
             child._parentReady = true;
             child._checkAndTrigger();
+          }
+        }
+        const tag = (child.tagName || "").toUpperCase();
+        if (tag === "DX-TYPE-SDA" || tag === "DX-TYPE") {
+          if (!child.classList.contains(DX_ANIM.TYPED)) {
+            unpackTemplate(child);
+            child.classList.add(DX_ANIM.TYPING);
           }
         }
       });
@@ -749,7 +781,7 @@ var DxRevealSda = class extends DxRevealing {
       this._triggerChildren();
     });
     queueIdleUnpack(this, (el2) => {
-      unpackTemplate(el2);
+      prepareTemplateContent(el2);
     });
     this.addEventListener("animationend", this._onAnimEnd);
   }
@@ -1814,6 +1846,7 @@ export {
   observeTypewriter,
   onAllAnimationsEnd,
   onTypewriterEnd,
+  prepareTemplateContent,
   queueIdleUnpack,
   registerRAF,
   removeFromIdleQueue,

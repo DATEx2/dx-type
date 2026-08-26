@@ -8,7 +8,7 @@
 // used_by: src/client/index.js
 
 import { DxRevealing, finishReveal } from '../base/dx-revealing.js';
-import { unpackTemplate } from '../base/dx-typing.js';
+import { unpackTemplate, prepareTemplateContent } from '../base/dx-typing.js';
 import { defCustomElement } from '../base/dx-base.js';
 import { DX_ANIM, observeIO, queueIdleUnpack, removeFromIdleQueue } from '../base/dx-scheduler.js';
 
@@ -20,12 +20,19 @@ export class DxRevealSda extends DxRevealing {
         this._syncTimingAttributes();
 
         this._triggerChildren = () => {
-            this.querySelectorAll('dx-counter, dx-number').forEach(child => {
+            this.querySelectorAll('dx-counter, dx-number, dx-type-sda, dx-type').forEach(child => {
                 if (typeof child._checkAndTrigger === 'function') {
                     if (child.closest(REVEAL_CONTAINER_SEL) === this) {
                         child._inViewport = true;
                         child._parentReady = true;
                         child._checkAndTrigger();
+                    }
+                }
+                const tag = (child.tagName || '').toUpperCase();
+                if (tag === 'DX-TYPE-SDA' || tag === 'DX-TYPE') {
+                    if (!child.classList.contains(DX_ANIM.TYPED)) {
+                        unpackTemplate(child);
+                        child.classList.add(DX_ANIM.TYPING);
                     }
                 }
             });
@@ -38,9 +45,9 @@ export class DxRevealSda extends DxRevealing {
             this._triggerChildren();
         });
 
-        // Background Pre-warm: 1 template per requestIdleCallback
+        // Background Pre-warm on Idle: ONLY inside <template>.content, NEVER in live DOM!
         queueIdleUnpack(this, (el) => {
-            unpackTemplate(el);
+            prepareTemplateContent(el);
         });
 
         this.addEventListener('animationend', this._onAnimEnd);

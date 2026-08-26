@@ -398,7 +398,7 @@ w, s, dx-type w, dx-type s, dx-type-sda w, dx-type-sda s {
 }
 
 /* ─── 8. SDA Domain (<dx-type-sda>, <dx-reveal-sda>) ─────────────────────── */
-:is(dx-type-sda.dx-typing, dx-type-sda.dx-typed, dx-type-sda[data-static]) :is(w, s, dx-type-sda w, dx-type-sda s) > i {
+:is(dx-type-sda.dx-typing, dx-type-sda.dx-typed, dx-type-sda[data-static], :is(dx-reveal-sda.dx-revealing, dx-reveal-sda.dx-revealed, .dx-revealed, .dx-revealing) dx-type-sda) :is(w, s, dx-type-sda w, dx-type-sda s) > i {
     visibility: visible !important;
     animation-name: type-in !important;
     animation-timing-function: linear !important;

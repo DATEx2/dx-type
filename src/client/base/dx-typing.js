@@ -10,7 +10,36 @@ export function getTypewriterObserver(win) {
     return getIO(win);
 }
 
-// ─── Standalone unpackTemplate (for elements that aren't dx-* instances) ─────
+// ─── Prepare template content strictly inside DocumentFragment (<template>.content) ─────
+export function prepareTemplateContent(el) {
+    if (!el) return false;
+    if (el.classList && el.classList.contains(DX_ANIM.TYPED)) return false;
+
+    const tpl = el.querySelector(':scope > template');
+    if (!tpl || !tpl.content) return false;
+    if (tpl._prepared) return true;
+    tpl._prepared = true;
+
+    // Expand words <w> into characters <i> strictly inside tpl.content DocumentFragment (0 DOM nodes added)
+    const tLayer = tpl.content.querySelector('t');
+    if (tLayer) {
+        const words = tLayer.querySelectorAll('w:not([data-ready])');
+        for (let i = 0; i < words.length; i++) {
+            const w = words[i];
+            if (!w.querySelector('i')) {
+                const text = w.textContent || '';
+                if (text) {
+                    const chars = text.match(/&[a-z0-9]+;|./gu) || [];
+                    w.innerHTML = chars.map(ch => `<i>${ch}</i>`).join('');
+                }
+            }
+            w.setAttribute('data-ready', 'true');
+        }
+    }
+    return true;
+}
+
+// ─── Standalone unpackTemplate (mounts template.content into live DOM) ─────
 export function unpackTemplate(el) {
     if (!el) return false;
     if (el.classList && el.classList.contains(DX_ANIM.TYPED)) return false;
@@ -23,6 +52,7 @@ export function unpackTemplate(el) {
 
     const tpl = el.querySelector(':scope > template');
     if (tpl && tpl.content) {
+        prepareTemplateContent(el);
         if (!el.getAttribute('role')) el.setAttribute('role', 'text');
         const st = el.querySelector(':scope > s-t');
         if (st) {
@@ -46,10 +76,10 @@ export function observeTypewriter(el) {
     observeIO(el, (targetEl) => {
         removeFromIdleQueue(targetEl);
         unpackTemplate(targetEl);
+        targetEl.classList.add(DX_ANIM.TYPING);
     });
     queueIdleUnpack(el, (targetEl) => {
-        unobserveIO(targetEl);
-        unpackTemplate(targetEl);
+        prepareTemplateContent(targetEl);
     });
 }
 

@@ -7,7 +7,7 @@
 // exports: DxTypeSda
 // used_by: src/client/index.js
 
-import { DxTyping, unpackTemplate, onTypewriterEnd } from '../base/dx-typing.js';
+import { DxTyping, unpackTemplate, prepareTemplateContent, onTypewriterEnd } from '../base/dx-typing.js';
 import { defCustomElement } from '../base/dx-base.js';
 import { DX_ANIM, observeIO, queueIdleUnpack, removeFromIdleQueue } from '../base/dx-scheduler.js';
 
@@ -25,9 +25,9 @@ export class DxTypeSda extends DxTyping {
             el.classList.add(DX_ANIM.TYPING);
         });
 
-        // Background Pre-warm: 1 template per requestIdleCallback
+        // Background Pre-warm on Idle: ONLY inside <template>.content, NEVER in live DOM!
         queueIdleUnpack(this, (el) => {
-            unpackTemplate(el);
+            prepareTemplateContent(el);
         });
     }
 
