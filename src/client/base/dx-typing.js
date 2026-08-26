@@ -128,8 +128,10 @@ export function onTypewriterEnd(cEl, event) {
                         cEl.tagName === 'DX-NUMBER' || cEl.tagName === 'UI-NUMBER';
 
         if (!parent._lastC) {
-            const allC = parent.querySelectorAll('t c, c');
-            parent._lastC = allC.length ? allC[allC.length - 1] : null;
+            parent._lastC = parent.querySelector('[data-last="true"]') || (() => {
+                const allC = parent.querySelectorAll('t w > *, w > *, t c, c');
+                return allC.length ? allC[allC.length - 1] : null;
+            })();
         }
         const lastC = parent._lastC;
 

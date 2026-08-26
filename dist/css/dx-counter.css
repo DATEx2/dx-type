@@ -39,8 +39,10 @@ dx-counter,
   --dxc-u: 0;
   --dxc-dec: 0;
 }
-:is(.action-bar, .action-bar-wrapper):not(.showing-action-bar):not(.show-action-bar) dx-counter:not([data-static]),
-:is(.action-bar, .action-bar-wrapper):not(.showing-action-bar):not(.show-action-bar) dx-counter:not([data-static]) :is(.dx-b, .dx-m, .dx-k, .dx-u, .dx-dec) {
+.action-bar-wrapper:not(.showing-action-bar):not(.show-action-bar) dx-counter:not([data-static]),
+.action-bar-wrapper:not(.showing-action-bar):not(.show-action-bar) dx-counter:not([data-static]) :is(.dx-b, .dx-m, .dx-k, .dx-u, .dx-dec),
+body:not(:has(.action-bar-wrapper)) .action-bar:not(.showing-action-bar):not(.show-action-bar) dx-counter:not([data-static]),
+body:not(:has(.action-bar-wrapper)) .action-bar:not(.showing-action-bar):not(.show-action-bar) dx-counter:not([data-static]) :is(.dx-b, .dx-m, .dx-k, .dx-u, .dx-dec) {
   --dxc-b: 0;
   --dxc-m: 0;
   --dxc-k: 0;
