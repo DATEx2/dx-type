@@ -233,13 +233,13 @@ function tokenize(html, options = {}) {
           }
         }
         const compTag = makeCharTag(compHTML, charIdx++, "c-ui-num");
-        result += `<s>${compTag}</s>`;
+        result += `<w>${compTag}</w>`;
       } else {
         result += token.value;
       }
     } else if (token.type === "entity") {
       const entTag = makeCharTag(token.value, charIdx++);
-      result += `<s>${entTag}</s>`;
+      result += `<w>${entTag}</w>`;
     } else {
       const parts = token.value.split(/(\s+)/);
       for (let j = 0; j < parts.length; j++) {
@@ -264,7 +264,7 @@ function tokenize(html, options = {}) {
           const cTags = wordChars.map((ch) => makeCharTag(ch, charIdx++)).join("");
           const pTags = punctChars.map((ch) => makeCharTag(ch, charIdx++)).join("");
           const wClass = part.includes("-") || punct.includes("-") ? ' class="word"' : "";
-          result += `<s${wClass}>${cTags}${pTags}</s>`;
+          result += `<w${wClass}>${cTags}${pTags}</w>`;
         }
       }
     }
