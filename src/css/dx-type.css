@@ -309,7 +309,8 @@ dx-number {
 }
 
 /* ─── 4. Typewriter Character & Word Nodes ───────────────────────────────── */
-w > i, :is(w, dx-type w, dx-type-sda w) > * {
+:is(w, s, dx-type w, dx-type s, dx-type-sda w, dx-type-sda s) > i,
+:is(w, s, dx-type w, dx-type s, dx-type-sda w, dx-type-sda s) > * {
     font-style: normal !important;
     display: inline-block !important;
     vertical-align: baseline !important;
@@ -329,7 +330,8 @@ w > i, :is(w, dx-type w, dx-type-sda w) > * {
     }
 }
 
-w, dx-type w, dx-type-sda w {
+w, s, dx-type w, dx-type s, dx-type-sda w, dx-type-sda s {
+    text-decoration: none !important;
     display: inline !important;
     white-space: nowrap !important;
     line-height: inherit !important;
@@ -373,7 +375,7 @@ w, dx-type w, dx-type-sda w {
 }
 
 /* ─── 7. Hero Domain (<dx-type>, <dx-reveal>, <dx-type-ready>) ───────────── */
-:is(.dx-type-ready, dx-type-ready.dx-type-ready, dx-type.dx-typing, dx-type.dx-typed) :is(w, dx-type w) > * {
+:is(.dx-type-ready, dx-type-ready.dx-type-ready, dx-type.dx-typing, dx-type.dx-typed) :is(w, s, dx-type w, dx-type s) > i {
     visibility: visible !important;
     animation-name: type-in !important;
     animation-timing-function: linear !important;
@@ -387,7 +389,7 @@ w, dx-type w, dx-type-sda w {
 }
 
 /* ─── 8. SDA Domain (<dx-type-sda>, <dx-reveal-sda>) ─────────────────────── */
-:is(dx-type-sda.dx-typing, dx-type-sda.dx-typed, dx-type-sda[data-static]) :is(w, dx-type-sda w) > * {
+:is(dx-type-sda.dx-typing, dx-type-sda.dx-typed, dx-type-sda[data-static]) :is(w, s, dx-type-sda w, dx-type-sda s) > i {
     visibility: visible !important;
     animation-name: type-in !important;
     animation-timing-function: linear !important;
@@ -417,7 +419,7 @@ dx-odometer.data-static :is(.ui-pfx, .ui-sfx) {
     display: inline !important;
 }
 
-:is(dx-type-sda, dx-type, .dx-typed, .TYPED).dx-typed :is(w, dx-type-sda w, dx-type w) > * {
+:is(dx-type-sda, dx-type, .dx-typed, .TYPED).dx-typed :is(w, s, dx-type-sda w, dx-type-sda s, dx-type w, dx-type s) > * {
     animation: none !important;
     animation-timeline: none !important;
     opacity: 1 !important;
