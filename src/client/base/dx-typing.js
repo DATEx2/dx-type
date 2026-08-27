@@ -5,6 +5,7 @@
 
 import { DxBase, rootWin } from './dx-base.js';
 import { observeIO, unobserveIO, queueIdleUnpack, removeFromIdleQueue, getIO, DX_ANIM } from './dx-scheduler.js';
+import { generateRibbonHtml } from './dx-meter.js';
 
 export function getTypewriterObserver(win) {
     return getIO(win);
@@ -52,7 +53,11 @@ export function prepareTemplateContent(el) {
             let charIdx = 0;
             for (let i = 0; i < words.length; i++) {
                 const w = words[i];
-                if (!w.querySelector('i')) {
+                const cUiNum = w.querySelector('i.c-ui-num');
+                if (cUiNum) {
+                    const exactDelay = Math.round(delay + (offset + charIdx++) * speed);
+                    cUiNum.style.animationDelay = `${exactDelay}ms`;
+                } else if (!w.querySelector('i')) {
                     const text = w.textContent || '';
                     if (text) {
                         const chars = text.match(/&[a-z0-9]+;|./gu) || [];
@@ -71,6 +76,24 @@ export function prepareTemplateContent(el) {
                 w.setAttribute('data-ready', 'true');
             }
         }
+
+        // Populate drums for embedded meters in tLayer
+        const odometers = tLayer.querySelectorAll('dx-odometer, ui-odometer');
+        for (let i = 0; i < odometers.length; i++) {
+            const odo = odometers[i];
+            odo.classList.remove('data-static');
+            if (!odo.querySelector('b')) {
+                const val = odo.getAttribute('percent') || odo.getAttribute('value') || odo.textContent.trim();
+                const numVal = parseFloat(val) || 0;
+                const type = odo.getAttribute('type') || 'int';
+                const comma = odo.getAttribute('comma') || ',';
+                const prefix = odo.getAttribute('prefix') || '';
+                const suffix = odo.getAttribute('suffix') || '';
+                const start = odo.getAttribute('start') || null;
+                odo.innerHTML = generateRibbonHtml(numVal, type, comma, prefix, suffix, start);
+            }
+        }
+
         // Guarantee data-last="true" and last-char class on the final <i>
         const allI = tLayer.querySelectorAll('i');
         if (allI.length > 0) {
