@@ -40,8 +40,8 @@ export function prepareTemplateContent(el) {
     }
 
     if (tLayer) {
-        const words = tLayer.querySelectorAll('w:not([data-ready])');
-        if (words.length > 0) {
+        const nodes = tLayer.childNodes;
+        if (nodes.length > 0) {
             const style = el.getAttribute('style') || '';
             const dMatch = style.match(/--d:([\d.]+)/);
             const bMatch = style.match(/--b:([\d.]+)/);
@@ -51,33 +51,42 @@ export function prepareTemplateContent(el) {
             const speed = uMatch ? parseFloat(uMatch[1]) : 40;
 
             let charIdx = 0;
-            for (let i = 0; i < words.length; i++) {
-                const w = words[i];
-                const cUiNum = w.querySelector('i.c-ui-num');
-                if (cUiNum) {
-                    const exactDelay = Math.round(delay + (offset + charIdx++) * speed);
-                    cUiNum.style.animationDelay = `${exactDelay}ms`;
-                    const odo = cUiNum.querySelector('dx-odometer, ui-odometer');
-                    if (odo) {
-                        odo.style.setProperty('--d', exactDelay);
+            for (let i = 0; i < nodes.length; i++) {
+                const node = nodes[i];
+                if (node.nodeType === 3) {
+                    charIdx += (node.textContent || '').length;
+                } else if (node.nodeType === 1) {
+                    const w = node;
+                    if (w.hasAttribute('data-ready')) {
+                        charIdx += w.querySelectorAll('i').length;
+                        continue;
                     }
-                } else if (!w.querySelector('i')) {
-                    const text = w.textContent || '';
-                    if (text) {
-                        const chars = text.match(/&[a-z0-9]+;|./gu) || [];
-                        let inner = '';
-                        for (let j = 0; j < chars.length; j++) {
-                            const ch = chars[j];
-                            const exactDelay = Math.round(delay + (offset + charIdx++) * speed);
-                            const cClass = (ch === '·' || ch === '•') ? ' class="bullet-dot"' : '';
-                            inner += `<i${cClass} style="animation-delay:${exactDelay}ms">${ch}</i>`;
+                    const cUiNum = w.querySelector('i.c-ui-num');
+                    if (cUiNum) {
+                        const exactDelay = Math.round(delay + (offset + charIdx++) * speed);
+                        cUiNum.style.animationDelay = `${exactDelay}ms`;
+                        const odo = cUiNum.querySelector('dx-odometer, ui-odometer');
+                        if (odo) {
+                            odo.style.setProperty('--d', exactDelay);
                         }
-                        w.innerHTML = inner;
+                    } else if (!w.querySelector('i')) {
+                        const text = w.textContent || '';
+                        if (text) {
+                            const chars = text.match(/&[a-z0-9]+;|./gu) || [];
+                            let inner = '';
+                            for (let j = 0; j < chars.length; j++) {
+                                const ch = chars[j];
+                                const exactDelay = Math.round(delay + (offset + charIdx++) * speed);
+                                const cClass = (ch === '·' || ch === '•') ? ' class="bullet-dot"' : '';
+                                inner += `<i${cClass} style="animation-delay:${exactDelay}ms">${ch}</i>`;
+                            }
+                            w.innerHTML = inner;
+                        }
+                    } else {
+                        charIdx += w.querySelectorAll('i').length;
                     }
-                } else {
-                    charIdx += w.querySelectorAll('i').length;
+                    w.setAttribute('data-ready', 'true');
                 }
-                w.setAttribute('data-ready', 'true');
             }
         }
 

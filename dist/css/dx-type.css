@@ -295,7 +295,7 @@ dx-number {
   transition: none !important;
   animation-duration: calc(var(--u, 40) * 3.5ms) !important;
   &.c-ui-num {
-    display: inline !important;
+    display: inline-block !important;
     vertical-align: baseline !important;
   }
 }
