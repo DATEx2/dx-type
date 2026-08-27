@@ -11,6 +11,7 @@
 import { DxMeter } from '../base/dx-meter.js';
 import { rootWin, defCustomElement } from '../base/dx-base.js';
 import { DX_ANIM, observeIO } from '../base/dx-scheduler.js';
+import { onTypewriterEnd } from '../base/dx-typing.js';
 
 const TYPE_PARENT_SEL = 'dx-type-sda, dx-type, .type-sda, .type, ui-type, ui-type-sda';
 
@@ -81,11 +82,8 @@ export class DxOdometer extends DxMeter {
             this._animDone = true;
             if (!this.classList.contains('tw-embed')) {
                 this.makeStatic();
-            }
-
-            // Notify typewriter parent that this embedded odometer is done
-            if (this.classList.contains('tw-embed') && typeof rootWin?.__twEnd === 'function') {
-                rootWin.__twEnd(this);
+            } else {
+                onTypewriterEnd(this);
             }
         }
     };

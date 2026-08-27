@@ -57,6 +57,10 @@ export function prepareTemplateContent(el) {
                 if (cUiNum) {
                     const exactDelay = Math.round(delay + (offset + charIdx++) * speed);
                     cUiNum.style.animationDelay = `${exactDelay}ms`;
+                    const odo = cUiNum.querySelector('dx-odometer, ui-odometer');
+                    if (odo) {
+                        odo.style.setProperty('--d', exactDelay);
+                    }
                 } else if (!w.querySelector('i')) {
                     const text = w.textContent || '';
                     if (text) {

@@ -590,6 +590,10 @@ var DxType = (() => {
           if (cUiNum) {
             const exactDelay = Math.round(delay + (offset + charIdx++) * speed);
             cUiNum.style.animationDelay = `${exactDelay}ms`;
+            const odo = cUiNum.querySelector("dx-odometer, ui-odometer");
+            if (odo) {
+              odo.style.setProperty("--d", exactDelay);
+            }
           } else if (!w.querySelector("i")) {
             const text = w.textContent || "";
             if (text) {
@@ -969,13 +973,15 @@ var DxType = (() => {
         const style = el2.getAttribute("style") || "";
         const tMatch = style.match(/--t:([\d.]+)/);
         const dMatch = style.match(/--d:([\d.]+)/);
-        const dur = (tMatch ? parseFloat(tMatch[1]) : 600) + (dMatch ? parseFloat(dMatch[1]) : 0) + 300;
+        const hasOdo = !!(el2.querySelector("dx-odometer, ui-odometer") || el2.querySelector("template")?.content?.querySelector?.("dx-odometer, ui-odometer"));
+        const odoExtra = hasOdo ? 1600 : 0;
+        const dur = (tMatch ? parseFloat(tMatch[1]) : 600) + (dMatch ? parseFloat(dMatch[1]) : 0) + odoExtra + 500;
         setTimeout(() => {
           if (!el2.classList.contains(DX_ANIM.TYPED)) {
             if (typeof el2.markTyped === "function") el2.markTyped();
             else cleanupTypedDOM(el2);
           }
-        }, Math.max(500, Math.min(dur, 2500)));
+        }, Math.max(1e3, dur));
       });
       queueIdleUnpack(this, (el2) => {
         prepareTemplateContent(el2);
@@ -1662,9 +1668,8 @@ var DxType = (() => {
         this._animDone = true;
         if (!this.classList.contains("tw-embed")) {
           this.makeStatic();
-        }
-        if (this.classList.contains("tw-embed") && typeof rootWin2?.__twEnd === "function") {
-          rootWin2.__twEnd(this);
+        } else {
+          onTypewriterEnd(this);
         }
       }
     };
