@@ -181,6 +181,7 @@ dx-odometer, ui-odometer {
     align-items: stretch !important;
     vertical-align: baseline !important;
     position: relative !important;
+    contain: layout style !important;
     line-height: inherit !important;
     font: inherit !important;
     font-variant-numeric: tabular-nums !important;
@@ -279,6 +280,11 @@ d::before {
 
 /* ─── 3. Dynamic Number (<dx-number>) Structure ──────────────────────────── */
 dx-number {
+    display: inline-block !important;
+    contain: layout style !important;
+    vertical-align: baseline !important;
+    position: relative !important;
+
     & .ui-num-wrap {
         display: inline-block !important;
         position: relative !important;
