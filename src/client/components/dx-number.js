@@ -96,9 +96,12 @@ export class DxNumber extends DxMeter {
     }
 
     isReadyToAnimate() {
-        const parentC = typeof this.closest === 'function' ? this.closest('c') : null;
-        const parentReveal = typeof this.closest === 'function' ? this.closest(REVEAL_PARENT_SEL) : null;
-        const parentActionBar = typeof this.closest === 'function' ? this.closest('.action-bar, .action-bar-wrapper') : null;
+        if (typeof this.closest !== 'function') {
+            return true;
+        }
+        const parentC = this.closest('c');
+        const parentReveal = this.closest(REVEAL_PARENT_SEL);
+        const parentActionBar = this.closest('.action-bar, .action-bar-wrapper');
 
         if (parentActionBar) {
             const isAbShowing = !!this.closest('.show-action-bar, .showing-action-bar')
