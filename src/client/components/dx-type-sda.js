@@ -39,7 +39,7 @@ export class DxTypeSda extends DxTyping {
                 onTypewriterEnd(target, e);
             } else {
                 if (!this._lastC) {
-                    const allC = this.querySelectorAll('i, c, [data-last]');
+                    const allC = this.querySelectorAll('i, [data-last]');
                     this._lastC = allC.length ? allC[allC.length - 1] : null;
                 }
                 if (this._lastC && target === this._lastC) {

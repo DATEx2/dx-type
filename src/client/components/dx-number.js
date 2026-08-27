@@ -99,7 +99,7 @@ export class DxNumber extends DxMeter {
         if (typeof this.closest !== 'function') {
             return true;
         }
-        const parentChar = this.closest(':is(i, c)');
+        const parentChar = this.closest('i');
         const parentReveal = this.closest(REVEAL_PARENT_SEL);
         const parentActionBar = this.closest('.action-bar, .action-bar-wrapper');
 
@@ -190,7 +190,7 @@ export class DxNumber extends DxMeter {
         this._targetValue = targetVal;
 
         const hasSsr = typeof this.querySelector === 'function' && Boolean(this.querySelector('.ui-num, .dx-num-wrap'));
-        const parentChar = typeof this.closest === 'function' ? this.closest(':is(i, c)') : null;
+        const parentChar = typeof this.closest === 'function' ? this.closest('i') : null;
         const parentReveal = typeof this.closest === 'function' ? this.closest(REVEAL_PARENT_SEL) : null;
         const hasParent = Boolean(parentChar || parentReveal);
 

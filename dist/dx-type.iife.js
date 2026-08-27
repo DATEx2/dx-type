@@ -761,7 +761,7 @@ var DxType = (() => {
       if (parent.querySelector(":scope > template")) return false;
       const isEmbed = cEl.tagName === "DX-ODOMETER" || cEl.tagName === "UI-ODOMETER" || cEl.tagName === "DX-NUMBER" || cEl.tagName === "UI-NUMBER";
       if (!parent._lastC) {
-        const allC = parent.querySelectorAll("t i, t c, i, c, [data-last]");
+        const allC = parent.querySelectorAll("t i, i, [data-last]");
         parent._lastC = allC.length ? allC[allC.length - 1] : null;
       }
       const lastC = parent._lastC;
@@ -958,7 +958,7 @@ var DxType = (() => {
           onTypewriterEnd(target, e);
         } else {
           if (!this._lastC) {
-            const allC = this.querySelectorAll("i, c, [data-last]");
+            const allC = this.querySelectorAll("i, [data-last]");
             this._lastC = allC.length ? allC[allC.length - 1] : null;
           }
           if (target === this._lastC) {
@@ -997,7 +997,7 @@ var DxType = (() => {
           onTypewriterEnd(target, e);
         } else {
           if (!this._lastC) {
-            const allC = this.querySelectorAll("i, c, [data-last]");
+            const allC = this.querySelectorAll("i, [data-last]");
             this._lastC = allC.length ? allC[allC.length - 1] : null;
           }
           if (this._lastC && target === this._lastC) {
@@ -1197,7 +1197,7 @@ var DxType = (() => {
       if (typeof this.closest !== "function") {
         return true;
       }
-      const parentChar = this.closest(":is(i, c)");
+      const parentChar = this.closest("i");
       const parentReveal = this.closest(REVEAL_PARENT_SEL);
       const parentActionBar = this.closest(".action-bar, .action-bar-wrapper");
       if (parentActionBar) {
@@ -1274,7 +1274,7 @@ var DxType = (() => {
       const targetVal = this._targetValue !== void 0 && !isNaN(this._targetValue) && this._targetValue !== 0 ? this._targetValue : parseFloat(this.getAttribute("percent")) || this.getNumericValue() || 0;
       this._targetValue = targetVal;
       const hasSsr = typeof this.querySelector === "function" && Boolean(this.querySelector(".ui-num, .dx-num-wrap"));
-      const parentChar = typeof this.closest === "function" ? this.closest(":is(i, c)") : null;
+      const parentChar = typeof this.closest === "function" ? this.closest("i") : null;
       const parentReveal = typeof this.closest === "function" ? this.closest(REVEAL_PARENT_SEL) : null;
       const hasParent = Boolean(parentChar || parentReveal);
       if (isStatic) {
