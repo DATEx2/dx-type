@@ -1135,7 +1135,7 @@ var DxNumber = class extends DxMeter {
     if (typeof this.closest !== "function") {
       return true;
     }
-    const parentC = this.closest("c");
+    const parentChar = this.closest(":is(i, c)");
     const parentReveal = this.closest(REVEAL_PARENT_SEL);
     const parentActionBar = this.closest(".action-bar, .action-bar-wrapper");
     if (parentActionBar) {
@@ -1147,7 +1147,7 @@ var DxNumber = class extends DxMeter {
       this._parentReady = true;
       return true;
     }
-    if (!parentC && !parentReveal) {
+    if (!parentChar && !parentReveal) {
       this._parentReady = true;
       return Boolean(this._inViewport);
     }
@@ -1212,9 +1212,9 @@ var DxNumber = class extends DxMeter {
     const targetVal = this._targetValue !== void 0 && !isNaN(this._targetValue) && this._targetValue !== 0 ? this._targetValue : parseFloat(this.getAttribute("percent")) || this.getNumericValue() || 0;
     this._targetValue = targetVal;
     const hasSsr = typeof this.querySelector === "function" && Boolean(this.querySelector(".ui-num, .dx-num-wrap"));
-    const parentC = typeof this.closest === "function" ? this.closest("c") : null;
+    const parentChar = typeof this.closest === "function" ? this.closest(":is(i, c)") : null;
     const parentReveal = typeof this.closest === "function" ? this.closest(REVEAL_PARENT_SEL) : null;
-    const hasParent = Boolean(parentC || parentReveal);
+    const hasParent = Boolean(parentChar || parentReveal);
     if (isStatic) {
       this._value = targetVal;
       this._animationStarted = true;
@@ -1243,14 +1243,14 @@ var DxNumber = class extends DxMeter {
       this._inViewport = true;
       this._checkAndTrigger();
     });
-    if (parentC) {
+    if (parentChar) {
       const parentType = typeof this.closest === "function" ? this.closest(TYPE_PARENT_SEL) : null;
       if (parentType && (parentType.classList.contains(DX_ANIM.TYPED) || parentType.classList.contains("typed") || parentType.hasAttribute("data-static"))) {
         this._parentReady = true;
       } else {
-        parentC.addEventListener("animationstart", (e) => {
-          if (e.target === parentC) {
-            const u = parentC.style && parseFloat(parentC.style.getPropertyValue("--u")) || 40;
+        parentChar.addEventListener("animationstart", (e) => {
+          if (e.target === parentChar) {
+            const u = parentChar.style && parseFloat(parentChar.style.getPropertyValue("--u")) || 40;
             this._twDelayId = setTimeout(() => {
               this._parentReady = true;
               this._checkAndTrigger();
