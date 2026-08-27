@@ -1145,9 +1145,8 @@ var DxNumber = class extends DxMeter {
       return true;
     }
     if (!parentC && !parentReveal) {
-      this._inViewport = true;
       this._parentReady = true;
-      return true;
+      return Boolean(this._inViewport);
     }
     if (this._inViewport && !this._parentReady) {
       if (parentReveal) {
@@ -1228,20 +1227,19 @@ var DxNumber = class extends DxMeter {
       this._cacheTextNodes();
     }
     this._inViewport = false;
-    if (!hasParent || isStatic) {
+    if (isStatic) {
       this._inViewport = true;
       this._parentReady = true;
-      this._checkAndTrigger();
-    } else {
-      observeIO(this, () => {
-        this._inViewport = true;
-        this._checkAndTrigger();
-      });
-    }
-    if (isStatic) {
       this.makeStatic();
       return;
     }
+    if (!hasParent) {
+      this._parentReady = true;
+    }
+    observeIO(this, () => {
+      this._inViewport = true;
+      this._checkAndTrigger();
+    });
     if (parentC) {
       const parentType = typeof this.closest === "function" ? this.closest(TYPE_PARENT_SEL) : null;
       if (parentType && (parentType.classList.contains(DX_ANIM.TYPED) || parentType.classList.contains("typed") || parentType.hasAttribute("data-static"))) {

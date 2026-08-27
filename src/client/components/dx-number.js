@@ -112,9 +112,8 @@ export class DxNumber extends DxMeter {
         }
 
         if (!parentC && !parentReveal) {
-            this._inViewport = true;
             this._parentReady = true;
-            return true;
+            return Boolean(this._inViewport);
         }
         if (this._inViewport && !this._parentReady) {
             if (parentReveal) {
@@ -211,22 +210,21 @@ export class DxNumber extends DxMeter {
         this._inViewport = false;
 
         // 1. Condition #1: In-viewport observer (Singleton IO)
-        if (!hasParent || isStatic) {
+        if (isStatic) {
             this._inViewport = true;
             this._parentReady = true;
-            this._checkAndTrigger();
-        } else {
-            observeIO(this, () => {
-                this._inViewport = true;
-                this._checkAndTrigger();
-            });
-        }
-
-        // 2. Condition #2: Parent animation readiness
-        if (isStatic) {
             this.makeStatic();
             return;
         }
+
+        if (!hasParent) {
+            this._parentReady = true;
+        }
+
+        observeIO(this, () => {
+            this._inViewport = true;
+            this._checkAndTrigger();
+        });
 
         if (parentC) {
             const parentType = typeof this.closest === 'function' ? this.closest(TYPE_PARENT_SEL) : null;
