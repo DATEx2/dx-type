@@ -288,7 +288,7 @@ dx-number {
   -webkit-backface-visibility: hidden;
   opacity: 0;
   transition: none !important;
-  animation-duration: inherit !important;
+  animation-duration: calc(var(--u, 40) * 3.5ms) !important;
   &.c-ui-num {
     display: inline !important;
     vertical-align: baseline !important;
