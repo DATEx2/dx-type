@@ -317,8 +317,10 @@ function ssrDxType(content, options = {}) {
   }) : content;
   const charDur = Math.round(res.speed * 3.5);
   const tStyle = ` style="animation-duration:${charDur}ms"`;
+  const stTokens = tokenize(stContent, options);
+  const sdaStContent = stTokens.compactHtml || stContent;
   if (isSda) {
-    return `<${tagName}${classAttr} style="${res.style}"${ariaAttr}><s-t>${stContent}</s-t><template><t aria-hidden="true"${tStyle}>${res.compactHtml || res.html}</t></template></${tagName}>`;
+    return `<${tagName}${classAttr} style="${res.style}"${ariaAttr}><s-t>${sdaStContent}</s-t><template></template></${tagName}>`;
   }
   return `<${tagName}${classAttr} style="${res.style}"${ariaAttr}><s-t>${stContent}</s-t><t aria-hidden="true"${tStyle}>${res.html}</t></${tagName}>`;
 }

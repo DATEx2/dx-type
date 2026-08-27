@@ -274,8 +274,24 @@ function prepareTemplateContent(el2) {
   const tpl = el2.querySelector(":scope > template");
   if (!tpl || !tpl.content) return false;
   if (tpl._prepared) return true;
-  tpl._prepared = true;
-  const tLayer = tpl.content.querySelector("t");
+  let tLayer = tpl.content.querySelector("t");
+  if (!tLayer) {
+    const st = el2.querySelector(":scope > s-t");
+    if (st) {
+      const doc = el2.ownerDocument || (typeof document !== "undefined" ? document : null);
+      if (doc) {
+        tLayer = doc.createElement("t");
+        tLayer.setAttribute("aria-hidden", "true");
+        const style = el2.getAttribute("style") || "";
+        const uMatch = style.match(/--u:([\d.]+)/);
+        const speed = uMatch ? parseFloat(uMatch[1]) : 40;
+        const charDur = Math.round(speed * 3.5);
+        tLayer.setAttribute("style", `animation-duration:${charDur}ms`);
+        tLayer.innerHTML = st.innerHTML;
+        tpl.content.appendChild(tLayer);
+      }
+    }
+  }
   if (tLayer) {
     const words = tLayer.querySelectorAll("w:not([data-ready])");
     if (words.length > 0) {

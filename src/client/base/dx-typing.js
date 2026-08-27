@@ -18,10 +18,26 @@ export function prepareTemplateContent(el) {
     const tpl = el.querySelector(':scope > template');
     if (!tpl || !tpl.content) return false;
     if (tpl._prepared) return true;
-    tpl._prepared = true;
+    // If <template> is empty (SSR compact mode), dynamically create <t> from <s-t>
+    let tLayer = tpl.content.querySelector('t');
+    if (!tLayer) {
+        const st = el.querySelector(':scope > s-t');
+        if (st) {
+            const doc = el.ownerDocument || (typeof document !== 'undefined' ? document : null);
+            if (doc) {
+                tLayer = doc.createElement('t');
+                tLayer.setAttribute('aria-hidden', 'true');
+                const style = el.getAttribute('style') || '';
+                const uMatch = style.match(/--u:([\d.]+)/);
+                const speed = uMatch ? parseFloat(uMatch[1]) : 40;
+                const charDur = Math.round(speed * 3.5);
+                tLayer.setAttribute('style', `animation-duration:${charDur}ms`);
+                tLayer.innerHTML = st.innerHTML;
+                tpl.content.appendChild(tLayer);
+            }
+        }
+    }
 
-    // Expand words <w> into characters <i> strictly inside tpl.content DocumentFragment (0 DOM nodes added)
-    const tLayer = tpl.content.querySelector('t');
     if (tLayer) {
         const words = tLayer.querySelectorAll('w:not([data-ready])');
         if (words.length > 0) {
