@@ -210,7 +210,7 @@ function splitChars(str) {
 }
 
 /**
- * Tokenize HTML text into <w><c> structure for typewriter rendering.
+ * Tokenize HTML text into <w><i> structure for typewriter rendering.
  * @param {string} html — Raw or nested HTML content
  * @param {object} options — { duration, delay, offset }
  * @returns {object} { html, cleanText, totalUnits, speed, duration, delay, style }

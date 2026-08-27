@@ -214,7 +214,7 @@ export function cleanupTypedDOM(typeEl) {
     const directTpl = typeEl.querySelector(':scope > template');
     if (directTpl) directTpl.remove();
 
-    // 2. Remove <t> layer completely so that all <w>, <c>, etc. fly away from DOM, leaving only <s-t>
+    // 2. Remove <t> layer completely so that all <w>, <i>, etc. fly away from DOM, leaving only <s-t>
     const tLayer = typeEl.querySelector(':scope > t, t');
     if (tLayer) {
         tLayer.remove();
@@ -233,7 +233,7 @@ export function cleanupTypedDOM(typeEl) {
     typeEl.removeAttribute('aria-label');
 }
 
-// ─── onTypewriterEnd — called when last <c> finishes animating or odometer completes ───
+// ─── onTypewriterEnd — called when last <i> finishes animating or odometer completes ───
 export function onTypewriterEnd(cEl, event) {
     if (event) {
         event.stopPropagation();

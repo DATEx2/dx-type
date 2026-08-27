@@ -16,7 +16,7 @@ dx-counter,
 :host(dx-number),
 :host(dx-odometer),
 :host(dx-counter),
-:is(dx-type, dx-type-sda) :is(s-t, t, w, c),
+:is(dx-type, dx-type-sda) :is(s-t, t, w, i),
 :is(dx-odometer, ui-odometer) :is(s-t, b, d, span, .ui-pfx, .ui-sfx, .ui-radix),
 dx-number :is(.ui-num-wrap, .ui-num, .ui-pad, .ui-pfx, .ui-sfx),
 dx-counter :is(s-t, .dx-num-wrap, .dx-b, .dx-m, .dx-k, .dx-u, .dx-dec, .dx-pfx, .dx-sfx, .dx-radix) {
@@ -130,7 +130,7 @@ dx-type-sda {
             height: auto !important;
         }
 
-        & c {
+        & i {
             animation: none !important;
             opacity: 1 !important;
             visibility: visible !important;
