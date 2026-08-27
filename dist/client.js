@@ -391,8 +391,8 @@ function formatNumber(val, type = "int", comma = ",", prefix = "", suffix = "") 
   } else {
     formatted = num.toString().replace(".", comma);
   }
-  const pfx = prefix ? `${prefix}${prefix.endsWith(" ") ? "" : " "}` : "";
-  const sfx = suffix ? `${suffix.startsWith(" ") ? "" : " "}${suffix}` : "";
+  const pfx = prefix || "";
+  const sfx = suffix || "";
   return `${pfx}${formatted}${sfx}`;
 }
 function generateRibbonHtml(numericValue, type = "int", comma = ",", prefix = "", suffix = "", startValue = null) {
