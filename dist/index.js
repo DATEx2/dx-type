@@ -457,7 +457,7 @@ function onTypewriterEnd(cEl, event) {
     const tLayer = parent.querySelector(":scope > t, t") || parent;
     const embeds = Array.from(tLayer.querySelectorAll("dx-odometer, ui-odometer, dx-number, ui-number"));
     const allEmbedsDone = embeds.length === 0 || embeds.every((e) => e._animDone || e.isStatic || e.classList.contains("data-static"));
-    const charDone = !!parent._charDone;
+    const charDone = !lastC || !!parent._charDone;
     if (charDone && allEmbedsDone) {
       if (typeof parent.markTyped === "function") {
         parent.markTyped();
