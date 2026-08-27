@@ -601,13 +601,15 @@ function unpackTemplate(el2) {
     const style = el2.getAttribute("style") || "";
     const tMatch = style.match(/--t:([\d.]+)/);
     const dMatch = style.match(/--d:([\d.]+)/);
-    const dur = (tMatch ? parseFloat(tMatch[1]) : 600) + (dMatch ? parseFloat(dMatch[1]) : 0) + 400;
+    const hasOdo = !!(el2.querySelector("dx-odometer, ui-odometer") || el2.querySelector("template")?.content?.querySelector?.("dx-odometer, ui-odometer"));
+    const odoExtra = hasOdo ? 1800 : 0;
+    const dur = (tMatch ? parseFloat(tMatch[1]) : 600) + (dMatch ? parseFloat(dMatch[1]) : 0) + odoExtra + 600;
     setTimeout(() => {
       if (!el2.classList.contains(DX_ANIM.TYPED)) {
         if (typeof el2.markTyped === "function") el2.markTyped();
         else cleanupTypedDOM2(el2);
       }
-    }, Math.max(500, Math.min(dur, 2500)));
+    }, Math.max(1200, dur));
     return true;
   }
   return false;
@@ -2079,6 +2081,8 @@ export {
   cleanupTypedDOM2 as cleanupTypedDOM,
   ensureElementsUpToTarget,
   finishReveal,
+  formatNumber,
+  generateRibbonHtml,
   getIO,
   getSdaGaps,
   getTypewriterObserver,
