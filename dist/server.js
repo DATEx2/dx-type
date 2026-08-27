@@ -313,7 +313,7 @@ function ssrDxType(content, options = {}) {
     } else {
       mergedAttrs = `${mergedAttrs} class="data-static"`.trim();
     }
-    return `<dx-odometer ${mergedAttrs}><s-t>${cleanText}</s-t></dx-odometer>`;
+    return `<dx-odometer ${mergedAttrs}>${cleanText}</dx-odometer>`;
   }) : content;
   const charDur = Math.round(res.speed * 3.5);
   const tStyle = ` style="animation-duration:${charDur}ms"`;
