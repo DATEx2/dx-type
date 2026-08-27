@@ -24,20 +24,6 @@ export class DxTypeSda extends DxTyping {
             removeFromIdleQueue(el);
             unpackTemplate(el);
             el.classList.add(DX_ANIM.TYPING);
-
-            // Deterministic safety cleanup timer (accounts for embedded odometer animation duration)
-            const style = el.getAttribute('style') || '';
-            const tMatch = style.match(/--t:([\d.]+)/);
-            const dMatch = style.match(/--d:([\d.]+)/);
-            const hasOdo = !!(el.querySelector('dx-odometer, ui-odometer') || el.querySelector('template')?.content?.querySelector?.('dx-odometer, ui-odometer'));
-            const odoExtra = hasOdo ? 1600 : 0;
-            const dur = (tMatch ? parseFloat(tMatch[1]) : 600) + (dMatch ? parseFloat(dMatch[1]) : 0) + odoExtra + 500;
-            setTimeout(() => {
-                if (!el.classList.contains(DX_ANIM.TYPED)) {
-                    if (typeof el.markTyped === 'function') el.markTyped();
-                    else cleanupTypedDOM(el);
-                }
-            }, Math.max(1000, dur));
         });
 
         // Background Pre-warm on Idle: ONLY inside <template>.content, NEVER in live DOM!

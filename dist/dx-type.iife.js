@@ -34,7 +34,7 @@ var DxType = (() => {
     DxTypeSda: () => DxTypeSda,
     DxTyping: () => DxTyping,
     bootstrapTypewriterObserver: () => bootstrapTypewriterObserver,
-    cleanupTypedDOM: () => cleanupTypedDOM2,
+    cleanupTypedDOM: () => cleanupTypedDOM,
     ensureElementsUpToTarget: () => ensureElementsUpToTarget,
     finishReveal: () => finishReveal,
     formatNumber: () => formatNumber,
@@ -421,6 +421,23 @@ var DxType = (() => {
       this.classList.add("data-static");
     }
   };
+  function pruneMiddleFrames(drumValues) {
+    const len = drumValues.length;
+    if (len < 10) return drumValues;
+    const removeCount = Math.floor(len / 5);
+    if (removeCount <= 0) return drumValues;
+    const keepStart = 3;
+    const keepEnd = 4;
+    const midCount = len - keepStart - keepEnd;
+    if (midCount <= removeCount) return drumValues;
+    const step = midCount / (removeCount + 1);
+    const dropIndices = /* @__PURE__ */ new Set();
+    for (let r = 1; r <= removeCount; r++) {
+      const dropIdx = keepStart + Math.round(r * step) - 1;
+      dropIndices.add(dropIdx);
+    }
+    return drumValues.filter((_, idx) => !dropIndices.has(idx));
+  }
   function formatNumber(val, type = "int", comma = ",", prefix = "", suffix = "") {
     const num = parseFloat(val) || 0;
     let formatted = "";
@@ -449,6 +466,7 @@ var DxType = (() => {
     const decimalDigits = numberPartMatch?.[4] || "";
     const suffixText = (numberPartMatch?.[5] || "").trim();
     const formattedNumberStr = mainDigits + radixMark + decimalDigits;
+    const isYear = type === "year";
     let formattedStartStr = null;
     if (startValue !== null && startValue !== void 0 && startValue !== "") {
       const startNumeric = parseFloat(startValue);
@@ -458,89 +476,94 @@ var DxType = (() => {
         formattedStartStr = (startMatch?.[2] || "") + (startMatch?.[3] || "") + (startMatch?.[4] || "");
       }
     }
-    const isYear = type === "year";
-    const allDigitPositions = [];
+    const allDigits = [];
     for (let i = 0; i < formattedNumberStr.length; i++) {
-      if (formattedNumberStr[i] >= "0" && formattedNumberStr[i] <= "9") allDigitPositions.push(i);
+      const c = formattedNumberStr[i];
+      if (c >= "0" && c <= "9") allDigits.push(c);
     }
-    const totalDigits = allDigitPositions.length;
-    let digitsHtml = "";
+    const targetDigitsStr = allDigits.join("");
+    const totalDigits = targetDigitsStr.length;
+    let startDigitsStr = null;
+    if (formattedStartStr) {
+      const startDigits = [];
+      for (let i = 0; i < formattedStartStr.length; i++) {
+        const c = formattedStartStr[i];
+        if (c >= "0" && c <= "9") startDigits.push(c);
+      }
+      startDigitsStr = startDigits.join("");
+    }
+    const isYearWithStart = isYear && startDigitsStr && startDigitsStr.length === targetDigitsStr.length;
+    const startDigitsForLeading = [];
+    for (let i = 0; i < targetDigitsStr.length; i++) {
+      startDigitsForLeading.push(
+        startDigitsStr && startDigitsStr[i] !== void 0 ? parseInt(startDigitsStr[i], 10) : 0
+      );
+    }
+    let firstSignificant = startDigitsForLeading.length;
+    for (let i = 0; i < startDigitsForLeading.length; i++) {
+      if (startDigitsForLeading[i] !== 0) {
+        firstSignificant = i;
+        break;
+      }
+    }
+    if (firstSignificant >= startDigitsForLeading.length) {
+      firstSignificant = startDigitsForLeading.length - 1;
+    }
+    const lastLeadingZeroIdx = firstSignificant - 1;
     let digitIndex = 0;
+    let digitsHtml = "";
     for (let i = 0; i < formattedNumberStr.length; i++) {
       const char = formattedNumberStr[i];
       if (char >= "0" && char <= "9") {
         const curDigitIdx = digitIndex++;
         const digitR = totalDigits - 1 - curDigitIdx;
-        const digitVal = parseInt(char, 10);
-        let startDigitVal = 0;
-        if (formattedStartStr) {
-          const paddedStart = formattedStartStr.padStart(formattedNumberStr.length, "0");
-          startDigitVal = parseInt(paddedStart[i], 10);
-          if (isNaN(startDigitVal)) startDigitVal = 0;
-        }
+        const targetD = parseInt(targetDigitsStr[curDigitIdx], 10);
+        const startD = startDigitsStr && startDigitsStr[curDigitIdx] !== void 0 ? parseInt(startDigitsStr[curDigitIdx], 10) : 0;
         let drumValues = [];
-        if (isYear && formattedStartStr) {
-          if (startDigitVal === digitVal) {
-            drumValues.push(digitVal);
+        if (isYearWithStart) {
+          if (startD === targetD) {
+            drumValues.push(targetD);
           } else {
-            let cur = startDigitVal;
+            let cur = startD;
             drumValues.push(cur);
-            while (cur !== digitVal && drumValues.length <= 20) {
+            while (cur !== targetD) {
               cur = (cur + 1) % 10;
               drumValues.push(cur);
+              if (drumValues.length > 20) break;
             }
           }
         } else {
           const isSingleDigit = totalDigits === 1;
           const cycles = isSingleDigit ? 0 : digitR === 0 ? 2 : digitR === 1 ? 1 : 0;
-          const totalSteps = cycles * 10 + (digitVal - startDigitVal + 10) % 10;
+          const totalSteps = cycles * 10 + (targetD - startD + 10) % 10;
           const effectiveSteps = totalSteps === 0 && cycles === 0 ? 0 : totalSteps;
-          let cur = startDigitVal;
+          let cur = startD;
           drumValues.push(cur);
           for (let s = 0; s < effectiveSteps; s++) {
             cur = (cur + 1) % 10;
             drumValues.push(cur);
           }
-          if (drumValues.length >= 10) {
-            const removeCount = Math.floor(drumValues.length / 5);
-            if (removeCount > 0) {
-              const keepStart = 3;
-              const keepEnd = 4;
-              const midCount = drumValues.length - keepStart - keepEnd;
-              if (midCount > removeCount) {
-                const step = midCount / (removeCount + 1);
-                const dropIndices = /* @__PURE__ */ new Set();
-                for (let r = 1; r <= removeCount; r++) {
-                  dropIndices.add(keepStart + Math.round(r * step) - 1);
-                }
-                drumValues = drumValues.filter((_, idx) => !dropIndices.has(idx));
-              }
-            }
-          }
-          const isLeadingZero = !isYear && curDigitIdx < totalDigits - 1 && drumValues[0] === 0;
-          if (isLeadingZero) {
-            let allZero = true;
-            for (let z = 0; z <= curDigitIdx; z++) {
-              const sd = formattedStartStr ? parseInt(formattedStartStr.padStart(formattedNumberStr.length, "0")[allDigitPositions[z]], 10) : 0;
-              if (sd !== 0) {
-                allZero = false;
-                break;
-              }
-            }
-            if (allZero) drumValues[0] = " ";
-          }
+          drumValues = pruneMiddleFrames(drumValues);
+        }
+        const isLeadingZero = !isYear && curDigitIdx <= lastLeadingZeroIdx;
+        if (isLeadingZero && drumValues.length > 0 && drumValues[0] === 0) {
+          drumValues[0] = " ";
         }
         const totalItems = drumValues.length;
         const finalIndex = totalItems - 1;
-        const finalPosPercent = totalItems > 1 ? -(finalIndex / totalItems * 100).toFixed(4) : 0;
+        const finalPosPercent = totalItems > 1 ? -(finalIndex * 100) : 0;
         const seqStr = drumValues.map((v) => v === " " ? " " : v).join("&#10;");
         digitsHtml += `<d data-seq="${seqStr}" style="--p:${finalPosPercent}%;--r:${digitR}">${char}</d>`;
       } else {
         digitsHtml += `<span class="ui-radix">${char}</span>`;
       }
     }
-    const pfxHtml = prefixText ? `<span class="ui-pfx">${prefixText}${prefix.endsWith(" ") ? "" : " "}</span>` : "";
-    const sfxHtml = suffixText ? `<span class="ui-sfx">${suffix.startsWith(" ") ? "" : " "}${suffixText}</span>` : "";
+    const prefixHasSpace = (numberPartMatch?.[1] || "").endsWith(" ");
+    const prefixSpace = prefixHasSpace ? " " : "";
+    const suffixHasSpace = (numberPartMatch?.[5] || "").startsWith(" ");
+    const suffixSpace = suffixHasSpace ? " " : "";
+    const pfxHtml = prefixText ? `<span class="ui-pfx">${prefixText}${prefixSpace}</span>` : "";
+    const sfxHtml = suffixText ? `<span class="ui-sfx">${suffixSpace}${suffixText}</span>` : "";
     return `${pfxHtml}<b>${digitsHtml}</b>${sfxHtml}`;
   }
   if (rootWin2) {
@@ -660,18 +683,6 @@ var DxType = (() => {
       tpl.replaceWith(tpl.content);
       const t = el2.querySelector(":scope > t");
       if (t) t.setAttribute("aria-hidden", "true");
-      const style = el2.getAttribute("style") || "";
-      const tMatch = style.match(/--t:([\d.]+)/);
-      const dMatch = style.match(/--d:([\d.]+)/);
-      const hasOdo = !!(el2.querySelector("dx-odometer, ui-odometer") || el2.querySelector("template")?.content?.querySelector?.("dx-odometer, ui-odometer"));
-      const odoExtra = hasOdo ? 1800 : 0;
-      const dur = (tMatch ? parseFloat(tMatch[1]) : 600) + (dMatch ? parseFloat(dMatch[1]) : 0) + odoExtra + 600;
-      setTimeout(() => {
-        if (!el2.classList.contains(DX_ANIM.TYPED)) {
-          if (typeof el2.markTyped === "function") el2.markTyped();
-          else cleanupTypedDOM2(el2);
-        }
-      }, Math.max(1200, dur));
       return true;
     }
     return false;
@@ -715,7 +726,7 @@ var DxType = (() => {
       unpackTemplate(el2);
     }
   }
-  function cleanupTypedDOM2(typeEl) {
+  function cleanupTypedDOM(typeEl) {
     if (!typeEl || typeEl._cleanedUp) return;
     typeEl._cleanedUp = true;
     const doc = typeEl.ownerDocument || (typeof document !== "undefined" ? document : null);
@@ -811,7 +822,7 @@ var DxType = (() => {
       if (typeof rootWin2?.__datex2TriggerPendingUiNumbers === "function") {
         rootWin2.__datex2TriggerPendingUiNumbers(this);
       }
-      cleanupTypedDOM2(this);
+      cleanupTypedDOM(this);
     }
   };
   var checkAndObserve = (el2) => {
@@ -864,7 +875,7 @@ var DxType = (() => {
       ensureElementsUpToTarget,
       onTypewriterEnd,
       __twEnd: onTypewriterEnd,
-      __datex2CleanupTypedDOM: cleanupTypedDOM2,
+      __datex2CleanupTypedDOM: cleanupTypedDOM,
       bootstrapTypewriterObserver
     });
   }
@@ -974,18 +985,6 @@ var DxType = (() => {
         removeFromIdleQueue(el2);
         unpackTemplate(el2);
         el2.classList.add(DX_ANIM.TYPING);
-        const style = el2.getAttribute("style") || "";
-        const tMatch = style.match(/--t:([\d.]+)/);
-        const dMatch = style.match(/--d:([\d.]+)/);
-        const hasOdo = !!(el2.querySelector("dx-odometer, ui-odometer") || el2.querySelector("template")?.content?.querySelector?.("dx-odometer, ui-odometer"));
-        const odoExtra = hasOdo ? 1600 : 0;
-        const dur = (tMatch ? parseFloat(tMatch[1]) : 600) + (dMatch ? parseFloat(dMatch[1]) : 0) + odoExtra + 500;
-        setTimeout(() => {
-          if (!el2.classList.contains(DX_ANIM.TYPED)) {
-            if (typeof el2.markTyped === "function") el2.markTyped();
-            else cleanupTypedDOM(el2);
-          }
-        }, Math.max(1e3, dur));
       });
       queueIdleUnpack(this, (el2) => {
         prepareTemplateContent(el2);

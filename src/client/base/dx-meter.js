@@ -211,6 +211,28 @@ export class DxMeter extends DxBase {
     }
 }
 
+export function pruneMiddleFrames(drumValues) {
+    const len = drumValues.length;
+    if (len < 10) return drumValues;
+
+    const removeCount = Math.floor(len / 5);
+    if (removeCount <= 0) return drumValues;
+
+    const keepStart = 3;
+    const keepEnd = 4;
+    const midCount = len - keepStart - keepEnd;
+    if (midCount <= removeCount) return drumValues;
+
+    const step = midCount / (removeCount + 1);
+    const dropIndices = new Set();
+    for (let r = 1; r <= removeCount; r++) {
+        const dropIdx = keepStart + Math.round(r * step) - 1;
+        dropIndices.add(dropIdx);
+    }
+
+    return drumValues.filter((_, idx) => !dropIndices.has(idx));
+}
+
 export function formatNumber(val, type = 'int', comma = ',', prefix = '', suffix = '') {
     const num = parseFloat(val) || 0;
     let formatted = '';
@@ -244,6 +266,7 @@ export function generateRibbonHtml(numericValue, type = 'int', comma = ',', pref
     const suffixText = (numberPartMatch?.[5] || '').trim();
 
     const formattedNumberStr = mainDigits + radixMark + decimalDigits;
+    const isYear = (type === 'year');
 
     let formattedStartStr = null;
     if (startValue !== null && startValue !== undefined && startValue !== '') {
@@ -255,94 +278,94 @@ export function generateRibbonHtml(numericValue, type = 'int', comma = ',', pref
         }
     }
 
-    const isYear = (type === 'year');
-
-    // Count total digit columns for leading-zero detection
-    const allDigitPositions = [];
+    const allDigits = [];
     for (let i = 0; i < formattedNumberStr.length; i++) {
-        if (formattedNumberStr[i] >= '0' && formattedNumberStr[i] <= '9') allDigitPositions.push(i);
+        const c = formattedNumberStr[i];
+        if (c >= '0' && c <= '9') allDigits.push(c);
     }
-    const totalDigits = allDigitPositions.length;
+    const targetDigitsStr = allDigits.join('');
+    const totalDigits = targetDigitsStr.length;
 
-    let digitsHtml = '';
+    let startDigitsStr = null;
+    if (formattedStartStr) {
+        const startDigits = [];
+        for (let i = 0; i < formattedStartStr.length; i++) {
+            const c = formattedStartStr[i];
+            if (c >= '0' && c <= '9') startDigits.push(c);
+        }
+        startDigitsStr = startDigits.join('');
+    }
+
+    const isYearWithStart = isYear && startDigitsStr && startDigitsStr.length === targetDigitsStr.length;
+
+    // Determine leading-zero positions at animation start
+    const startDigitsForLeading = [];
+    for (let i = 0; i < targetDigitsStr.length; i++) {
+        startDigitsForLeading.push(
+            (startDigitsStr && startDigitsStr[i] !== undefined)
+                ? parseInt(startDigitsStr[i], 10)
+                : 0
+        );
+    }
+    let firstSignificant = startDigitsForLeading.length;
+    for (let i = 0; i < startDigitsForLeading.length; i++) {
+        if (startDigitsForLeading[i] !== 0) { firstSignificant = i; break; }
+    }
+    if (firstSignificant >= startDigitsForLeading.length) {
+        firstSignificant = startDigitsForLeading.length - 1;
+    }
+    const lastLeadingZeroIdx = firstSignificant - 1;
+
     let digitIndex = 0;
+    let digitsHtml = '';
 
     for (let i = 0; i < formattedNumberStr.length; i++) {
         const char = formattedNumberStr[i];
         if (char >= '0' && char <= '9') {
             const curDigitIdx = digitIndex++;
             const digitR = totalDigits - 1 - curDigitIdx;
-            const digitVal = parseInt(char, 10);
+            const targetD = parseInt(targetDigitsStr[curDigitIdx], 10);
+            const startD = (startDigitsStr && startDigitsStr[curDigitIdx] !== undefined)
+                ? parseInt(startDigitsStr[curDigitIdx], 10)
+                : 0;
 
-            let startDigitVal = 0;
-            if (formattedStartStr) {
-                const paddedStart = formattedStartStr.padStart(formattedNumberStr.length, '0');
-                startDigitVal = parseInt(paddedStart[i], 10);
-                if (isNaN(startDigitVal)) startDigitVal = 0;
-            }
-
-            // Build drum sequence for this digit column
             let drumValues = [];
-
-            if (isYear && formattedStartStr) {
-                if (startDigitVal === digitVal) {
-                    drumValues.push(digitVal);
+            if (isYearWithStart) {
+                if (startD === targetD) {
+                    drumValues.push(targetD);
                 } else {
-                    let cur = startDigitVal;
+                    let cur = startD;
                     drumValues.push(cur);
-                    while (cur !== digitVal && drumValues.length <= 20) {
+                    while (cur !== targetD) {
                         cur = (cur + 1) % 10;
                         drumValues.push(cur);
+                        if (drumValues.length > 20) break;
                     }
                 }
             } else {
                 const isSingleDigit = (totalDigits === 1);
                 const cycles = isSingleDigit ? 0 : (digitR === 0 ? 2 : (digitR === 1 ? 1 : 0));
-                const totalSteps = cycles * 10 + ((digitVal - startDigitVal + 10) % 10);
+                const totalSteps = cycles * 10 + ((targetD - startD + 10) % 10);
                 const effectiveSteps = (totalSteps === 0 && cycles === 0) ? 0 : totalSteps;
 
-                let cur = startDigitVal;
+                let cur = startD;
                 drumValues.push(cur);
                 for (let s = 0; s < effectiveSteps; s++) {
                     cur = (cur + 1) % 10;
                     drumValues.push(cur);
                 }
+                drumValues = pruneMiddleFrames(drumValues);
+            }
 
-                // Prune middle frames for smoother mechanical feel
-                if (drumValues.length >= 10) {
-                    const removeCount = Math.floor(drumValues.length / 5);
-                    if (removeCount > 0) {
-                        const keepStart = 3;
-                        const keepEnd = 4;
-                        const midCount = drumValues.length - keepStart - keepEnd;
-                        if (midCount > removeCount) {
-                            const step = midCount / (removeCount + 1);
-                            const dropIndices = new Set();
-                            for (let r = 1; r <= removeCount; r++) {
-                                dropIndices.add(keepStart + Math.round(r * step) - 1);
-                            }
-                            drumValues = drumValues.filter((_, idx) => !dropIndices.has(idx));
-                        }
-                    }
-                }
-
-                // Leading zeros: replace initial 0 with space for mechanical blank
-                const isLeadingZero = !isYear && curDigitIdx < totalDigits - 1 && drumValues[0] === 0;
-                if (isLeadingZero) {
-                    let allZero = true;
-                    for (let z = 0; z <= curDigitIdx; z++) {
-                        const sd = formattedStartStr
-                            ? parseInt(formattedStartStr.padStart(formattedNumberStr.length, '0')[allDigitPositions[z]], 10)
-                            : 0;
-                        if (sd !== 0) { allZero = false; break; }
-                    }
-                    if (allZero) drumValues[0] = ' ';
-                }
+            // Mechanical odometer: leading-zero digits show blank at start, not "0".
+            const isLeadingZero = !isYear && curDigitIdx <= lastLeadingZeroIdx;
+            if (isLeadingZero && drumValues.length > 0 && drumValues[0] === 0) {
+                drumValues[0] = ' ';
             }
 
             const totalItems = drumValues.length;
             const finalIndex = totalItems - 1;
-            const finalPosPercent = totalItems > 1 ? -((finalIndex / totalItems) * 100).toFixed(4) : 0;
+            const finalPosPercent = totalItems > 1 ? -(finalIndex * 100) : 0;
 
             // Build data-seq: digit values joined by &#10; (newline entity)
             const seqStr = drumValues.map(v => v === ' ' ? ' ' : v).join('&#10;');
@@ -353,8 +376,13 @@ export function generateRibbonHtml(numericValue, type = 'int', comma = ',', pref
         }
     }
 
-    const pfxHtml = prefixText ? `<span class="ui-pfx">${prefixText}${prefix.endsWith(' ') ? '' : ' '}</span>` : '';
-    const sfxHtml = suffixText ? `<span class="ui-sfx">${suffix.startsWith(' ') ? '' : ' '}${suffixText}</span>` : '';
+    const prefixHasSpace = (numberPartMatch?.[1] || '').endsWith(' ');
+    const prefixSpace = prefixHasSpace ? ' ' : '';
+    const suffixHasSpace = (numberPartMatch?.[5] || '').startsWith(' ');
+    const suffixSpace = suffixHasSpace ? ' ' : '';
+
+    const pfxHtml = prefixText ? `<span class="ui-pfx">${prefixText}${prefixSpace}</span>` : '';
+    const sfxHtml = suffixText ? `<span class="ui-sfx">${suffixSpace}${suffixText}</span>` : '';
 
     return `${pfxHtml}<b>${digitsHtml}</b>${sfxHtml}`;
 }
