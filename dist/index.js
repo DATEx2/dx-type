@@ -967,7 +967,9 @@ var DxReveal = class extends DxRevealing {
             if (child.closest(REVEAL_CONTAINER_SEL) === el2) {
               child._inViewport = true;
               child._parentReady = true;
-              child._checkAndTrigger();
+              setTimeout(() => {
+                child._checkAndTrigger();
+              }, 100);
             }
           }
         });
@@ -1005,7 +1007,9 @@ var DxRevealSda = class extends DxRevealing {
           if (child.closest(REVEAL_CONTAINER_SEL2) === this) {
             child._inViewport = true;
             child._parentReady = true;
-            child._checkAndTrigger();
+            setTimeout(() => {
+              child._checkAndTrigger();
+            }, 100);
           }
         }
         const tag = (child.tagName || "").toUpperCase();
@@ -1257,8 +1261,10 @@ var DxNumber = class extends DxMeter {
         this._parentReady = true;
       } else {
         const onParentAnim = () => {
-          this._parentReady = true;
-          this._checkAndTrigger();
+          setTimeout(() => {
+            this._parentReady = true;
+            this._checkAndTrigger();
+          }, 100);
         };
         parentReveal.addEventListener("animationstart", onParentAnim, { once: true });
         parentReveal.addEventListener("transitionstart", onParentAnim, { once: true });

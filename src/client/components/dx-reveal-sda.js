@@ -32,7 +32,9 @@ export class DxRevealSda extends DxRevealing {
                     if (child.closest(REVEAL_CONTAINER_SEL) === this) {
                         child._inViewport = true;
                         child._parentReady = true;
-                        child._checkAndTrigger();
+                        setTimeout(() => {
+                            child._checkAndTrigger();
+                        }, 100);
                     }
                 }
                 const tag = (child.tagName || '').toUpperCase();

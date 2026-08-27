@@ -242,8 +242,10 @@ export class DxNumber extends DxMeter {
                 this._parentReady = true;
             } else {
                 const onParentAnim = () => {
-                    this._parentReady = true;
-                    this._checkAndTrigger();
+                    setTimeout(() => {
+                        this._parentReady = true;
+                        this._checkAndTrigger();
+                    }, 100);
                 };
                 parentReveal.addEventListener('animationstart', onParentAnim, { once: true });
                 parentReveal.addEventListener('transitionstart', onParentAnim, { once: true });
