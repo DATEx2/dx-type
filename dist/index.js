@@ -370,7 +370,7 @@ function unpackTemplate(el2) {
 }
 function isElementHidden(el2) {
   if (!el2) return true;
-  if (el2.closest("details:not([open])")) return true;
+  if (!el2.closest("summary") && el2.closest("details:not([open])")) return true;
   const hiddenParent = el2.closest(".hidden, [hidden], .favorite-product__button--saved");
   if (hiddenParent && !hiddenParent.closest(".favorite-product--saved")) return true;
   return false;
@@ -508,7 +508,7 @@ var DxTyping = class extends DxBase {
 };
 var checkAndObserve = (el2) => {
   if (!el2?.querySelector || el2.classList.contains(DX_ANIM.TYPED)) return;
-  const closedDetails = el2.closest("details:not([open])");
+  const closedDetails = !el2.closest("summary") && el2.closest("details:not([open])");
   if (closedDetails) return;
   if (el2.querySelector(":scope > template")) {
     observeTypewriter(el2);
@@ -849,7 +849,7 @@ var DxRevealSda = class extends DxRevealing {
     this._syncTimingAttributes();
     this._triggerChildren = () => {
       this.querySelectorAll("dx-counter, dx-number, dx-type-sda, dx-type").forEach((child) => {
-        const closedDetails = child.closest("details:not([open])");
+        const closedDetails = !child.closest("summary") && child.closest("details:not([open])");
         if (closedDetails && this.contains(closedDetails)) return;
         const hiddenParent = child.closest(".hidden, [hidden], .favorite-product__button--saved");
         if (hiddenParent && this.contains(hiddenParent) && !hiddenParent.closest(".favorite-product--saved")) return;

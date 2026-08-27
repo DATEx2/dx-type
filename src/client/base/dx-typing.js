@@ -127,7 +127,7 @@ export function unpackTemplate(el) {
 
 export function isElementHidden(el) {
     if (!el) return true;
-    if (el.closest('details:not([open])')) return true;
+    if (!el.closest('summary') && el.closest('details:not([open])')) return true;
     const hiddenParent = el.closest('.hidden, [hidden], .favorite-product__button--saved');
     if (hiddenParent && !hiddenParent.closest('.favorite-product--saved')) return true;
     return false;
@@ -310,8 +310,8 @@ export class DxTyping extends DxBase {
 
 const checkAndObserve = (el) => {
     if (!el?.querySelector || el.classList.contains(DX_ANIM.TYPED)) return;
-    // If inside a closed <details>, do not observe for viewport intersection until opened!
-    const closedDetails = el.closest('details:not([open])');
+    // If inside a closed <details> (and NOT in <summary>), do not observe for viewport intersection until opened!
+    const closedDetails = !el.closest('summary') && el.closest('details:not([open])');
     if (closedDetails) return;
 
     if (el.querySelector(':scope > template')) {
