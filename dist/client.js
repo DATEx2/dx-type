@@ -967,9 +967,7 @@ var DxReveal = class extends DxRevealing {
             if (child.closest(REVEAL_CONTAINER_SEL) === el2) {
               child._inViewport = true;
               child._parentReady = true;
-              setTimeout(() => {
-                child._checkAndTrigger();
-              }, 100);
+              child._checkAndTrigger();
             }
           }
         });
@@ -1007,9 +1005,7 @@ var DxRevealSda = class extends DxRevealing {
           if (child.closest(REVEAL_CONTAINER_SEL2) === this) {
             child._inViewport = true;
             child._parentReady = true;
-            setTimeout(() => {
-              child._checkAndTrigger();
-            }, 100);
+            child._checkAndTrigger();
           }
         }
         const tag = (child.tagName || "").toUpperCase();
@@ -1173,11 +1169,17 @@ var DxNumber = class extends DxMeter {
   _checkAndTrigger() {
     const ready = this.isReadyToAnimate();
     if (!ready) return;
+    const d = parseFloat(this.style?.getPropertyValue?.("--d") || "") || parseFloat(typeof this.closest === "function" ? this.closest('[style*="--d"]')?.style?.getPropertyValue?.("--d") : 0) || 0;
+    const delay = d > 0 ? d : typeof this.closest === "function" && this.closest(REVEAL_PARENT_SEL) ? 100 : 0;
     if (this._pendingVal) {
       const { targetValue, duration } = this._pendingVal;
       this._pendingVal = null;
       this._animationStarted = true;
-      this.val(targetValue, duration);
+      if (delay > 0) {
+        setTimeout(() => this.val(targetValue, duration), delay);
+      } else {
+        this.val(targetValue, duration);
+      }
       return;
     }
     if (!this._animationStarted) {
@@ -1185,9 +1187,8 @@ var DxNumber = class extends DxMeter {
       if (this._value !== targetVal) {
         this._animationStarted = true;
         const dur = this.getDuration();
-        const d = parseFloat(this.style?.getPropertyValue?.("--d") || "") || parseFloat(typeof this.closest === "function" ? this.closest('[style*="--d"]')?.style?.getPropertyValue?.("--d") : 0) || 0;
-        if (d > 0) {
-          setTimeout(() => this.val(targetVal, dur), d);
+        if (delay > 0) {
+          setTimeout(() => this.val(targetVal, dur), delay);
         } else {
           this.val(targetVal, dur);
         }
@@ -1261,10 +1262,8 @@ var DxNumber = class extends DxMeter {
         this._parentReady = true;
       } else {
         const onParentAnim = () => {
-          setTimeout(() => {
-            this._parentReady = true;
-            this._checkAndTrigger();
-          }, 100);
+          this._parentReady = true;
+          this._checkAndTrigger();
         };
         parentReveal.addEventListener("animationstart", onParentAnim, { once: true });
         parentReveal.addEventListener("transitionstart", onParentAnim, { once: true });

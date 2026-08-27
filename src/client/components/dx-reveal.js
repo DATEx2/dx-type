@@ -29,9 +29,7 @@ export class DxReveal extends DxRevealing {
                         if (child.closest(REVEAL_CONTAINER_SEL) === el) {
                             child._inViewport = true;
                             child._parentReady = true;
-                            setTimeout(() => {
-                                child._checkAndTrigger();
-                            }, 100);
+                            child._checkAndTrigger();
                         }
                     }
                 });
