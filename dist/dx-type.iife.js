@@ -1668,6 +1668,12 @@ var DxType = (() => {
           if (!parentType) {
             observeIO(this, (el2) => {
               el2.classList.add(DX_ANIM.TYPING);
+              setTimeout(() => {
+                if (!this._animDone && this.isConnected) {
+                  this._animDone = true;
+                  this.makeStatic();
+                }
+              }, 1600);
             });
           }
         });
@@ -1778,8 +1784,11 @@ var DxType = (() => {
     init() {
       if (this._initialized) return;
       this._cacheDOMElements();
-      if (!this.isStatic && (!this.hasAttribute || !this.hasAttribute("start") || this.getAttribute("start") === "0")) {
-        const startVal = this.hasAttribute && this.hasAttribute("start") ? parseFloat(this.getAttribute("start")) || 0 : 0;
+      const hasSsr = typeof this.querySelector === "function" && Boolean(this.querySelector(".dx-num-wrap"));
+      if (!hasSsr) {
+        this.render();
+      } else if (this.hasAttribute && this.hasAttribute("start") && this.getAttribute("start") !== "") {
+        const startVal = parseFloat(this.getAttribute("start")) || 0;
         this._updateCounterVars(startVal);
       }
       super.init();
