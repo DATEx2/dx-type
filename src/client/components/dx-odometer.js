@@ -54,9 +54,16 @@ export class DxOdometer extends DxMeter {
                     return;
                 }
                 const parentType = this.closest(TYPE_PARENT_SEL);
-                if (!parentType) {
+                const inFooter = this.closest('footer, .ins-tile--footer, #tile-footer-MNure7');
+                if (!parentType && !inFooter) {
                     observeIO(this, (el) => {
                         el.classList.add(DX_ANIM.TYPING);
+                        setTimeout(() => {
+                            if (!this._animDone && this.isConnected) {
+                                this._animDone = true;
+                                this.makeStatic();
+                            }
+                        }, 1600);
                     });
                 }
             });

@@ -1603,7 +1603,8 @@ var DxOdometer = class extends DxMeter {
           return;
         }
         const parentType = this.closest(TYPE_PARENT_SEL2);
-        if (!parentType) {
+        const inFooter = this.closest("footer, .ins-tile--footer, #tile-footer-MNure7");
+        if (!parentType && !inFooter) {
           observeIO(this, (el2) => {
             el2.classList.add(DX_ANIM.TYPING);
             setTimeout(() => {
