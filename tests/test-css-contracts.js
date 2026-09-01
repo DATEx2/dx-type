@@ -55,4 +55,9 @@ export default function testCssContracts() {
 
     // 7. Tabular nums for running numbers
     assert(css.includes('tabular-nums'), 'Running numbers should use tabular-nums');
+
+    // 8. Agnostic parent inheritance: font-size, color, and line-height inherit
+    assert(css.includes('font-size: inherit !important'), 'Preflight and elements should inherit font-size');
+    assert(css.includes('color: inherit !important'), 'Preflight and elements should inherit color');
+    assert(css.includes('-webkit-text-fill-color: currentColor !important'), 'Preflight and elements should use currentColor fill');
 }

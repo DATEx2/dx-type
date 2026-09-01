@@ -46,10 +46,15 @@ export class DxOdometer extends DxMeter {
 
         const twEmbed = this.classList.contains('tw-embed');
         if (!twEmbed) {
-            queueMicrotask(() => {
+            const setupStandalone = () => {
                 if (!this.isConnected || this._animDone || this.classList.contains('data-static')) return;
-                this._digitCount = this.querySelectorAll('d[data-seq]').length;
+                const digits = this.querySelectorAll('d[data-seq]');
+                this._digitCount = digits.length;
                 if (this._digitCount === 0) {
+                    if (document.readyState === 'loading') {
+                        document.addEventListener('DOMContentLoaded', setupStandalone, { once: true });
+                        return;
+                    }
                     this.classList.add('data-static');
                     return;
                 }
@@ -63,10 +68,16 @@ export class DxOdometer extends DxMeter {
                                 this._animDone = true;
                                 this.makeStatic();
                             }
-                        }, 1600);
+                        }, 2500);
                     });
                 }
-            });
+            };
+
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', setupStandalone, { once: true });
+            } else {
+                requestAnimationFrame(setupStandalone);
+            }
         }
     }
 

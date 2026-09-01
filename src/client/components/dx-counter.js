@@ -70,8 +70,11 @@ export class DxCounter extends DxNumber {
     init() {
         if (this._initialized) return;
         this._cacheDOMElements();
-        if (!this.isStatic && (!this.hasAttribute || !this.hasAttribute('start') || this.getAttribute('start') === '0')) {
-            const startVal = (this.hasAttribute && this.hasAttribute('start')) ? (parseFloat(this.getAttribute('start')) || 0) : 0;
+        const hasSsr = typeof this.querySelector === 'function' && Boolean(this.querySelector('.dx-num-wrap'));
+        if (!hasSsr) {
+            this.render();
+        } else if (this.hasAttribute && this.hasAttribute('start') && this.getAttribute('start') !== '') {
+            const startVal = parseFloat(this.getAttribute('start')) || 0;
             this._updateCounterVars(startVal);
         }
         super.init();
