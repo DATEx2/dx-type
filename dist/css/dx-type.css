@@ -324,8 +324,8 @@ dx-number {
     vertical-align: baseline !important;
   }
 }
-:is(w, s, dx-type w, dx-type s, dx-type-sda w, dx-type-sda s) > i,
-:is(w, s, dx-type w, dx-type s, dx-type-sda w, dx-type-sda s) > * {
+:is(t, dx-type > t, dx-type-sda > t) :is(w, s) > i,
+:is(t, dx-type > t, dx-type-sda > t) :is(w, s) > * {
   font-style: normal !important;
   display: inline-block !important;
   vertical-align: baseline !important;
@@ -343,6 +343,37 @@ dx-number {
     align-items: baseline !important;
     vertical-align: baseline !important;
   }
+}
+:is(s-t, dx-type > s-t, dx-type-sda > s-t),
+:is(s-t, dx-type > s-t, dx-type-sda > s-t) :is(w, s, i, c, span, dx-odometer, ui-odometer, dx-number, dx-counter, [class*=ui-]),
+:is(s-t, dx-type > s-t, dx-type-sda > s-t) * {
+  will-change: auto !important;
+  backface-visibility: visible !important;
+  -webkit-backface-visibility: visible !important;
+  animation: none !important;
+  transform: none !important;
+}
+:is(s-t, dx-type > s-t, dx-type-sda > s-t) :is(w, s) {
+  text-decoration: none !important;
+  display: inline !important;
+  white-space: nowrap !important;
+  line-height: inherit !important;
+  letter-spacing: inherit !important;
+  word-spacing: inherit !important;
+}
+:is(s-t, dx-type > s-t, dx-type-sda > s-t) :is(w, s) > i,
+:is(s-t, dx-type > s-t, dx-type-sda > s-t) :is(w, s) > *:not(dx-odometer):not(ui-odometer):not(.c-ui-num) {
+  font-style: normal !important;
+  display: inline !important;
+  vertical-align: baseline !important;
+  line-height: inherit !important;
+  letter-spacing: inherit !important;
+  word-spacing: inherit !important;
+}
+:is(s-t, dx-type > s-t, dx-type-sda > s-t) :is(w, s) > :is(dx-odometer, ui-odometer, .c-ui-num) {
+  display: inline-flex !important;
+  align-items: baseline !important;
+  vertical-align: baseline !important;
 }
 w,
 s,
@@ -388,7 +419,7 @@ dx-type-sda s {
     transform: translateY(0);
   }
 }
-:is(.dx-type-ready, .type-ready, dx-type-ready.dx-type-ready, dx-type-ready.type-ready, dx-type.dx-typing, dx-type.dx-typed) :is(w, s, dx-type w, dx-type s) > i {
+:is(.dx-type-ready, .type-ready, dx-type-ready.dx-type-ready, dx-type-ready.type-ready, dx-type.dx-typing, dx-type.dx-typed) :is(t, dx-type > t) :is(w, s) > i {
   visibility: visible !important;
   animation-name: type-in !important;
   animation-timing-function: linear !important;
@@ -399,7 +430,7 @@ dx-type-sda s {
   visibility: visible !important;
   animation: reveal-in calc(var(--t, 600) * var(--A, 1) * 1ms) ease-out calc(var(--d, 0) * var(--A, 1) * 1ms) both !important;
 }
-:is(dx-type-sda.dx-typing, dx-type-sda.dx-typed, dx-type-sda[data-static], :is(dx-reveal-sda.dx-revealing, dx-reveal-sda.dx-revealed, .dx-revealed, .dx-revealing) dx-type-sda) :is(w, s, dx-type-sda w, dx-type-sda s) > i {
+:is(dx-type-sda.dx-typing, dx-type-sda.dx-typed, dx-type-sda[data-static], :is(dx-reveal-sda.dx-revealing, dx-reveal-sda.dx-revealed, .dx-revealed, .dx-revealing) dx-type-sda) :is(t, dx-type-sda > t) :is(w, s) > i {
   visibility: visible !important;
   animation-name: type-in !important;
   animation-timing-function: linear !important;
