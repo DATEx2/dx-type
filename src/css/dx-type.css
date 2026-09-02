@@ -260,6 +260,7 @@ dx-odometer, ui-odometer {
     &.data-static b,
     &.data-static :is(.ui-pfx, .ui-sfx, .ui-radix) {
         animation: none !important;
+        will-change: auto !important;
         transform: translateY(var(--p, 0%));
         display: none !important;
     }
@@ -511,6 +512,7 @@ dx-odometer.data-static d::before,
 dx-odometer.data-static b,
 dx-odometer.data-static :is(.ui-pfx, .ui-sfx) {
     animation: none !important;
+    will-change: auto !important;
     transform: translateY(var(--p, 0%));
     display: none !important;
 }
@@ -518,6 +520,7 @@ dx-odometer.data-static :is(.ui-pfx, .ui-sfx) {
 .dx-typed dx-odometer b,
 .dx-typed dx-odometer :is(.ui-pfx, .ui-sfx) {
     animation: none !important;
+    will-change: auto !important;
     transform: translateY(var(--p, 0%));
     display: none !important;
 }
