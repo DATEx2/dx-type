@@ -306,9 +306,9 @@ var uiNum = class {
     }
     const formattedNum = decimalPart ? integerPart + comma + decimalPart : integerPart;
     let finalPrefix = prefix || "";
-    if (isNegative) {
+    if (isNegative && !prefix) {
       finalPrefix = "\u2013 ";
-    } else if (numVal > 0 && prefix.includes("+")) {
+    } else if (numVal > 0 && prefix && prefix.includes("+")) {
       finalPrefix = "+ ";
     }
     let finalSuffix = suffix !== void 0 && suffix !== null ? suffix : type === "percent" ? "%" : " \u20AC";
@@ -559,9 +559,10 @@ function prepareTemplateContent(el2) {
           }
           const cUiNum = w.querySelector("i.c-ui-num");
           if (cUiNum) {
-            const exactDelay = Math.round(delay + (offset + charIdx++) * speed);
-            cUiNum.style.animationDelay = `${exactDelay}ms`;
             const odo = cUiNum.querySelector("dx-odometer, ui-odometer");
+            const exactDelay = Math.round(delay + (offset + charIdx) * speed);
+            charIdx += 1;
+            cUiNum.style.animationDelay = `${exactDelay}ms`;
             if (odo) {
               odo.style.setProperty("--d", exactDelay);
             }
@@ -637,8 +638,9 @@ function unpackTemplate(el2) {
 function isElementHidden(el2) {
   if (!el2) return true;
   if (!el2.closest("summary") && el2.closest("details:not([open])")) return true;
-  const hiddenParent = el2.closest(".hidden, [hidden], .favorite-product__button--saved");
-  if (hiddenParent && !hiddenParent.closest(".favorite-product--saved")) return true;
+  const isMobile = typeof window !== "undefined" && window.matchMedia && window.matchMedia("(max-width: 719.5px), (max-width: 1024px) and (orientation: portrait)").matches;
+  const hiddenParent = el2.closest(isMobile ? ".hidden, [hidden], .wait-stuck:not(.is-stuck), .favorite-product__button--saved" : ".hidden, [hidden], .favorite-product__button--saved");
+  if (hiddenParent && !hiddenParent.closest(".favorite-product--saved, .is-stuck")) return true;
   return false;
 }
 function observeTypewriter(el2) {
@@ -707,12 +709,18 @@ function onTypewriterEnd(cEl, event) {
     if (parent.classList.contains(DX_ANIM.TYPED)) return false;
     if (parent.querySelector(":scope > template")) return false;
     const isEmbed = cEl.tagName === "DX-ODOMETER" || cEl.tagName === "UI-ODOMETER" || cEl.tagName === "DX-NUMBER" || cEl.tagName === "UI-NUMBER";
-    if (!parent._lastC) {
-      const allC = parent.querySelectorAll("t i, i, [data-last]");
-      parent._lastC = allC.length ? allC[allC.length - 1] : null;
+    let lastC = parent._lastC;
+    if (!lastC) {
+      lastC = parent.querySelector('t [data-last="true"], t .last-char, [data-last="true"], .last-char');
+      if (!lastC) {
+        const allC = parent.querySelectorAll("t i:not(.c-ui-num), i:not(.c-ui-num)");
+        lastC = allC.length ? allC[allC.length - 1] : null;
+      }
+      if (typeof document === "undefined" || document.readyState !== "loading") {
+        parent._lastC = lastC;
+      }
     }
-    const lastC = parent._lastC;
-    const isLastChar = !isEmbed && (cEl === lastC || cEl.getAttribute?.("data-last") === "true" || cEl.classList?.contains("last-char") || lastC && (cEl.contains(lastC) || lastC.contains(cEl)));
+    const isLastChar = !isEmbed && !cEl.classList?.contains("c-ui-num") && (cEl === lastC || cEl.getAttribute?.("data-last") === "true" || cEl.classList?.contains("last-char") || lastC && (cEl.contains(lastC) || lastC.contains(cEl)));
     if (!isLastChar && !isEmbed) return false;
     if (isLastChar) {
       parent._charDone = true;
@@ -725,10 +733,53 @@ function onTypewriterEnd(cEl, event) {
     const allEmbedsDone = embeds.length === 0 || embeds.every((e) => e._animDone || e.isStatic || e.classList.contains("data-static"));
     const charDone = !lastC || !!parent._charDone;
     if (charDone && allEmbedsDone) {
-      if (typeof parent.markTyped === "function") {
-        parent.markTyped();
+      if (parent._embedTimeout) {
+        clearTimeout(parent._embedTimeout);
+        parent._embedTimeout = null;
+      }
+      const doCleanup = () => {
+        if (!parent.classList.contains(DX_ANIM.TYPED)) {
+          if (typeof parent.markTyped === "function") {
+            parent.markTyped();
+          } else {
+            DxTyping.prototype.markTyped.call(parent);
+          }
+        }
+      };
+      if (typeof window !== "undefined" && typeof window.requestIdleCallback === "function") {
+        try {
+          const handle = window.requestIdleCallback(doCleanup, { timeout: 300 });
+          if (handle === void 0) doCleanup();
+        } catch (e) {
+          doCleanup();
+        }
       } else {
-        DxTyping.prototype.markTyped.call(parent);
+        doCleanup();
+      }
+    } else if (charDone) {
+      if (!parent._embedTimeout) {
+        parent._embedTimeout = setTimeout(() => {
+          parent._embedTimeout = null;
+          const doCleanup = () => {
+            if (!parent.classList.contains(DX_ANIM.TYPED)) {
+              if (typeof parent.markTyped === "function") {
+                parent.markTyped();
+              } else {
+                DxTyping.prototype.markTyped.call(parent);
+              }
+            }
+          };
+          if (typeof window !== "undefined" && typeof window.requestIdleCallback === "function") {
+            try {
+              const handle = window.requestIdleCallback(doCleanup, { timeout: 300 });
+              if (handle === void 0) doCleanup();
+            } catch (e) {
+              doCleanup();
+            }
+          } else {
+            doCleanup();
+          }
+        }, 1200);
       }
     }
   }
@@ -756,7 +807,9 @@ var DxTyping = class extends DxBase {
     return this.classList.contains(DX_ANIM.TYPED);
   }
   unpackTemplate() {
-    return unpackTemplate(this);
+    const res = unpackTemplate(this);
+    if (res) this.classList.add(DX_ANIM.TYPING);
+    return res;
   }
   markTyped() {
     if (this.querySelector(":scope > template")) return;
@@ -901,12 +954,16 @@ var DxType = class extends DxTyping {
   _onAnimEnd = (e) => {
     if (e.animationName === DX_ANIM.KF_TYPE_IN || e.animationName === DX_ANIM.KF_TYPE_SDA) {
       const target = e.target;
+      if (target.classList?.contains("c-ui-num")) return;
       if (target.classList?.contains("last-char") || target.hasAttribute?.("last-char") || target.getAttribute?.("data-last") === "true") {
         onTypewriterEnd(target, e);
       } else {
         if (!this._lastC) {
-          const allC = this.querySelectorAll("i, [data-last]");
-          this._lastC = allC.length ? allC[allC.length - 1] : null;
+          this._lastC = this.querySelector('t [data-last="true"], t .last-char, [data-last="true"], .last-char');
+          if (!this._lastC) {
+            const allC = this.querySelectorAll("i:not(.c-ui-num)");
+            this._lastC = allC.length ? allC[allC.length - 1] : null;
+          }
         }
         if (target === this._lastC) {
           onTypewriterEnd(target, e);
@@ -940,12 +997,16 @@ var DxTypeSda = class extends DxTyping {
   _onAnimEnd = (e) => {
     if (e.animationName === DX_ANIM.KF_TYPE_IN) {
       const target = e.target;
+      if (target.classList?.contains("c-ui-num")) return;
       if (target.classList?.contains("last-char") || target.hasAttribute?.("last-char") || target.getAttribute?.("data-last") === "true") {
         onTypewriterEnd(target, e);
       } else {
         if (!this._lastC) {
-          const allC = this.querySelectorAll("i, [data-last]");
-          this._lastC = allC.length ? allC[allC.length - 1] : null;
+          this._lastC = this.querySelector('t [data-last="true"], t .last-char, [data-last="true"], .last-char');
+          if (!this._lastC) {
+            const allC = this.querySelectorAll("i:not(.c-ui-num)");
+            this._lastC = allC.length ? allC[allC.length - 1] : null;
+          }
         }
         if (this._lastC && target === this._lastC) {
           onTypewriterEnd(target, e);
@@ -1223,12 +1284,17 @@ var DxNumber = class extends DxMeter {
     const hasSsr = typeof this.querySelector === "function" && Boolean(this.querySelector(".ui-num, .dx-num-wrap"));
     const parentChar = typeof this.closest === "function" ? this.closest("i") : null;
     const parentReveal = typeof this.closest === "function" ? this.closest(REVEAL_PARENT_SEL) : null;
-    const hasParent = Boolean(parentChar || parentReveal);
+    const parentActionBar = typeof this.closest === "function" ? this.closest(".action-bar, .action-bar-wrapper") : null;
+    const hasParent = Boolean(parentChar || parentReveal || parentActionBar);
     if (isStatic) {
       this._value = targetVal;
       this._animationStarted = true;
+    } else if (this.hasAttribute && this.hasAttribute("start") && this.getAttribute("start") !== "") {
+      this._value = parseFloat(this.getAttribute("start")) || 0;
+    } else if (hasParent) {
+      this._value = 0;
     } else {
-      this._value = this.hasAttribute && this.hasAttribute("start") ? parseFloat(this.getAttribute("start")) || 0 : 0;
+      this._value = targetVal;
     }
     if (!hasSsr) {
       this.render();
@@ -1248,10 +1314,14 @@ var DxNumber = class extends DxMeter {
     if (!hasParent) {
       this._parentReady = true;
     }
-    observeIO(this, () => {
+    if (parentActionBar) {
       this._inViewport = true;
-      this._checkAndTrigger();
-    });
+    } else {
+      observeIO(this, () => {
+        this._inViewport = true;
+        this._checkAndTrigger();
+      });
+    }
     if (parentChar) {
       const parentType = typeof this.closest === "function" ? this.closest(TYPE_PARENT_SEL) : null;
       if (parentType && (parentType.classList.contains(DX_ANIM.TYPED) || parentType.classList.contains("typed") || parentType.hasAttribute("data-static"))) {
@@ -1338,14 +1408,17 @@ var DxNumber = class extends DxMeter {
   animateTo(targetValue, duration) {
     if (typeof this.removeAttribute === "function") this.removeAttribute("data-static");
     this._targetValue = targetValue;
-    this._animStartValue = this._value;
+    this._animStartValue = this._value !== void 0 && !isNaN(this._value) ? this._value : 0;
     this._animDuration = duration;
-    this._animStartTime = typeof performance !== "undefined" && performance.now ? performance.now() : Date.now();
+    this._animStartTime = null;
     this.classList.add("ui-number-running");
     this.render();
     registerRAF(this);
   }
   _stepAnimation(now) {
+    if (this._animStartTime === null || this._animStartTime === void 0) {
+      this._animStartTime = now;
+    }
     const elapsed = Math.max(0, now - this._animStartTime);
     const duration = this._animDuration;
     const targetValue = this._targetValue;
@@ -1593,8 +1666,30 @@ var DxOdometer = class extends DxMeter {
     this.addEventListener("animationstart", (e) => {
       if (e?.stopPropagation) e.stopPropagation();
     }, { passive: true });
-    const twEmbed = this.classList.contains("tw-embed");
-    if (!twEmbed) {
+    const twEmbed = this.classList.contains("tw-embed") || !!this.closest("dx-type, dx-type-sda, .type, .type-sda, ui-type, ui-type-sda");
+    if (twEmbed) {
+      const checkEmbedReady = () => {
+        if (!this.isConnected || this._animDone) return;
+        const dCount = this.querySelectorAll("d[data-seq]").length;
+        const spanCount = this.querySelectorAll(".odometer-ribbon-inner").length;
+        if (dCount === 0 && spanCount === 0 && !this.closest("template")) {
+          this._animDone = true;
+          onTypewriterEnd(this);
+        }
+      };
+      if (document.readyState === "loading") {
+        document.addEventListener("DOMContentLoaded", checkEmbedReady, { once: true });
+      } else {
+        requestAnimationFrame(checkEmbedReady);
+      }
+      const delay = parseFloat(this.style.getPropertyValue("--d")) || 0;
+      setTimeout(() => {
+        if (!this._animDone && this.isConnected) {
+          this._animDone = true;
+          onTypewriterEnd(this);
+        }
+      }, delay + 1200);
+    } else {
       const setupStandalone = () => {
         if (!this.isConnected || this._animDone || this.classList.contains("data-static")) return;
         const digits = this.querySelectorAll("d[data-seq]");
@@ -1631,15 +1726,18 @@ var DxOdometer = class extends DxMeter {
   _onAnimEnd = (e) => {
     if (this._animDone) return;
     const target = e.target;
-    if (!target || target.tagName !== "D") return;
+    if (!target || target.tagName !== "D" && !target.classList?.contains("odometer-ribbon-inner")) return;
     e.stopPropagation();
     if (!this._digitCount) {
-      this._digitCount = this.querySelectorAll("d[data-seq]").length;
+      const dCount = this.querySelectorAll("d[data-seq]").length;
+      const spanCount = this.querySelectorAll(".odometer-ribbon-inner").length;
+      this._digitCount = dCount || spanCount || 1;
     }
     this._digitsDone++;
     if (this._digitsDone >= this._digitCount) {
       this._animDone = true;
-      if (!this.classList.contains("tw-embed")) {
+      const twEmbed = this.classList.contains("tw-embed") || !!this.closest("dx-type, dx-type-sda, .type, .type-sda, ui-type, ui-type-sda");
+      if (!twEmbed) {
         this.makeStatic();
       } else {
         onTypewriterEnd(this);
@@ -2006,6 +2104,9 @@ var DxCounter = class _DxCounter extends DxNumber {
     setDisp(this._elDec, hasDec ? "inline" : "none");
   }
   _stepAnimation(now) {
+    if (this._animStartTime === null || this._animStartTime === void 0) {
+      this._animStartTime = now;
+    }
     const elapsed = Math.max(0, now - this._animStartTime);
     const duration = this._animDuration;
     const targetValue = this._targetValue;
@@ -2028,11 +2129,12 @@ var DxCounter = class _DxCounter extends DxNumber {
   animateTo(targetValue, duration) {
     if (typeof this.removeAttribute === "function") this.removeAttribute("data-static");
     this._targetValue = targetValue;
-    this._animStartValue = this._value;
+    this._animStartValue = this._value !== void 0 && !isNaN(this._value) ? this._value : 0;
     this._animDuration = duration;
-    this._animStartTime = typeof performance !== "undefined" && performance.now ? performance.now() : Date.now();
+    this._animStartTime = null;
+    this._lastTickTime = null;
     this.classList.add("ui-number-running");
-    this._updateCounterVars(this._value);
+    this._updateCounterVars(this._animStartValue);
     registerRAF(this);
   }
   _onAnimEnd(e) {

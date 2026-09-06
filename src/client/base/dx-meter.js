@@ -148,9 +148,9 @@ export class uiNum {
         const formattedNum = decimalPart ? (integerPart + comma + decimalPart) : integerPart;
 
         let finalPrefix = prefix || '';
-        if (isNegative) {
+        if (isNegative && !prefix) {
             finalPrefix = '– ';
-        } else if (numVal > 0 && prefix.includes('+')) {
+        } else if (numVal > 0 && prefix && prefix.includes('+')) {
             finalPrefix = '+ ';
         }
 

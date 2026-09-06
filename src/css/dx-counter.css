@@ -113,19 +113,28 @@ dx-counter .dx-sfx {
 dx-counter .dx-b {
     display: inline !important;
 }
-dx-counter .dx-b::after { content: "\00a0"; }
+dx-counter .dx-b:not(:empty):not([style*="none"])::after { content: "\00a0"; }
 
 /* Grupul Milioanelor (m) */
 dx-counter .dx-m {
     display: inline !important;
 }
-dx-counter .dx-m::after { content: "\00a0"; }
+dx-counter .dx-m:not(:empty):not([style*="none"])::after { content: "\00a0"; }
 
 /* Grupul Miilor (k) */
 dx-counter .dx-k {
     display: inline !important;
 }
-dx-counter .dx-k::after { content: "\00a0"; }
+dx-counter .dx-k:not(:empty):not([style*="none"])::after { content: "\00a0"; }
+
+/* Cifre ascunse sau goale: garantat 0 display și zero spații */
+dx-counter :is(.dx-b, .dx-m, .dx-k, .dx-dec):is(:empty, [style*="none"]) {
+    display: none !important;
+}
+dx-counter :is(.dx-b, .dx-m, .dx-k, .dx-dec):is(:empty, [style*="none"])::after {
+    display: none !important;
+    content: none !important;
+}
 
 /* Grupul Unităților (u) */
 dx-counter .dx-u {

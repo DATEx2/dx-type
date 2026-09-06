@@ -160,7 +160,7 @@ function tokenize(html, options = {}) {
   const offset = Number(options.offset ?? options.b ?? 0);
   const cleanText = html.replace(/<(?:ui|dx)-odometer[^>]*aria-label="([^"]*)"[^>]*>[\s\S]*?<\/(?:ui|dx)-odometer>/gi, "$1").replace(/<(?:ui|dx)-number[^>]*aria-label="([^"]*)"[^>]*>[\s\S]*?<\/(?:ui|dx)-number>/gi, "$1").replace(/<(?:ui|dx)-number[^>]*>([\s\S]*?)<\/(?:ui|dx)-number>/gi, "$1").replace(/<[^>]+>/g, "").replace(/&amp;/gi, "&").replace(/&lt;/gi, "<").replace(/&gt;/gi, ">").replace(/&quot;/gi, '"').trim().replace(/\s+/g, " ");
   const tokens = [];
-  const tokenRegex = /(<[^>]+>)|(&[a-z0-9]+;)|([^<&]+)/gi;
+  const tokenRegex = /(<[^>]+>)|(&(?:[a-z0-9]+|#[0-9]+|#x[0-9a-f]+);)|([^<&]+|&)/gi;
   let tokenMatch;
   while ((tokenMatch = tokenRegex.exec(html)) !== null) {
     if (tokenMatch[1]) tokens.push({ type: "tag", value: tokenMatch[1] });
@@ -172,15 +172,17 @@ function tokenize(html, options = {}) {
     const token = tokens[i];
     if (token.type === "tag") {
       if (/^<(?:dx|ui)-(?:number|odometer)\b/i.test(token.value)) {
-        preUnits += 1;
+        let compTag = token.value;
         let depth = 1;
         while (i + 1 < tokens.length && depth > 0) {
           i++;
+          compTag += tokens[i].value;
           if (tokens[i].type === "tag") {
             if (/^<(?:dx|ui)-(?:number|odometer)\b/i.test(tokens[i].value)) depth++;
             else if (/^<\/(?:dx|ui)-(?:number|odometer)>/i.test(tokens[i].value)) depth--;
           }
         }
+        preUnits += 1;
       }
     } else if (token.type === "entity") {
       preUnits += 1;
@@ -232,7 +234,37 @@ function tokenize(html, options = {}) {
             else if (/^<\/(?:dx|ui)-(?:number|odometer)>/i.test(tokens[i].value)) depth--;
           }
         }
-        const compTag = makeCharTag(compHTML, charIdx++, "c-ui-num");
+        const exactDelay = Math.round(delay + (offset + charIdx) * speed);
+        charIdx += 1;
+        compHTML = compHTML.replace(/<((?:dx|ui)-(?:number|odometer)\b)([^>]*)>/i, (m, compTagName, attrs) => {
+          let newAttrs = attrs;
+          if (!/\btw-embed\b/.test(newAttrs)) {
+            if (/class="([^"]*)"/i.test(newAttrs)) {
+              newAttrs = newAttrs.replace(/class="([^"]*)"/i, 'class="$1 tw-embed"');
+            } else if (/class='([^']*)'/i.test(newAttrs)) {
+              newAttrs = newAttrs.replace(/class='([^']*)'/i, "class='$1 tw-embed'");
+            } else {
+              newAttrs = ` class="tw-embed"${newAttrs}`;
+            }
+          }
+          if (/style="([^"]*)"/i.test(newAttrs)) {
+            newAttrs = newAttrs.replace(/style="([^"]*)"/i, (sm, sContent) => {
+              let cleanS = sContent.replace(/--d:\s*\d+(?:ms)?\s*;?/g, "").trim();
+              if (cleanS && !cleanS.endsWith(";")) cleanS += ";";
+              return `style="${cleanS} --d: ${exactDelay};"`;
+            });
+          } else if (/style='([^']*)'/i.test(newAttrs)) {
+            newAttrs = newAttrs.replace(/style='([^']*)'/i, (sm, sContent) => {
+              let cleanS = sContent.replace(/--d:\s*\d+(?:ms)?\s*;?/g, "").trim();
+              if (cleanS && !cleanS.endsWith(";")) cleanS += ";";
+              return `style='${cleanS} --d: ${exactDelay};'`;
+            });
+          } else {
+            newAttrs = `${newAttrs} style="--d: ${exactDelay};"`;
+          }
+          return `<${compTagName}${newAttrs}>`;
+        });
+        const compTag = `<i class="c-ui-num" style="animation-delay:${exactDelay}ms">${compHTML}</i>`;
         result += `<w>${compTag}</w>`;
         compactResult += `<w><i class="c-ui-num">${compHTML}</i></w>`;
       } else {
@@ -272,12 +304,20 @@ function tokenize(html, options = {}) {
       }
     }
   }
-  const lastI = result.lastIndexOf("<i");
-  if (lastI !== -1) {
-    const tagEnd = result.indexOf(">", lastI);
-    if (tagEnd !== -1) {
-      result = result.slice(0, tagEnd) + ' data-last="true" onanimationend="return onTypewriterEnd(this, event)"' + result.slice(tagEnd);
+  const allMatches = [...result.matchAll(/<i\b([^>]*)>/gi)];
+  let targetMatch = null;
+  for (let m = allMatches.length - 1; m >= 0; m--) {
+    if (!/\bc-ui-num\b/.test(allMatches[m][1])) {
+      targetMatch = allMatches[m];
+      break;
     }
+  }
+  if (!targetMatch && allMatches.length > 0) {
+    targetMatch = allMatches[allMatches.length - 1];
+  }
+  if (targetMatch) {
+    const idx = targetMatch.index + targetMatch[0].length - 1;
+    result = result.slice(0, idx) + ' data-last="true" onanimationend="return onTypewriterEnd(this, event)"' + result.slice(idx);
   }
   return {
     html: result,

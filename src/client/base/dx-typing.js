@@ -63,9 +63,11 @@ export function prepareTemplateContent(el) {
                     }
                     const cUiNum = w.querySelector('i.c-ui-num');
                     if (cUiNum) {
-                        const exactDelay = Math.round(delay + (offset + charIdx++) * speed);
-                        cUiNum.style.animationDelay = `${exactDelay}ms`;
                         const odo = cUiNum.querySelector('dx-odometer, ui-odometer');
+                        const exactDelay = Math.round(delay + (offset + charIdx) * speed);
+                        charIdx += 1;
+
+                        cUiNum.style.animationDelay = `${exactDelay}ms`;
                         if (odo) {
                             odo.style.setProperty('--d', exactDelay);
                         }
@@ -152,8 +154,9 @@ export function unpackTemplate(el) {
 export function isElementHidden(el) {
     if (!el) return true;
     if (!el.closest('summary') && el.closest('details:not([open])')) return true;
-    const hiddenParent = el.closest('.hidden, [hidden], .favorite-product__button--saved');
-    if (hiddenParent && !hiddenParent.closest('.favorite-product--saved')) return true;
+    const isMobile = typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(max-width: 719.5px), (max-width: 1024px) and (orientation: portrait)').matches;
+    const hiddenParent = el.closest(isMobile ? '.hidden, [hidden], .wait-stuck:not(.is-stuck), .favorite-product__button--saved' : '.hidden, [hidden], .favorite-product__button--saved');
+    if (hiddenParent && !hiddenParent.closest('.favorite-product--saved, .is-stuck')) return true;
     return false;
 }
 
@@ -252,13 +255,19 @@ export function onTypewriterEnd(cEl, event) {
         const isEmbed = cEl.tagName === 'DX-ODOMETER' || cEl.tagName === 'UI-ODOMETER' ||
                         cEl.tagName === 'DX-NUMBER' || cEl.tagName === 'UI-NUMBER';
 
-        if (!parent._lastC) {
-            const allC = parent.querySelectorAll('t i, i, [data-last]');
-            parent._lastC = allC.length ? allC[allC.length - 1] : null;
+        let lastC = parent._lastC;
+        if (!lastC) {
+            lastC = parent.querySelector('t [data-last="true"], t .last-char, [data-last="true"], .last-char');
+            if (!lastC) {
+                const allC = parent.querySelectorAll('t i:not(.c-ui-num), i:not(.c-ui-num)');
+                lastC = allC.length ? allC[allC.length - 1] : null;
+            }
+            if (typeof document === 'undefined' || document.readyState !== 'loading') {
+                parent._lastC = lastC;
+            }
         }
-        const lastC = parent._lastC;
 
-        const isLastChar = !isEmbed && ((cEl === lastC) || (cEl.getAttribute?.('data-last') === 'true') || (cEl.classList?.contains('last-char')) || (lastC && (cEl.contains(lastC) || lastC.contains(cEl))));
+        const isLastChar = !isEmbed && !cEl.classList?.contains('c-ui-num') && ((cEl === lastC) || (cEl.getAttribute?.('data-last') === 'true') || (cEl.classList?.contains('last-char')) || (lastC && (cEl.contains(lastC) || lastC.contains(cEl))));
 
         if (!isLastChar && !isEmbed) return false;
 
@@ -277,10 +286,54 @@ export function onTypewriterEnd(cEl, event) {
 
         // ONLY mark parent as typed when BOTH last char is done AND all embedded meters have finished!
         if (charDone && allEmbedsDone) {
-            if (typeof parent.markTyped === 'function') {
-                parent.markTyped();
+            if (parent._embedTimeout) {
+                clearTimeout(parent._embedTimeout);
+                parent._embedTimeout = null;
+            }
+            const doCleanup = () => {
+                if (!parent.classList.contains(DX_ANIM.TYPED)) {
+                    if (typeof parent.markTyped === 'function') {
+                        parent.markTyped();
+                    } else {
+                        DxTyping.prototype.markTyped.call(parent);
+                    }
+                }
+            };
+            if (typeof window !== 'undefined' && typeof window.requestIdleCallback === 'function') {
+                try {
+                    const handle = window.requestIdleCallback(doCleanup, { timeout: 300 });
+                    if (handle === undefined) doCleanup();
+                } catch (e) {
+                    doCleanup();
+                }
             } else {
-                DxTyping.prototype.markTyped.call(parent);
+                doCleanup();
+            }
+        } else if (charDone) {
+            // Safety: last char finished, give embedded meters up to 1200ms then resolve
+            if (!parent._embedTimeout) {
+                parent._embedTimeout = setTimeout(() => {
+                    parent._embedTimeout = null;
+                    const doCleanup = () => {
+                        if (!parent.classList.contains(DX_ANIM.TYPED)) {
+                            if (typeof parent.markTyped === 'function') {
+                                parent.markTyped();
+                            } else {
+                                DxTyping.prototype.markTyped.call(parent);
+                            }
+                        }
+                    };
+                    if (typeof window !== 'undefined' && typeof window.requestIdleCallback === 'function') {
+                        try {
+                            const handle = window.requestIdleCallback(doCleanup, { timeout: 300 });
+                            if (handle === undefined) doCleanup();
+                        } catch (e) {
+                            doCleanup();
+                        }
+                    } else {
+                        doCleanup();
+                    }
+                }, 1200);
             }
         }
     }
@@ -314,7 +367,9 @@ export class DxTyping extends DxBase {
     }
 
     unpackTemplate() {
-        return unpackTemplate(this);
+        const res = unpackTemplate(this);
+        if (res) this.classList.add(DX_ANIM.TYPING);
+        return res;
     }
 
     markTyped() {

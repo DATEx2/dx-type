@@ -192,13 +192,18 @@ export class DxNumber extends DxMeter {
         const hasSsr = typeof this.querySelector === 'function' && Boolean(this.querySelector('.ui-num, .dx-num-wrap'));
         const parentChar = typeof this.closest === 'function' ? this.closest('i') : null;
         const parentReveal = typeof this.closest === 'function' ? this.closest(REVEAL_PARENT_SEL) : null;
-        const hasParent = Boolean(parentChar || parentReveal);
+        const parentActionBar = typeof this.closest === 'function' ? this.closest('.action-bar, .action-bar-wrapper') : null;
+        const hasParent = Boolean(parentChar || parentReveal || parentActionBar);
 
         if (isStatic) {
             this._value = targetVal;
             this._animationStarted = true;
+        } else if (this.hasAttribute && this.hasAttribute('start') && this.getAttribute('start') !== '') {
+            this._value = parseFloat(this.getAttribute('start')) || 0;
+        } else if (hasParent) {
+            this._value = 0;
         } else {
-            this._value = (this.hasAttribute && this.hasAttribute('start')) ? (parseFloat(this.getAttribute('start')) || 0) : 0;
+            this._value = targetVal;
         }
 
         if (!hasSsr) {
@@ -224,10 +229,14 @@ export class DxNumber extends DxMeter {
             this._parentReady = true;
         }
 
-        observeIO(this, () => {
+        if (parentActionBar) {
             this._inViewport = true;
-            this._checkAndTrigger();
-        });
+        } else {
+            observeIO(this, () => {
+                this._inViewport = true;
+                this._checkAndTrigger();
+            });
+        }
 
         if (parentChar) {
             const parentType = typeof this.closest === 'function' ? this.closest(TYPE_PARENT_SEL) : null;
@@ -320,15 +329,19 @@ export class DxNumber extends DxMeter {
     animateTo(targetValue, duration) {
         if (typeof this.removeAttribute === 'function') this.removeAttribute('data-static');
         this._targetValue = targetValue;
-        this._animStartValue = this._value;
+        this._animStartValue = (this._value !== undefined && !isNaN(this._value)) ? this._value : 0;
         this._animDuration = duration;
-        this._animStartTime = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
+        this._animStartTime = null;
         this.classList.add('ui-number-running');
         this.render();
         registerRAF(this);
     }
 
     _stepAnimation(now) {
+        if (this._animStartTime === null || this._animStartTime === undefined) {
+            this._animStartTime = now;
+        }
+
         const elapsed = Math.max(0, now - this._animStartTime);
         const duration = this._animDuration;
         const targetValue = this._targetValue;

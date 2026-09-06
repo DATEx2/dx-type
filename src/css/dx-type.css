@@ -311,9 +311,10 @@ d::before {
 /* ─── Odometer animation trigger (embedded in typewriter) ─────────────────── */
 :is(dx-type-sda.dx-typing, dx-type-sda.dx-typed,
     dx-type.dx-typing, dx-type.dx-typed,
-    .dx-type-ready) dx-odometer d::before {
+    .dx-type-ready) dx-odometer d::before,
+dx-odometer.tw-embed d::before {
     animation: run-odometer
-        calc(var(--odo-dur, 1400ms) * var(--A, 1))
+        calc(var(--odo-dur, 600ms) * var(--A, 1))
         cubic-bezier(0.37, 0, 0.63, 1)
         calc(var(--d, 0) * 1ms * var(--A, 1))
         both !important;

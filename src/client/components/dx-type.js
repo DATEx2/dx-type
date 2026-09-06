@@ -16,12 +16,17 @@ export class DxType extends DxTyping {
     _onAnimEnd = (e) => {
         if (e.animationName === DX_ANIM.KF_TYPE_IN || e.animationName === DX_ANIM.KF_TYPE_SDA) {
             const target = e.target;
+            if (target.classList?.contains('c-ui-num')) return;
+
             if (target.classList?.contains('last-char') || target.hasAttribute?.('last-char') || target.getAttribute?.('data-last') === 'true') {
                 onTypewriterEnd(target, e);
             } else {
                 if (!this._lastC) {
-                    const allC = this.querySelectorAll('i, [data-last]');
-                    this._lastC = allC.length ? allC[allC.length - 1] : null;
+                    this._lastC = this.querySelector('t [data-last="true"], t .last-char, [data-last="true"], .last-char');
+                    if (!this._lastC) {
+                        const allC = this.querySelectorAll('i:not(.c-ui-num)');
+                        this._lastC = allC.length ? allC[allC.length - 1] : null;
+                    }
                 }
                 if (target === this._lastC) {
                     onTypewriterEnd(target, e);

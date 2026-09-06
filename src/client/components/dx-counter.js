@@ -362,6 +362,10 @@ export class DxCounter extends DxNumber {
     }
 
     _stepAnimation(now) {
+        if (this._animStartTime === null || this._animStartTime === undefined) {
+            this._animStartTime = now;
+        }
+
         const elapsed = Math.max(0, now - this._animStartTime);
         const duration = this._animDuration;
         const targetValue = this._targetValue;
@@ -386,11 +390,12 @@ export class DxCounter extends DxNumber {
     animateTo(targetValue, duration) {
         if (typeof this.removeAttribute === 'function') this.removeAttribute('data-static');
         this._targetValue = targetValue;
-        this._animStartValue = this._value;
+        this._animStartValue = (this._value !== undefined && !isNaN(this._value)) ? this._value : 0;
         this._animDuration = duration;
-        this._animStartTime = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
+        this._animStartTime = null;
+        this._lastTickTime = null;
         this.classList.add('ui-number-running');
-        this._updateCounterVars(this._value);
+        this._updateCounterVars(this._animStartValue);
         registerRAF(this);
     }
 

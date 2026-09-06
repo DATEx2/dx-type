@@ -88,20 +88,27 @@ dx-counter .dx-sfx {
 dx-counter .dx-b {
   display: inline !important;
 }
-dx-counter .dx-b::after {
+dx-counter .dx-b:not(:empty):not([style*=none])::after {
   content: "\a0";
 }
 dx-counter .dx-m {
   display: inline !important;
 }
-dx-counter .dx-m::after {
+dx-counter .dx-m:not(:empty):not([style*=none])::after {
   content: "\a0";
 }
 dx-counter .dx-k {
   display: inline !important;
 }
-dx-counter .dx-k::after {
+dx-counter .dx-k:not(:empty):not([style*=none])::after {
   content: "\a0";
+}
+dx-counter :is(.dx-b, .dx-m, .dx-k, .dx-dec):is(:empty, [style*=none]) {
+  display: none !important;
+}
+dx-counter :is(.dx-b, .dx-m, .dx-k, .dx-dec):is(:empty, [style*=none])::after {
+  display: none !important;
+  content: none !important;
 }
 dx-counter .dx-u {
   display: inline !important;
