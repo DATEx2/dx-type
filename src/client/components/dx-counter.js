@@ -259,7 +259,7 @@ export class DxCounter extends DxNumber {
         const formattedFull = this.formatValue(targetVal);
 
         let wrap = this.querySelector('.dx-num-wrap');
-        let st = this.querySelector('s-t');
+        let st = this.querySelector('dx-s');
 
         if (!wrap) {
             const hasB = targetVal >= 1e9;
@@ -277,7 +277,7 @@ export class DxCounter extends DxNumber {
             const decHtml = `<span class="dx-dec"${hasDec ? '' : ' style="display: none;"'}>${cfg.comma || ','}</span>`;
 
             this.innerHTML =
-                `<s-t>${formattedFull}</s-t>`
+                `<dx-s>${formattedFull}</dx-s>`
                 + `<span class="dx-num-wrap">${pfxHtml}${bHtml}${mHtml}${kHtml}${uHtml}${decHtml}${sfxHtml}</span>`;
         } else {
             if (st && st.textContent !== formattedFull) {
@@ -305,7 +305,7 @@ export class DxCounter extends DxNumber {
         this._cachedCfg = typeof this.getFormatConfig === 'function' ? this.getFormatConfig() : {};
     }
 
-    _updateCounterVars(currentVal) {
+    _updateCounterVars(currentVal, isFinal = false) {
         if (!this._elDec && !this._elU) {
             this._cacheDOMElements();
         }
@@ -320,29 +320,53 @@ export class DxCounter extends DxNumber {
         if (this._elB) {
             const bStr = hasB ? String(c.b) : '';
             if (this._elB.textContent !== bStr) this._elB.textContent = bStr;
-            if (this._elB.style) this._elB.style.setProperty('--dxc-b', bStr || '0');
         }
         if (this._elM) {
             const mStr = hasM ? (hasB ? String(c.m).padStart(3, '0') : String(c.m)) : '';
             if (this._elM.textContent !== mStr) this._elM.textContent = mStr;
-            if (this._elM.style) this._elM.style.setProperty('--dxc-m', mStr || '0');
         }
         if (this._elK) {
             const kStr = hasK ? (hasM ? String(c.k).padStart(3, '0') : String(c.k)) : '';
             if (this._elK.textContent !== kStr) this._elK.textContent = kStr;
-            if (this._elK.style) this._elK.style.setProperty('--dxc-k', kStr || '0');
         }
         if (this._elU) {
             const uStr = hasK ? String(c.u).padStart(3, '0') : String(c.u);
             if (this._elU.textContent !== uStr) this._elU.textContent = uStr;
-            if (this._elU.style) this._elU.style.setProperty('--dxc-u', uStr || '0');
         }
         if (this._elDec) {
             const decStr = hasDec ? `${radix}${String(c.dec).padStart(2, '0')}` : '';
             if (this._elDec.textContent !== decStr) this._elDec.textContent = decStr;
-            if (this._elDec.style) this._elDec.style.setProperty('--dxc-dec', String(c.dec));
         }
 
+        // Only toggle display when segment presence actually changes (Zero Forced Reflow / Layout Thrashing)
+        if (hasB !== this._lastHasB) {
+            if (this._elB) this._elB.style.display = hasB ? 'inline' : 'none';
+            this._lastHasB = hasB;
+        }
+        if (hasM !== this._lastHasM) {
+            if (this._elM) this._elM.style.display = hasM ? 'inline' : 'none';
+            this._lastHasM = hasM;
+        }
+        if (hasK !== this._lastHasK) {
+            if (this._elK) this._elK.style.display = hasK ? 'inline' : 'none';
+            this._lastHasK = hasK;
+        }
+        if (hasDec !== this._lastHasDec) {
+            if (this._elDec) this._elDec.style.display = hasDec ? 'inline' : 'none';
+            this._lastHasDec = hasDec;
+        }
+
+        // Child elements (_elB, _elM, _elK, _elU, _elDec) display values via .textContent.
+        // We write --dxc-* custom properties on children ONLY on final state or if Houdini mode is active.
+        if (isFinal || DxCounter.supportsHoudini) {
+            if (this._elB?.style) this._elB.style.setProperty('--dxc-b', (hasB ? String(c.b) : '0'));
+            if (this._elM?.style) this._elM.style.setProperty('--dxc-m', (hasM ? String(c.m) : '0'));
+            if (this._elK?.style) this._elK.style.setProperty('--dxc-k', (hasK ? String(c.k) : '0'));
+            if (this._elU?.style) this._elU.style.setProperty('--dxc-u', String(c.u));
+            if (this._elDec?.style) this._elDec.style.setProperty('--dxc-dec', String(c.dec));
+        }
+
+        // On the counter root element itself, keep --dxc-* updated when segment values change
         if (this.style && typeof this.style.setProperty === 'function') {
             if (c.b !== this._lastB) { this.style.setProperty('--dxc-b', String(c.b)); this._lastB = c.b; }
             if (c.m !== this._lastM) { this.style.setProperty('--dxc-m', String(c.m)); this._lastM = c.m; }
@@ -350,15 +374,6 @@ export class DxCounter extends DxNumber {
             if (c.u !== this._lastU) { this.style.setProperty('--dxc-u', String(c.u)); this._lastU = c.u; }
             if (c.dec !== this._lastDec) { this.style.setProperty('--dxc-dec', String(c.dec)); this._lastDec = c.dec; }
         }
-
-        const setDisp = (el, v) => {
-            if (el && el.style.display !== v) el.style.display = v;
-        };
-
-        setDisp(this._elB, hasB ? 'inline' : 'none');
-        setDisp(this._elM, hasM ? 'inline' : 'none');
-        setDisp(this._elK, hasK ? 'inline' : 'none');
-        setDisp(this._elDec, hasDec ? 'inline' : 'none');
     }
 
     _stepAnimation(now) {
@@ -376,14 +391,14 @@ export class DxCounter extends DxNumber {
             this.setAttribute('percent', this._value);
             this.makeStatic();
             this.classList.remove('ui-number-running');
-            this._updateCounterVars(targetValue);
+            this._updateCounterVars(targetValue, true);
             this.setAccessibility(targetValue);
             unregisterRAF(this);
         } else {
             const progress = elapsed / duration;
             const easeProgress = progress * (2 - progress);
             this._value = startValue + (targetValue - startValue) * easeProgress;
-            this._updateCounterVars(this._value);
+            this._updateCounterVars(this._value, false);
         }
     }
 
@@ -394,20 +409,24 @@ export class DxCounter extends DxNumber {
         this._animDuration = duration;
         this._animStartTime = null;
         this._lastTickTime = null;
+        this._lastHasB = null;
+        this._lastHasM = null;
+        this._lastHasK = null;
+        this._lastHasDec = null;
         this.classList.add('ui-number-running');
-        this._updateCounterVars(this._animStartValue);
+        this._updateCounterVars(this._animStartValue, false);
         registerRAF(this);
     }
 
     _onAnimEnd(e) {
         if (e && e.target && !e.target.classList.contains('dx-num')) return;
         this._value = this._targetValue;
-        this._updateCounterVars(this._value);
+        this._updateCounterVars(this._value, true);
 
         this.classList.remove('dx-counter-running');
         this.makeStatic();
 
-        const st = this.querySelector('s-t');
+        const st = this.querySelector('dx-s');
         if (st) {
             st.textContent = this.formatValue(this._value);
         }
@@ -447,8 +466,8 @@ export class DxCounter extends DxNumber {
         this.setAttribute('percent', parsedValue);
         this.setAccessibility(parsedValue);
 
-        // Update static <s-t>
-        const st = this.querySelector('s-t');
+        // Update static <dx-s>
+        const st = this.querySelector('dx-s');
         if (st) st.textContent = this.formatValue(parsedValue);
 
         if (DxCounter.supportsHoudini) {

@@ -1,14 +1,14 @@
 // dx-odometer.js — DATEx2 <dx-odometer> Web Component (Mechanical drum odometer).
 //
 // Read-only, one-time animation, self-cleanup after completion.
-// Light DOM — SSR pre-renders <d data-seq> digits, CSS animates via ::before + translateY GPU.
+// Light DOM — SSR pre-renders <dx-d data-seq> digits, CSS animates via ::before + translateY GPU.
 // Zero Shadow DOM, zero runtime DOM construction.
 // Pure ES2026 — zero external dependencies.
 //
 // exports: DxOdometer
 // used_by: src/client/index.js
 
-import { DxMeter } from '../base/dx-meter.js';
+import { DxMeter, expandOdometerDrums } from '../base/dx-meter.js';
 import { rootWin, defCustomElement } from '../base/dx-base.js';
 import { DX_ANIM, observeIO } from '../base/dx-scheduler.js';
 import { onTypewriterEnd } from '../base/dx-typing.js';
@@ -23,12 +23,44 @@ export class DxOdometer extends DxMeter {
         this._digitsDone = 0;
     }
 
+    expandDrums() {
+        expandOdometerDrums(this);
+    }
+
+    unpackDataO(dataO) {
+        if (!dataO) return;
+        const drums = dataO.split(',');
+        let digitsHtml = '';
+        for (let i = 0; i < drums.length; i++) {
+            const seq = drums[i];
+            const lastChar = seq.slice(-1) || '0';
+            const finalPos = seq.length > 1 ? -((seq.length - 1) * 100) : 0;
+            const expandedSeq = [...seq].join('\n');
+            digitsHtml += `<dx-d data-seq="${expandedSeq}" style="--p:${finalPos}%">${lastChar}</dx-d>`;
+        }
+        let b = this.querySelector('b');
+        if (!b) {
+            b = document.createElement('b');
+            const sfx = this.querySelector('.ui-sfx');
+            if (sfx) this.insertBefore(b, sfx);
+            else this.appendChild(b);
+        }
+        b.innerHTML = digitsHtml;
+    }
+
     connectedCallback() {
+        const dataO = this.getAttribute('data-o');
+        if (dataO && !this.querySelector('dx-d') && !this.closest('dx-s, t-s') && !this.classList.contains('data-static')) {
+            this.unpackDataO(dataO);
+        }
+
+        expandOdometerDrums(this);
+
         if (this._initialized) return;
         this._initialized = true;
 
-        // Inside <s-t> = static context, nothing to animate
-        if (this.closest('s-t')) {
+        // Inside <dx-s> or <t-s> = static context, nothing to animate
+        if (this.closest('dx-s, t-s')) {
             this.classList.add('data-static');
             return;
         }
@@ -48,7 +80,8 @@ export class DxOdometer extends DxMeter {
         if (twEmbed) {
             const checkEmbedReady = () => {
                 if (!this.isConnected || this._animDone) return;
-                const dCount = this.querySelectorAll('d[data-seq]').length;
+                expandOdometerDrums(this);
+                const dCount = this.querySelectorAll('dx-d[data-seq]').length;
                 const spanCount = this.querySelectorAll('.odometer-ribbon-inner').length;
                 if (dCount === 0 && spanCount === 0 && !this.closest('template')) {
                     this._animDone = true;
@@ -71,7 +104,8 @@ export class DxOdometer extends DxMeter {
         } else {
             const setupStandalone = () => {
                 if (!this.isConnected || this._animDone || this.classList.contains('data-static')) return;
-                const digits = this.querySelectorAll('d[data-seq]');
+                expandOdometerDrums(this);
+                const digits = this.querySelectorAll('dx-d[data-seq]');
                 this._digitCount = digits.length;
                 if (this._digitCount === 0) {
                     if (document.readyState === 'loading') {
@@ -107,14 +141,14 @@ export class DxOdometer extends DxMeter {
     _onAnimEnd = (e) => {
         if (this._animDone) return;
 
-        // Count animation ends from <d> elements or legacy .odometer-ribbon-inner
+        // Count animation ends from <dx-d> elements or legacy .odometer-ribbon-inner
         const target = e.target;
-        if (!target || (target.tagName !== 'D' && !target.classList?.contains('odometer-ribbon-inner'))) return;
+        if (!target || (target.tagName !== 'DX-D' && !target.classList?.contains('odometer-ribbon-inner'))) return;
 
         e.stopPropagation();
 
         if (!this._digitCount) {
-            const dCount = this.querySelectorAll('d[data-seq]').length;
+            const dCount = this.querySelectorAll('dx-d[data-seq]').length;
             const spanCount = this.querySelectorAll('.odometer-ribbon-inner').length;
             this._digitCount = dCount || spanCount || 1;
         }

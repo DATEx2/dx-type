@@ -5,9 +5,9 @@
 // Base classes & lifecycle functions
 export { DxBase, rootWin } from './base/dx-base.js';
 export { DX_ANIM, getIO, observeIO, unobserveIO, queueIdleUnpack, removeFromIdleQueue, registerRAF, unregisterRAF, onAllAnimationsEnd, setSdaGaps, getSdaGaps } from './base/dx-scheduler.js';
-export { DxTyping, unpackTemplate, prepareTemplateContent, observeTypewriter, mountTypewriter, ensureElementsUpToTarget, onTypewriterEnd, cleanupTypedDOM, bootstrapTypewriterObserver, getTypewriterObserver } from './base/dx-typing.js';
+export { DxTyping, unpackTemplate, prepareTemplateContent, observeTypewriter, mountTypewriter, ensureElementsUpToTarget, onTypewriterEnd, cleanupTypedDOM, bootstrapTypewriterObserver, getTypewriterObserver, buildTypingLayer, HEX_LUT } from './base/dx-typing.js';
 export { DxRevealing, finishReveal, startReveal } from './base/dx-revealing.js';
-export { DxMeter, uiNum, formatNumber, generateRibbonHtml } from './base/dx-meter.js';
+export { DxMeter, uiNum, formatNumber, generateRibbonHtml, generateDataO, expandOdometerDrums } from './base/dx-meter.js';
 
 // Components (each self-registers its custom element on import)
 export { DxType } from './components/dx-type.js';

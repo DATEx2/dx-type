@@ -28,7 +28,7 @@ export class DxBase extends BaseHTMLElement {
         }
         const tpl = this.querySelector(':scope > template');
         if (tpl && tpl.content) {
-            const st = this.querySelector(':scope > s-t');
+            const st = this.querySelector(':scope > :is(dx-s, t-s, s-t)');
             if (st) st.remove();
             tpl.replaceWith(tpl.content);
             this.classList.add(DX_ANIM.TYPING);

@@ -68,7 +68,7 @@ export class DxNumber extends DxMeter {
     connectedCallback() {
         if (this._initialized) return;
 
-        const inST = typeof this.closest === 'function' ? !!this.closest('s-t') : false;
+        const inST = typeof this.closest === 'function' ? !!this.closest('dx-s') : false;
         if (inST) {
             this.makeStatic();
             this.innerHTML = this.getStaticHTML();
@@ -99,7 +99,7 @@ export class DxNumber extends DxMeter {
         if (typeof this.closest !== 'function') {
             return true;
         }
-        const parentChar = this.closest('i');
+        const parentChar = this.closest('dx-c');
         const parentReveal = this.closest(REVEAL_PARENT_SEL);
         const parentActionBar = this.closest('.action-bar, .action-bar-wrapper');
 
@@ -110,8 +110,12 @@ export class DxNumber extends DxMeter {
                 return false;
             }
             this._inViewport = true;
-            this._parentReady = true;
-            return true;
+            const isAbShown = !!this.closest('.show-action-bar')
+                || (typeof document !== 'undefined' && document.body && document.body.classList.contains('show-action-bar'));
+            if (isAbShown) {
+                this._parentReady = true;
+            }
+            return Boolean(this._parentReady);
         }
 
         if (!parentChar && !parentReveal) {
@@ -137,12 +141,14 @@ export class DxNumber extends DxMeter {
         return t > 0 ? t : 600;
     }
 
-    _checkAndTrigger() {
+    _checkAndTrigger(skipDelay = false) {
         const ready = this.isReadyToAnimate();
         if (!ready) return;
 
+        const parentActionBar = typeof this.closest === 'function' ? this.closest('.action-bar, .action-bar-wrapper') : null;
         const d = parseFloat(this.style?.getPropertyValue?.('--d') || '') || parseFloat(typeof this.closest === 'function' ? this.closest('[style*="--d"]')?.style?.getPropertyValue?.('--d') : 0) || 0;
-        const delay = d > 0 ? d : ((typeof this.closest === 'function' && this.closest(REVEAL_PARENT_SEL)) ? 100 : 0);
+        // In Action Bar, animation-delay is handled in CSS; do not add redundant JS delay
+        const delay = (skipDelay || parentActionBar) ? 0 : (d > 0 ? d : ((typeof this.closest === 'function' && this.closest(REVEAL_PARENT_SEL)) ? 100 : 0));
 
         if (this._pendingVal) {
             const { targetValue, duration } = this._pendingVal;
@@ -182,7 +188,7 @@ export class DxNumber extends DxMeter {
             this._timeoutId = null;
         }
 
-        const inST = typeof this.closest === 'function' ? !!this.closest('s-t') : false;
+        const inST = typeof this.closest === 'function' ? !!this.closest('dx-s') : false;
         const isStatic = (this.classList && this.classList.contains('data-static')) || this.isStatic || inST;
         const targetVal = (this._targetValue !== undefined && !isNaN(this._targetValue) && this._targetValue !== 0)
             ? this._targetValue
@@ -190,7 +196,7 @@ export class DxNumber extends DxMeter {
         this._targetValue = targetVal;
 
         const hasSsr = typeof this.querySelector === 'function' && Boolean(this.querySelector('.ui-num, .dx-num-wrap'));
-        const parentChar = typeof this.closest === 'function' ? this.closest('i') : null;
+        const parentChar = typeof this.closest === 'function' ? this.closest('dx-c') : null;
         const parentReveal = typeof this.closest === 'function' ? this.closest(REVEAL_PARENT_SEL) : null;
         const parentActionBar = typeof this.closest === 'function' ? this.closest('.action-bar, .action-bar-wrapper') : null;
         const hasParent = Boolean(parentChar || parentReveal || parentActionBar);
@@ -231,6 +237,23 @@ export class DxNumber extends DxMeter {
 
         if (parentActionBar) {
             this._inViewport = true;
+            const isAbShown = (parentActionBar.classList && parentActionBar.classList.contains('show-action-bar'))
+                || (typeof document !== 'undefined' && document.body && document.body.classList.contains('show-action-bar'));
+            if (isAbShown) {
+                this._parentReady = true;
+                this._checkAndTrigger(true);
+            } else {
+                const onAbTrigger = (e) => {
+                    if (!e || !e.animationName || e.animationName === 'dxc-trigger' || e.animationName === 'actionbar-slide-up') {
+                        this._parentReady = true;
+                        this._checkAndTrigger(true);
+                    }
+                };
+                this.addEventListener('animationstart', onAbTrigger, { once: true });
+                parentActionBar.addEventListener('animationstart', onAbTrigger, { once: true });
+                parentActionBar.addEventListener('animationend', onAbTrigger, { once: true });
+                parentActionBar.addEventListener('transitionend', onAbTrigger, { once: true });
+            }
         } else {
             observeIO(this, () => {
                 this._inViewport = true;

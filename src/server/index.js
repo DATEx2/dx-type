@@ -30,7 +30,7 @@ export function formatNumber(val, type = 'int', comma = ',', prefix = '', suffix
 
 /**
  * Generate drum digit markup for <dx-odometer>.
- * New architecture: 1 <d data-seq> element per digit column, wrapped in <b>.
+ * New architecture: 1 <dx-d data-seq> element per digit column, wrapped in <b>.
  * CSS ::before { content: attr(data-seq) } + translateY animates on GPU.
  */
 export function generateRibbonHtml(numericValue, type = 'int', comma = ',', prefix = '', suffix = '', startValue = null) {
@@ -144,10 +144,10 @@ export function generateRibbonHtml(numericValue, type = 'int', comma = ',', pref
             const finalIndex = totalItems - 1;
             const finalPosPercent = totalItems > 1 ? -((finalIndex / totalItems) * 100).toFixed(4) : 0;
 
-            // Build data-seq: digit values joined by &#10; (newline entity)
-            const seqStr = drumValues.map(v => v === ' ' ? ' ' : v).join('&#10;');
+            // Build data-seq: compact digit string on wire (stripout, zero &#10;)
+            const seqStr = drumValues.map(v => v === ' ' ? ' ' : v).join('');
 
-            digitsHtml += `<d data-seq="${seqStr}" style="--p:${finalPosPercent}%;--r:${digitR}">${char}</d>`;
+            digitsHtml += `<dx-d data-seq="${seqStr}" style="--p:${finalPosPercent}%">${char}</dx-d>`;
         } else {
             digitsHtml += `<span class="ui-radix">${char}</span>`;
         }
@@ -157,6 +157,21 @@ export function generateRibbonHtml(numericValue, type = 'int', comma = ',', pref
     const sfxHtml = suffixText ? `<span class="ui-sfx">${suffix.startsWith(' ') ? '' : ' '}${suffixText}</span>` : '';
 
     return `${pfxHtml}<b>${digitsHtml}</b>${sfxHtml}`;
+}
+
+/**
+ * Generate compact data-o string for an odometer (e.g. " 123456, 12467890,01234679124567890").
+ * @returns {string}
+ */
+export function generateDataO(numericValue, type = 'int', comma = ',', prefix = '', suffix = '', startValue = null) {
+    const html = generateRibbonHtml(numericValue, type, comma, prefix, suffix, startValue);
+    const seqs = [];
+    const re = /data-seq="([^"]*)"/g;
+    let m;
+    while ((m = re.exec(html)) !== null) {
+        seqs.push(m[1]);
+    }
+    return seqs.join(',');
 }
 
 export function ssrDxNumber(numericValue, formattedText, cls = '', type = 'number') {
@@ -192,7 +207,7 @@ export function ssrDxOdometer(numericValue, options = {}) {
     const ariaLabel = formattedText.replace(/·/g, '').replace(/\s+/g, ' ').trim().replace(/"/g, '&quot;');
 
     const ribbonHtml = generateRibbonHtml(numericValue, type, comma, safePrefix, safeSuffix, options.start);
-    return `<dx-odometer${classAttr}${typeAttr} percent="${numericValue}"${prefixAttr}${suffixAttr}${commaAttr} aria-label="${ariaLabel}" aria-hidden="true"><s-t>${formattedText}</s-t>${ribbonHtml}</dx-odometer>`;
+    return `<dx-odometer${classAttr}${typeAttr} percent="${numericValue}"${prefixAttr}${suffixAttr}${commaAttr} aria-label="${ariaLabel}" aria-hidden="true"><dx-s>${formattedText}</dx-s>${ribbonHtml}</dx-odometer>`;
 }
 
 function wrapHyphenatedWords(html) {
@@ -206,11 +221,33 @@ function wrapHyphenatedWords(html) {
 }
 
 function splitChars(str) {
-    return str.match(/&[a-z0-9]+;|./gu) || [];
+    return [...str];
 }
 
 /**
- * Tokenize HTML text into <w><i> structure for typewriter rendering.
+ * Encode word lengths into compact w="..." bytecode attribute.
+ * Alphabet: 0-F (length 1-15), + (extended prefix, next 2 hex = 00-FF),
+ * - (non-breaking/hyphen prefix), space (child element recurse), * (meter clone).
+ * @param {Array<{len?:number, hyphen?:boolean, meter?:boolean, element?:boolean}>} entries
+ * @returns {string}
+ */
+function encodeW(entries) {
+    let w = '';
+    for (const e of entries) {
+        if (e.meter) { w += '*'; continue; }
+        if (e.element) { w += ' '; continue; }
+        if (e.hyphen) w += '-';
+        if (e.len > 15) {
+            w += '+' + e.len.toString(16).toUpperCase().padStart(2, '0');
+        } else {
+            w += e.len.toString(16).toUpperCase();
+        }
+    }
+    return w;
+}
+
+/**
+ * Tokenize HTML text into <dx-w><dx-c> structure for typewriter rendering.
  * @param {string} html — Raw or nested HTML content
  * @param {object} options — { duration, delay, offset }
  * @returns {object} { html, cleanText, totalUnits, speed, duration, delay, style }
@@ -290,11 +327,14 @@ export function tokenize(html, options = {}) {
         const exactDelay = Math.round(delay + (offset + idx) * speed);
         const styleAttr = ` style="animation-delay:${exactDelay}ms"`;
         const cClass = (ch === '·' || ch === '•') ? ` class="bullet-dot${extraClass ? ' ' + extraClass : ''}"` : (extraClass ? ` class="${extraClass}"` : '');
-        return `<i${cClass}${styleAttr}>${ch}</i>`;
+        return `<dx-c${cClass}${styleAttr}>${ch}</dx-c>`;
     }
 
     let result = '';
-    let compactResult = '';
+    let compactParts = [];
+    let wStack = [{ entries: [], tagIdx: -1 }];
+    function currentWEntries() { return wStack[wStack.length - 1].entries; }
+    
     let charIdx = 0;
 
     for (let i = 0; i < tokens.length; i++) {
@@ -343,24 +383,43 @@ export function tokenize(html, options = {}) {
                     return `<${compTagName}${newAttrs}>`;
                 });
 
-                const compTag = `<i class="c-ui-num" style="animation-delay:${exactDelay}ms">${compHTML}</i>`;
-                result += `<w>${compTag}</w>`;
-                compactResult += `<w><i class="c-ui-num">${compHTML}</i></w>`;
+                const compTag = `<dx-c class="c-ui-num" style="animation-delay:${exactDelay}ms">${compHTML}</dx-c>`;
+                result += `<dx-w>${compTag}</dx-w>`;
+                currentWEntries().push({ meter: true });
+                compactParts.push(compHTML);
             } else {
                 result += token.value;
-                compactResult += token.value;
+                if (/^<\//.test(token.value)) {
+                    // Closing tag
+                    if (wStack.length > 1) {
+                        const level = wStack.pop();
+                        const wVal = encodeW(level.entries);
+                        if (wVal && level.tagIdx >= 0) {
+                            const openTag = compactParts[level.tagIdx];
+                            compactParts[level.tagIdx] = openTag.replace(/>$/, ` w="${wVal}">`);
+                        }
+                    }
+                    compactParts.push(token.value);
+                } else {
+                    // Opening tag
+                    const tagIdx = compactParts.length;
+                    compactParts.push(token.value);
+                    currentWEntries().push({ element: true });
+                    wStack.push({ entries: [], tagIdx });
+                }
             }
         } else if (token.type === 'entity') {
             const entTag = makeCharTag(token.value, charIdx++);
-            result += `<w>${entTag}</w>`;
-            compactResult += `<w>${token.value}</w>`;
+            result += `<dx-w>${entTag}</dx-w>`;
+            currentWEntries().push({ len: 1 });
+            compactParts.push(token.value);
         } else {
             const parts = token.value.split(/(\s+)/);
             for (let j = 0; j < parts.length; j++) {
                 const part = parts[j];
                 if (/^\s+$/.test(part)) {
                     result += part;
-                    compactResult += part;
+                    compactParts.push(part);
                     charIdx += 1;
                 } else if (part.length > 0) {
                     let punct = '';
@@ -380,14 +439,18 @@ export function tokenize(html, options = {}) {
                     const pTags = punctChars.map((ch) => makeCharTag(ch, charIdx++)).join('');
 
                     const wClass = (part.includes('-') || punct.includes('-')) ? ' class="word"' : '';
-                    result += `<w${wClass}>${cTags}${pTags}</w>`;
-                    compactResult += `<w${wClass}>${part}${punct}</w>`;
+                    result += `<dx-w${wClass}>${cTags}${pTags}</dx-w>`;
+                    
+                    const totalLen = [...(part + punct)].length;
+                    const isHyphen = part.includes('-') || punct.includes('-');
+                    currentWEntries().push({ len: totalLen, hyphen: isHyphen });
+                    compactParts.push(part + punct);
                 }
             }
         }
     }
 
-    const allMatches = [...result.matchAll(/<i\b([^>]*)>/gi)];
+    const allMatches = [...result.matchAll(/<dx-c\b([^>]*)>/gi)];
     let targetMatch = null;
     for (let m = allMatches.length - 1; m >= 0; m--) {
         if (!/\bc-ui-num\b/.test(allMatches[m][1])) {
@@ -403,9 +466,13 @@ export function tokenize(html, options = {}) {
         result = result.slice(0, idx) + ' data-last="true" onanimationend="return onTypewriterEnd(this, event)"' + result.slice(idx);
     }
 
+    const rootW = encodeW(wStack[0].entries);
+    const compactHtml = compactParts.join('');
+
     return {
         html: result,
-        compactHtml: compactResult,
+        compactHtml,
+        wAttr: rootW,
         cleanText,
         totalUnits,
         speed,
@@ -460,11 +527,12 @@ export function ssrDxType(content, options = {}) {
 
     const stTokens = tokenize(stContent, options);
     const sdaStContent = stTokens.compactHtml || stContent;
+    const wAttr = stTokens.wAttr ? ` w="${stTokens.wAttr}"` : '';
 
     if (isSda) {
-        return `<${tagName}${classAttr} style="${res.style}"${ariaAttr}><s-t>${sdaStContent}</s-t><template></template></${tagName}>`;
+        return `<${tagName}${classAttr} style="${res.style}"${ariaAttr}><dx-s${wAttr}>${sdaStContent}</dx-s></${tagName}>`;
     }
-    return `<${tagName}${classAttr} style="${res.style}"${ariaAttr}><s-t>${stContent}</s-t><t aria-hidden="true"${tStyle}>${res.html}</t></${tagName}>`;
+    return `<${tagName}${classAttr} style="${res.style}"${ariaAttr}><dx-s${wAttr}>${sdaStContent}</dx-s><dx-t aria-hidden="true"${tStyle}>${res.html}</dx-t></${tagName}>`;
 }
 
 /**
@@ -558,5 +626,5 @@ export function ssrDxCounter(numericValue, formattedText, cls, type = 'number') 
     const ariaLabel = formattedText.replace(/·/g, '').replace(/\s+/g, ' ').trim().replace(/"/g, '&quot;');
     const classAttr = cls ? ' class="' + cls + '"' : '';
 
-    return '<dx-counter' + classAttr + ' type="' + type + '" percent="' + percent + '" prefix="' + pfx + '" suffix="' + sfx + '" comma="' + radix + '" style="--percent: ' + percent + ';" aria-label="' + ariaLabel + '" aria-hidden="true"><s-t>' + formattedText + '</s-t></dx-counter>';
+    return '<dx-counter' + classAttr + ' type="' + type + '" percent="' + percent + '" prefix="' + pfx + '" suffix="' + sfx + '" comma="' + radix + '" style="--percent: ' + percent + ';" aria-label="' + ariaLabel + '" aria-hidden="true"><dx-s>' + formattedText + '</dx-s></dx-counter>';
 }

@@ -16,9 +16,9 @@ export default function testExports() {
     const expectedExports = [
         'DxBase', 'DX_ANIM', 'getIO', 'observeIO', 'registerRAF', 'unregisterRAF',
         'DxTyping', 'unpackTemplate', 'observeTypewriter', 'mountTypewriter',
-        'ensureElementsUpToTarget', 'onTypewriterEnd', 'cleanupTypedDOM', 'bootstrapTypewriterObserver',
+        'ensureElementsUpToTarget', 'onTypewriterEnd', 'cleanupTypedDOM', 'bootstrapTypewriterObserver', 'buildTypingLayer', 'HEX_LUT',
         'DxRevealing', 'finishReveal', 'startReveal',
-        'DxMeter', 'uiNum',
+        'DxMeter', 'uiNum', 'expandOdometerDrums',
         'DxType', 'DxTypeSda', 'DxReveal', 'DxRevealSda', 'DxTypeReady',
         'DxNumber', 'DxOdometer'
     ];
@@ -53,6 +53,10 @@ export default function testExports() {
     const css = readFileSync(join(root, 'src/css/dx-type.css'), 'utf8');
     assert(css.includes('dx-type-sda'), 'CSS should target dx-type-sda');
     assert(css.includes('dx-reveal-sda'), 'CSS should target dx-reveal-sda');
+    assert(css.includes('dx-s'), 'CSS should target t-s');
+    assert(css.includes('dx-t'), 'CSS should target t-t');
+    assert(css.includes('dx-w'), 'CSS should target t-w');
+    assert(css.includes('dx-c'), 'CSS should target t-c');
     assert(css.includes('display: contents'), 'CSS should set display: contents');
     assert(css.includes('.TYPED'), 'CSS should handle .TYPED state');
     assert(css.includes('.REVEALED'), 'CSS should handle .REVEALED state');

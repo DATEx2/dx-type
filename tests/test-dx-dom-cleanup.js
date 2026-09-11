@@ -29,7 +29,7 @@ export default async function testDxDomCleanup() {
         },
         querySelector(sel) {
             if (sel === ':scope > template') return mockTemplate;
-            if (sel === ':scope > t, t') return mockT;
+            if (sel.includes('dx-t') || sel.includes('t')) return mockT;
             return null;
         },
         removeAttribute() {}

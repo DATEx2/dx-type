@@ -31,9 +31,11 @@ export default function testCssContracts() {
     assert(css.includes('animation: none'), 'Final states should clear animation');
     assert(css.includes('will-change: auto'), 'Final states should clear will-change');
 
-    // 4. Search text (<s-t>) should be hidden during animation
-    assert(css.includes('s-t'), 'CSS should style search text element');
-    assert(css.includes('visibility: hidden') || css.includes('visibility:hidden'), 'Hidden s-t should use visibility: hidden');
+    // 4. Search text (<t-s>) should be hidden during animation
+    assert(css.includes('dx-s'), 'CSS should style search text element');
+    assert(css.includes('color: transparent') || css.includes('color:transparent'), 'Hidden t-s should use color: transparent');
+    assert(css.includes('dx-w'), 'CSS should style word wrappers (t-w)');
+    assert(css.includes('dx-c'), 'CSS should style character wrappers (t-c)');
 
     // 5. No legacy class-only selectors (CSS should target dx-* tags, not .type-sda)
     // The CSS file should NOT use .type-sda or .reveal-sda as standalone selectors
@@ -60,4 +62,8 @@ export default function testCssContracts() {
     assert(css.includes('font-size: inherit !important'), 'Preflight and elements should inherit font-size');
     assert(css.includes('color: inherit !important'), 'Preflight and elements should inherit color');
     assert(css.includes('-webkit-text-fill-color: currentColor !important'), 'Preflight and elements should use currentColor fill');
+
+    // 9. Typing animation layer (<t-t>) MUST be hidden on .dx-typed to prevent text duplication
+    assert(css.includes('.dx-typed') && css.includes('display: none !important'), 'Typing layer t-t must be display: none on .dx-typed');
+    assert(!css.includes('& > dx-t {\n            position: relative') && !css.includes('& > dx-t {\r\n            position: relative'), 't-t must NEVER be position: relative on .dx-typed');
 }

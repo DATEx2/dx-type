@@ -367,10 +367,10 @@ export function generateRibbonHtml(numericValue, type = 'int', comma = ',', pref
             const finalIndex = totalItems - 1;
             const finalPosPercent = totalItems > 1 ? -(finalIndex * 100) : 0;
 
-            // Build data-seq: digit values joined by &#10; (newline entity)
-            const seqStr = drumValues.map(v => v === ' ' ? ' ' : v).join('&#10;');
+            // Build data-seq: compact digit string on wire (stripout, zero &#10;)
+            const seqStr = drumValues.map(v => v === ' ' ? ' ' : v).join('');
 
-            digitsHtml += `<d data-seq="${seqStr}" style="--p:${finalPosPercent}%;--r:${digitR}">${char}</d>`;
+            digitsHtml += `<dx-d data-seq="${seqStr}" style="--p:${finalPosPercent}%">${char}</dx-d>`;
         } else {
             digitsHtml += `<span class="ui-radix">${char}</span>`;
         }
@@ -387,6 +387,44 @@ export function generateRibbonHtml(numericValue, type = 'int', comma = ',', pref
     return `${pfxHtml}<b>${digitsHtml}</b>${sfxHtml}`;
 }
 
+/**
+ * Generate compact data-o string for an odometer (e.g. " 123456, 12467890,01234679124567890").
+ * @returns {string}
+ */
+export function generateDataO(numericValue, type = 'int', comma = ',', prefix = '', suffix = '', startValue = null) {
+    const html = generateRibbonHtml(numericValue, type, comma, prefix, suffix, startValue);
+    const seqs = [];
+    const re = /data-seq="([^"]*)"/g;
+    let m;
+    while ((m = re.exec(html)) !== null) {
+        seqs.push(m[1]);
+    }
+    return seqs.join(',');
+}
+
+/**
+ * Expand compact wire-format data-seq (e.g. " 123456") into \n-separated staves in memory.
+ * Also computes and sets --p translation percentage if missing.
+ * Runs on client DOM directly via setAttribute, immune to HTML minifiers.
+ * @param {Element|Document} root
+ */
+export function expandOdometerDrums(root) {
+    if (!root) return;
+    const digits = root.querySelectorAll ? root.querySelectorAll('dx-d[data-seq]') : [];
+    for (let i = 0; i < digits.length; i++) {
+        const d = digits[i];
+        const seq = d.getAttribute('data-seq');
+        if (seq && !seq.includes('\n') && seq.length > 1) {
+            d.setAttribute('data-seq', [...seq].join('\n'));
+        }
+        if (seq && d.style && typeof d.style.getPropertyValue === 'function' && !d.style.getPropertyValue('--p')) {
+            const totalItems = seq.includes('\n') ? seq.split('\n').length : seq.length;
+            const finalPosPercent = totalItems > 1 ? -((totalItems - 1) * 100) : 0;
+            d.style.setProperty('--p', `${finalPosPercent}%`);
+        }
+    }
+}
+
 if (rootWin) {
-    Object.assign(rootWin, { DxMeter, UiMeter: DxMeter, uiNum, generateRibbonHtml });
+    Object.assign(rootWin, { DxMeter, UiMeter: DxMeter, uiNum, generateRibbonHtml, generateDataO, expandOdometerDrums });
 }

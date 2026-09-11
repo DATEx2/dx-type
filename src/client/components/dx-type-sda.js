@@ -27,9 +27,11 @@ export class DxTypeSda extends DxTyping {
         });
 
         // Background Pre-warm on Idle: ONLY inside <template>.content, NEVER in live DOM!
-        queueIdleUnpack(this, (el) => {
-            prepareTemplateContent(el);
-        });
+        if (this.querySelector(':scope > template')) {
+            queueIdleUnpack(this, (el) => {
+                prepareTemplateContent(el);
+            });
+        }
     }
 
     _onAnimEnd = (e) => {
@@ -41,9 +43,9 @@ export class DxTypeSda extends DxTyping {
                 onTypewriterEnd(target, e);
             } else {
                 if (!this._lastC) {
-                    this._lastC = this.querySelector('t [data-last="true"], t .last-char, [data-last="true"], .last-char');
+                    this._lastC = this.querySelector('dx-t [data-last="true"], dx-t .last-char, [data-last="true"], .last-char');
                     if (!this._lastC) {
-                        const allC = this.querySelectorAll('i:not(.c-ui-num)');
+                        const allC = this.querySelectorAll('dx-c:not(.c-ui-num)');
                         this._lastC = allC.length ? allC[allC.length - 1] : null;
                     }
                 }

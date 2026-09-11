@@ -5,10 +5,93 @@
 
 import { DxBase, rootWin } from './dx-base.js';
 import { observeIO, unobserveIO, queueIdleUnpack, removeFromIdleQueue, getIO, DX_ANIM } from './dx-scheduler.js';
-import { generateRibbonHtml } from './dx-meter.js';
+import { generateRibbonHtml, expandOdometerDrums } from './dx-meter.js';
+
+// ─── HEX_LUT — Zero-parseInt hex nibble lookup ─────────────────────────────
+export const HEX_LUT = new Uint8Array(128);
+for (let i = 0; i < 10; i++) HEX_LUT[48 + i] = i;       // '0'-'9'
+for (let i = 0; i < 6; i++)  HEX_LUT[65 + i] = 10 + i;  // 'A'-'F'
+for (let i = 0; i < 6; i++)  HEX_LUT[97 + i] = 10 + i;  // 'a'-'f'
 
 export function getTypewriterObserver(win) {
     return getIO(win);
+}
+
+// ─── Build <dx-t> layer from <dx-s> using w="..." bytecode + childNodes tree walk ─
+export function buildTypingLayer(ts, delay, offset, speed) {
+    let tHtml = '';
+    let charIdx = 0;
+
+    function walk(el) {
+        const wAttr = el.getAttribute('w');
+        if (!wAttr) return;
+        let wi = 0;
+
+        for (const child of el.childNodes) {
+            if (child.nodeType === 3) { // TextNode
+                const chars = [...child.data];
+                let ci = 0;
+                while (ci < chars.length) {
+                    if (chars[ci] === ' ' || chars[ci] === '\n' || chars[ci] === '\t') {
+                        tHtml += chars[ci];
+                        ci++;
+                        continue;
+                    }
+
+                    // Read modifiers from w
+                    let hyphen = false;
+                    if (wi < wAttr.length && wAttr[wi] === '-') { hyphen = true; wi++; }
+
+                    let extended = false;
+                    if (wi < wAttr.length && wAttr[wi] === '+') { extended = true; wi++; }
+
+                    // Read word length
+                    let len;
+                    if (extended) {
+                        len = (HEX_LUT[wAttr.charCodeAt(wi)] << 4) | HEX_LUT[wAttr.charCodeAt(wi + 1)];
+                        wi += 2;
+                    } else {
+                        len = HEX_LUT[wAttr.charCodeAt(wi)];
+                        wi++;
+                    }
+
+                    // Emit word
+                    const wClass = hyphen ? ' class="word"' : '';
+                    tHtml += `<dx-w${wClass}>`;
+                    for (let c = 0; c < len && ci < chars.length; c++, ci++) {
+                        const ch = chars[ci];
+                        const d = Math.round(delay + (offset + charIdx++) * speed);
+                        const cls = (ch === '\u00B7' || ch === '\u2022') ? ' class="bullet-dot"' : '';
+                        tHtml += `<dx-c${cls} style="animation-delay:${d}ms">${ch}</dx-c>`;
+                    }
+                    tHtml += '</dx-w>';
+                }
+            } else if (child.nodeType === 1) { // Element
+                if (wi < wAttr.length) {
+                    const tok = wAttr[wi++];
+                    if (tok === '*') {
+                        // Meter — clone
+                        const d = Math.round(delay + (offset + charIdx++) * speed);
+                        tHtml += `<dx-w><dx-c class="c-ui-num" style="animation-delay:${d}ms">${child.outerHTML}</dx-c></dx-w>`;
+                    } else if (tok === ' ') {
+                        // Generic element — recurse, preserving tag + attributes
+                        const tag = child.tagName.toLowerCase();
+                        let attrs = '';
+                        for (let a = 0; a < child.attributes.length; a++) {
+                            const at = child.attributes[a];
+                            if (at.name !== 'w') attrs += ` ${at.name}="${at.value}"`;
+                        }
+                        tHtml += `<${tag}${attrs}>`;
+                        walk(child);
+                        tHtml += `</${tag}>`;
+                    }
+                }
+            }
+        }
+    }
+
+    walk(ts);
+    return { tHtml, totalChars: charIdx };
 }
 
 // ─── Prepare template content strictly inside DocumentFragment (<template>.content) ─────
@@ -16,24 +99,78 @@ export function prepareTemplateContent(el) {
     if (!el) return false;
     if (el.classList && el.classList.contains(DX_ANIM.TYPED)) return false;
 
+    // ─── New path: w="..." bytecode on <dx-s> (SDA compact mode, no <template>) ───
+    const ts = el.querySelector(':scope > dx-s[w]');
+    if (ts && !el.querySelector(':scope > dx-t')) {
+        const style = el.getAttribute('style') || '';
+        const dMatch = style.match(/--d:([\d.]+)/);
+        const bMatch = style.match(/--b:([\d.]+)/);
+        const uMatch = style.match(/--u:([\d.]+)/);
+        const delay = dMatch ? parseFloat(dMatch[1]) : 0;
+        const offset = bMatch ? parseFloat(bMatch[1]) : 0;
+        const speed = uMatch ? parseFloat(uMatch[1]) : 40;
+        const charDur = Math.round(speed * 3.5);
+
+        const { tHtml, totalChars } = buildTypingLayer(ts, delay, offset, speed);
+        if (tHtml) {
+            const doc = el.ownerDocument || (typeof document !== 'undefined' ? document : null);
+            if (doc) {
+                const tLayer = doc.createElement('dx-t');
+                tLayer.setAttribute('aria-hidden', 'true');
+                tLayer.setAttribute('style', `animation-duration:${charDur}ms`);
+                tLayer.innerHTML = tHtml;
+
+                // Mark data-last on final <dx-c>
+                const allTC = tLayer.querySelectorAll('dx-c');
+                if (allTC.length > 0) {
+                    const lastTC = allTC[allTC.length - 1];
+                    lastTC.setAttribute('data-last', 'true');
+                    lastTC.classList.add('last-char');
+                }
+
+                // Populate drums for embedded meters
+                const odometers = tLayer.querySelectorAll('dx-odometer, ui-odometer');
+                for (let i = 0; i < odometers.length; i++) {
+                    const odo = odometers[i];
+                    odo.classList.remove('data-static');
+                    if (!odo.querySelector('b')) {
+                        const val = odo.getAttribute('percent') || odo.getAttribute('value') || odo.textContent.trim();
+                        const numVal = parseFloat(val) || 0;
+                        const type = odo.getAttribute('type') || 'int';
+                        const comma = odo.getAttribute('comma') || ',';
+                        const prefix = odo.getAttribute('prefix') || '';
+                        const suffix = odo.getAttribute('suffix') || '';
+                        const start = odo.getAttribute('start') || null;
+                        odo.innerHTML = generateRibbonHtml(numVal, type, comma, prefix, suffix, start);
+                    }
+                    expandOdometerDrums(odo);
+                }
+
+                el.appendChild(tLayer);
+            }
+        }
+        return true;
+    }
+
+    // ─── Legacy path: <template> with pre-built <dx-t> content ───
     const tpl = el.querySelector(':scope > template');
     if (!tpl || !tpl.content) return false;
     if (tpl._prepared) return true;
-    // If <template> is empty (SSR compact mode), dynamically create <t> from <s-t>
-    let tLayer = tpl.content.querySelector('t');
+
+    let tLayer = tpl.content.querySelector(':is(dx-t, t-t, t)');
     if (!tLayer) {
-        const st = el.querySelector(':scope > s-t');
-        if (st) {
+        const stLegacy = el.querySelector(':scope > :is(dx-s, t-s, s-t)');
+        if (stLegacy) {
             const doc = el.ownerDocument || (typeof document !== 'undefined' ? document : null);
             if (doc) {
-                tLayer = doc.createElement('t');
+                tLayer = doc.createElement('dx-t');
                 tLayer.setAttribute('aria-hidden', 'true');
                 const style = el.getAttribute('style') || '';
                 const uMatch = style.match(/--u:([\d.]+)/);
                 const speed = uMatch ? parseFloat(uMatch[1]) : 40;
                 const charDur = Math.round(speed * 3.5);
                 tLayer.setAttribute('style', `animation-duration:${charDur}ms`);
-                tLayer.innerHTML = st.innerHTML;
+                tLayer.innerHTML = stLegacy.innerHTML;
                 tpl.content.appendChild(tLayer);
             }
         }
@@ -56,38 +193,35 @@ export function prepareTemplateContent(el) {
                 if (node.nodeType === 3) {
                     charIdx += (node.textContent || '').length;
                 } else if (node.nodeType === 1) {
-                    const w = node;
-                    if (w.hasAttribute('data-ready')) {
-                        charIdx += w.querySelectorAll('i').length;
+                    const tw = node;
+                    if (tw.hasAttribute('data-ready')) {
+                        charIdx += tw.querySelectorAll(':is(dx-c, t-c, i)').length;
                         continue;
                     }
-                    const cUiNum = w.querySelector('i.c-ui-num');
+                    const cUiNum = tw.querySelector(':is(dx-c, t-c, i).c-ui-num');
                     if (cUiNum) {
                         const odo = cUiNum.querySelector('dx-odometer, ui-odometer');
                         const exactDelay = Math.round(delay + (offset + charIdx) * speed);
                         charIdx += 1;
-
                         cUiNum.style.animationDelay = `${exactDelay}ms`;
-                        if (odo) {
-                            odo.style.setProperty('--d', exactDelay);
-                        }
-                    } else if (!w.querySelector('i')) {
-                        const text = w.textContent || '';
+                        if (odo) odo.style.setProperty('--d', exactDelay);
+                    } else if (!tw.querySelector(':is(dx-c, t-c, i)')) {
+                        const text = tw.textContent || '';
                         if (text) {
-                            const chars = text.match(/&[a-z0-9]+;|./gu) || [];
+                            const chars = [...text];
                             let inner = '';
                             for (let j = 0; j < chars.length; j++) {
                                 const ch = chars[j];
                                 const exactDelay = Math.round(delay + (offset + charIdx++) * speed);
-                                const cClass = (ch === '·' || ch === '•') ? ' class="bullet-dot"' : '';
-                                inner += `<i${cClass} style="animation-delay:${exactDelay}ms">${ch}</i>`;
+                                const cClass = (ch === '\u00B7' || ch === '\u2022') ? ' class="bullet-dot"' : '';
+                                inner += `<dx-c${cClass} style="animation-delay:${exactDelay}ms">${ch}</dx-c>`;
                             }
-                            w.innerHTML = inner;
+                            tw.innerHTML = inner;
                         }
                     } else {
-                        charIdx += w.querySelectorAll('i').length;
+                        charIdx += tw.querySelectorAll(':is(dx-c, t-c, i)').length;
                     }
-                    w.setAttribute('data-ready', 'true');
+                    tw.setAttribute('data-ready', 'true');
                 }
             }
         }
@@ -107,16 +241,18 @@ export function prepareTemplateContent(el) {
                 const start = odo.getAttribute('start') || null;
                 odo.innerHTML = generateRibbonHtml(numVal, type, comma, prefix, suffix, start);
             }
+            expandOdometerDrums(odo);
         }
 
-        // Guarantee data-last="true" and last-char class on the final <i>
-        const allI = tLayer.querySelectorAll('i');
-        if (allI.length > 0) {
-            const lastI = allI[allI.length - 1];
-            lastI.setAttribute('data-last', 'true');
-            lastI.classList.add('last-char');
+        // Guarantee data-last on final character
+        const allTC = tLayer.querySelectorAll(':is(dx-c, t-c, i)');
+        if (allTC.length > 0) {
+            const lastTC = allTC[allTC.length - 1];
+            lastTC.setAttribute('data-last', 'true');
+            lastTC.classList.add('last-char');
         }
     }
+    tpl._prepared = true;
     return true;
 }
 
@@ -125,27 +261,41 @@ export function unpackTemplate(el) {
     if (!el) return false;
     if (el.classList && el.classList.contains(DX_ANIM.TYPED)) return false;
 
-    // If user prefers reduced motion, never unpack template into live DOM.
     if (typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
         el.classList.add(DX_ANIM.TYPED);
         return false;
     }
 
+    // New path: w="..." bytecode (no template, t-t created by prepareTemplateContent)
+    const tsWithW = el.querySelector(':scope > :is(dx-s, t-s, s-t)[w]');
+    if (tsWithW && !el.querySelector(':scope > :is(dx-t, t-t, t)')) {
+        prepareTemplateContent(el);
+        if (!el.getAttribute('role')) el.setAttribute('role', 'text');
+        const ts = el.querySelector(':scope > :is(dx-s, t-s, s-t)');
+        if (ts && !el.getAttribute('aria-label')) {
+            const raw = (ts.textContent || '').replace(/\s+/g, ' ').trim();
+            if (raw) el.setAttribute('aria-label', raw);
+        }
+        const tt = el.querySelector(':scope > :is(dx-t, t-t, t)');
+        if (tt) tt.setAttribute('aria-hidden', 'true');
+        return true;
+    }
+
+    // Legacy path: template
     const tpl = el.querySelector(':scope > template');
     if (tpl && tpl.content) {
         prepareTemplateContent(el);
         if (!el.getAttribute('role')) el.setAttribute('role', 'text');
-        const st = el.querySelector(':scope > s-t');
-        if (st) {
+        const ts = el.querySelector(':scope > :is(dx-s, t-s, s-t)');
+        if (ts) {
             if (!el.getAttribute('aria-label')) {
-                const raw = (st.textContent || '').replace(/\s+/g, ' ').trim();
+                const raw = (ts.textContent || '').replace(/\s+/g, ' ').trim();
                 if (raw) el.setAttribute('aria-label', raw);
             }
         }
         tpl.replaceWith(tpl.content);
-        const t = el.querySelector(':scope > t');
-        if (t) t.setAttribute('aria-hidden', 'true');
-
+        const tt = el.querySelector(':scope > :is(dx-t, t-t, t)');
+        if (tt) tt.setAttribute('aria-hidden', 'true');
         return true;
     }
     return false;
@@ -170,9 +320,11 @@ export function observeTypewriter(el) {
         unpackTemplate(targetEl);
         targetEl.classList.add(DX_ANIM.TYPING);
     });
-    queueIdleUnpack(el, (targetEl) => {
-        prepareTemplateContent(targetEl);
-    });
+    if (el.querySelector(':scope > template')) {
+        queueIdleUnpack(el, (targetEl) => {
+            prepareTemplateContent(targetEl);
+        });
+    }
 }
 
 // ─── Mount guard: only triggers on correct animation name ────────────────────
@@ -209,6 +361,7 @@ export function ensureElementsUpToTarget(target) {
 export function cleanupTypedDOM(typeEl) {
     if (!typeEl || typeEl._cleanedUp) return;
     typeEl._cleanedUp = true;
+    typeEl._tLayer = null;
 
     const doc = typeEl.ownerDocument || (typeof document !== 'undefined' ? document : null);
     if (!doc) return;
@@ -217,14 +370,14 @@ export function cleanupTypedDOM(typeEl) {
     const directTpl = typeEl.querySelector(':scope > template');
     if (directTpl) directTpl.remove();
 
-    // 2. Remove <t> layer completely so that all <w>, <i>, etc. fly away from DOM, leaving only <s-t>
-    const tLayer = typeEl.querySelector(':scope > t, t');
+    // 2. Remove <dx-t> / <t-t> layer completely, leaving only <dx-s>
+    const tLayer = typeEl.querySelector(':scope > :is(dx-t, t-t), :is(dx-t, t-t)');
     if (tLayer) {
         tLayer.remove();
     }
 
-    // 3. Guarantee that all child meters inside <s-t> are marked static and have their static HTML populated
-    const stMeters = typeEl.querySelectorAll ? typeEl.querySelectorAll('s-t dx-odometer, s-t ui-odometer, s-t dx-number, s-t ui-number') : [];
+    // 3. Guarantee that all child meters inside static layer are marked static
+    const stMeters = typeEl.querySelectorAll ? typeEl.querySelectorAll(':is(dx-s, t-s) :is(dx-odometer, ui-odometer, dx-number, ui-number)') : [];
     for (let i = 0; i < stMeters.length; i++) {
         const m = stMeters[i];
         if (typeof m.makeStatic === 'function') m.makeStatic();
@@ -236,7 +389,7 @@ export function cleanupTypedDOM(typeEl) {
     typeEl.removeAttribute('aria-label');
 }
 
-// ─── onTypewriterEnd — called when last <i> finishes animating or odometer completes ───
+// ─── onTypewriterEnd — called when last <dx-c> finishes animating or odometer completes ───
 export function onTypewriterEnd(cEl, event) {
     if (event) {
         event.stopPropagation();
@@ -249,7 +402,10 @@ export function onTypewriterEnd(cEl, event) {
     // Find parent: support both dx-* tags and legacy class-based selectors
     const parent = cEl.closest('dx-type-sda, dx-type, .type-sda, .type, .TYPE-, ui-type, ui-type-sda');
     if (parent) {
-        if (parent.classList.contains(DX_ANIM.TYPED)) return false;
+        if (parent.classList.contains(DX_ANIM.TYPED)) {
+            if (!parent._cleanedUp) cleanupTypedDOM(parent);
+            return false;
+        }
         if (parent.querySelector(':scope > template')) return false;
 
         const isEmbed = cEl.tagName === 'DX-ODOMETER' || cEl.tagName === 'UI-ODOMETER' ||
@@ -257,9 +413,9 @@ export function onTypewriterEnd(cEl, event) {
 
         let lastC = parent._lastC;
         if (!lastC) {
-            lastC = parent.querySelector('t [data-last="true"], t .last-char, [data-last="true"], .last-char');
+            lastC = parent.querySelector(':is(dx-t, t-t) [data-last="true"], :is(dx-t, t-t) .last-char, [data-last="true"], .last-char');
             if (!lastC) {
-                const allC = parent.querySelectorAll('t i:not(.c-ui-num), i:not(.c-ui-num)');
+                const allC = parent.querySelectorAll(':is(dx-t, t-t) :is(dx-c, t-c):not(.c-ui-num), :is(dx-c, t-c):not(.c-ui-num)');
                 lastC = allC.length ? allC[allC.length - 1] : null;
             }
             if (typeof document === 'undefined' || document.readyState !== 'loading') {
@@ -278,8 +434,8 @@ export function onTypewriterEnd(cEl, event) {
             cEl._animDone = true;
         }
 
-        // Query all embedded meters in parent active <t> layer
-        const tLayer = parent.querySelector(':scope > t, t') || parent;
+        // Query all embedded meters in parent active <dx-t> layer
+        const tLayer = parent.querySelector(':scope > dx-t, dx-t') || parent;
         const embeds = Array.from(tLayer.querySelectorAll('dx-odometer, ui-odometer, dx-number, ui-number'));
         const allEmbedsDone = embeds.length === 0 || embeds.every(e => e._animDone || e.isStatic || e.classList.contains('data-static'));
         const charDone = !lastC || !!parent._charDone;

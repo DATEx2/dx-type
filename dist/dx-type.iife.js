@@ -33,11 +33,15 @@ var DxType = (() => {
     DxTypeReady: () => DxTypeReady,
     DxTypeSda: () => DxTypeSda,
     DxTyping: () => DxTyping,
+    HEX_LUT: () => HEX_LUT,
     bootstrapTypewriterObserver: () => bootstrapTypewriterObserver,
+    buildTypingLayer: () => buildTypingLayer,
     cleanupTypedDOM: () => cleanupTypedDOM,
     ensureElementsUpToTarget: () => ensureElementsUpToTarget,
+    expandOdometerDrums: () => expandOdometerDrums,
     finishReveal: () => finishReveal,
     formatNumber: () => formatNumber,
+    generateDataO: () => generateDataO,
     generateRibbonHtml: () => generateRibbonHtml,
     getIO: () => getIO,
     getSdaGaps: () => getSdaGaps,
@@ -288,7 +292,7 @@ var DxType = (() => {
       }
       const tpl = this.querySelector(":scope > template");
       if (tpl && tpl.content) {
-        const st = this.querySelector(":scope > s-t");
+        const st = this.querySelector(":scope > :is(dx-s, t-s, s-t)");
         if (st) st.remove();
         tpl.replaceWith(tpl.content);
         this.classList.add(DX_ANIM.TYPING);
@@ -552,8 +556,8 @@ var DxType = (() => {
         const totalItems = drumValues.length;
         const finalIndex = totalItems - 1;
         const finalPosPercent = totalItems > 1 ? -(finalIndex * 100) : 0;
-        const seqStr = drumValues.map((v) => v === " " ? " " : v).join("&#10;");
-        digitsHtml += `<d data-seq="${seqStr}" style="--p:${finalPosPercent}%;--r:${digitR}">${char}</d>`;
+        const seqStr = drumValues.map((v) => v === " " ? " " : v).join("");
+        digitsHtml += `<dx-d data-seq="${seqStr}" style="--p:${finalPosPercent}%">${char}</dx-d>`;
       } else {
         digitsHtml += `<span class="ui-radix">${char}</span>`;
       }
@@ -566,34 +570,178 @@ var DxType = (() => {
     const sfxHtml = suffixText ? `<span class="ui-sfx">${suffixSpace}${suffixText}</span>` : "";
     return `${pfxHtml}<b>${digitsHtml}</b>${sfxHtml}`;
   }
+  function generateDataO(numericValue, type = "int", comma = ",", prefix = "", suffix = "", startValue = null) {
+    const html = generateRibbonHtml(numericValue, type, comma, prefix, suffix, startValue);
+    const seqs = [];
+    const re = /data-seq="([^"]*)"/g;
+    let m;
+    while ((m = re.exec(html)) !== null) {
+      seqs.push(m[1]);
+    }
+    return seqs.join(",");
+  }
+  function expandOdometerDrums(root) {
+    if (!root) return;
+    const digits = root.querySelectorAll ? root.querySelectorAll("dx-d[data-seq]") : [];
+    for (let i = 0; i < digits.length; i++) {
+      const d = digits[i];
+      const seq = d.getAttribute("data-seq");
+      if (seq && !seq.includes("\n") && seq.length > 1) {
+        d.setAttribute("data-seq", [...seq].join("\n"));
+      }
+      if (seq && d.style && typeof d.style.getPropertyValue === "function" && !d.style.getPropertyValue("--p")) {
+        const totalItems = seq.includes("\n") ? seq.split("\n").length : seq.length;
+        const finalPosPercent = totalItems > 1 ? -((totalItems - 1) * 100) : 0;
+        d.style.setProperty("--p", `${finalPosPercent}%`);
+      }
+    }
+  }
   if (rootWin2) {
-    Object.assign(rootWin2, { DxMeter, UiMeter: DxMeter, uiNum, generateRibbonHtml });
+    Object.assign(rootWin2, { DxMeter, UiMeter: DxMeter, uiNum, generateRibbonHtml, generateDataO, expandOdometerDrums });
   }
 
   // src/client/base/dx-typing.js
+  var HEX_LUT = new Uint8Array(128);
+  for (let i = 0; i < 10; i++) HEX_LUT[48 + i] = i;
+  for (let i = 0; i < 6; i++) HEX_LUT[65 + i] = 10 + i;
+  for (let i = 0; i < 6; i++) HEX_LUT[97 + i] = 10 + i;
   function getTypewriterObserver(win) {
     return getIO(win);
+  }
+  function buildTypingLayer(ts, delay, offset, speed) {
+    let tHtml = "";
+    let charIdx = 0;
+    function walk(el2) {
+      const wAttr = el2.getAttribute("w");
+      if (!wAttr) return;
+      let wi = 0;
+      for (const child of el2.childNodes) {
+        if (child.nodeType === 3) {
+          const chars = [...child.data];
+          let ci = 0;
+          while (ci < chars.length) {
+            if (chars[ci] === " " || chars[ci] === "\n" || chars[ci] === "	") {
+              tHtml += chars[ci];
+              ci++;
+              continue;
+            }
+            let hyphen = false;
+            if (wi < wAttr.length && wAttr[wi] === "-") {
+              hyphen = true;
+              wi++;
+            }
+            let extended = false;
+            if (wi < wAttr.length && wAttr[wi] === "+") {
+              extended = true;
+              wi++;
+            }
+            let len;
+            if (extended) {
+              len = HEX_LUT[wAttr.charCodeAt(wi)] << 4 | HEX_LUT[wAttr.charCodeAt(wi + 1)];
+              wi += 2;
+            } else {
+              len = HEX_LUT[wAttr.charCodeAt(wi)];
+              wi++;
+            }
+            const wClass = hyphen ? ' class="word"' : "";
+            tHtml += `<dx-w${wClass}>`;
+            for (let c = 0; c < len && ci < chars.length; c++, ci++) {
+              const ch = chars[ci];
+              const d = Math.round(delay + (offset + charIdx++) * speed);
+              const cls = ch === "\xB7" || ch === "\u2022" ? ' class="bullet-dot"' : "";
+              tHtml += `<dx-c${cls} style="animation-delay:${d}ms">${ch}</dx-c>`;
+            }
+            tHtml += "</dx-w>";
+          }
+        } else if (child.nodeType === 1) {
+          if (wi < wAttr.length) {
+            const tok = wAttr[wi++];
+            if (tok === "*") {
+              const d = Math.round(delay + (offset + charIdx++) * speed);
+              tHtml += `<dx-w><dx-c class="c-ui-num" style="animation-delay:${d}ms">${child.outerHTML}</dx-c></dx-w>`;
+            } else if (tok === " ") {
+              const tag = child.tagName.toLowerCase();
+              let attrs = "";
+              for (let a = 0; a < child.attributes.length; a++) {
+                const at = child.attributes[a];
+                if (at.name !== "w") attrs += ` ${at.name}="${at.value}"`;
+              }
+              tHtml += `<${tag}${attrs}>`;
+              walk(child);
+              tHtml += `</${tag}>`;
+            }
+          }
+        }
+      }
+    }
+    walk(ts);
+    return { tHtml, totalChars: charIdx };
   }
   function prepareTemplateContent(el2) {
     if (!el2) return false;
     if (el2.classList && el2.classList.contains(DX_ANIM.TYPED)) return false;
+    const ts = el2.querySelector(":scope > dx-s[w]");
+    if (ts && !el2.querySelector(":scope > dx-t")) {
+      const style = el2.getAttribute("style") || "";
+      const dMatch = style.match(/--d:([\d.]+)/);
+      const bMatch = style.match(/--b:([\d.]+)/);
+      const uMatch = style.match(/--u:([\d.]+)/);
+      const delay = dMatch ? parseFloat(dMatch[1]) : 0;
+      const offset = bMatch ? parseFloat(bMatch[1]) : 0;
+      const speed = uMatch ? parseFloat(uMatch[1]) : 40;
+      const charDur = Math.round(speed * 3.5);
+      const { tHtml, totalChars } = buildTypingLayer(ts, delay, offset, speed);
+      if (tHtml) {
+        const doc = el2.ownerDocument || (typeof document !== "undefined" ? document : null);
+        if (doc) {
+          const tLayer2 = doc.createElement("dx-t");
+          tLayer2.setAttribute("aria-hidden", "true");
+          tLayer2.setAttribute("style", `animation-duration:${charDur}ms`);
+          tLayer2.innerHTML = tHtml;
+          const allTC = tLayer2.querySelectorAll("dx-c");
+          if (allTC.length > 0) {
+            const lastTC = allTC[allTC.length - 1];
+            lastTC.setAttribute("data-last", "true");
+            lastTC.classList.add("last-char");
+          }
+          const odometers = tLayer2.querySelectorAll("dx-odometer, ui-odometer");
+          for (let i = 0; i < odometers.length; i++) {
+            const odo = odometers[i];
+            odo.classList.remove("data-static");
+            if (!odo.querySelector("b")) {
+              const val = odo.getAttribute("percent") || odo.getAttribute("value") || odo.textContent.trim();
+              const numVal = parseFloat(val) || 0;
+              const type = odo.getAttribute("type") || "int";
+              const comma = odo.getAttribute("comma") || ",";
+              const prefix = odo.getAttribute("prefix") || "";
+              const suffix = odo.getAttribute("suffix") || "";
+              const start = odo.getAttribute("start") || null;
+              odo.innerHTML = generateRibbonHtml(numVal, type, comma, prefix, suffix, start);
+            }
+            expandOdometerDrums(odo);
+          }
+          el2.appendChild(tLayer2);
+        }
+      }
+      return true;
+    }
     const tpl = el2.querySelector(":scope > template");
     if (!tpl || !tpl.content) return false;
     if (tpl._prepared) return true;
-    let tLayer = tpl.content.querySelector("t");
+    let tLayer = tpl.content.querySelector(":is(dx-t, t-t, t)");
     if (!tLayer) {
-      const st = el2.querySelector(":scope > s-t");
-      if (st) {
+      const stLegacy = el2.querySelector(":scope > :is(dx-s, t-s, s-t)");
+      if (stLegacy) {
         const doc = el2.ownerDocument || (typeof document !== "undefined" ? document : null);
         if (doc) {
-          tLayer = doc.createElement("t");
+          tLayer = doc.createElement("dx-t");
           tLayer.setAttribute("aria-hidden", "true");
           const style = el2.getAttribute("style") || "";
           const uMatch = style.match(/--u:([\d.]+)/);
           const speed = uMatch ? parseFloat(uMatch[1]) : 40;
           const charDur = Math.round(speed * 3.5);
           tLayer.setAttribute("style", `animation-duration:${charDur}ms`);
-          tLayer.innerHTML = st.innerHTML;
+          tLayer.innerHTML = stLegacy.innerHTML;
           tpl.content.appendChild(tLayer);
         }
       }
@@ -614,37 +762,35 @@ var DxType = (() => {
           if (node.nodeType === 3) {
             charIdx += (node.textContent || "").length;
           } else if (node.nodeType === 1) {
-            const w = node;
-            if (w.hasAttribute("data-ready")) {
-              charIdx += w.querySelectorAll("i").length;
+            const tw = node;
+            if (tw.hasAttribute("data-ready")) {
+              charIdx += tw.querySelectorAll(":is(dx-c, t-c, i)").length;
               continue;
             }
-            const cUiNum = w.querySelector("i.c-ui-num");
+            const cUiNum = tw.querySelector(":is(dx-c, t-c, i).c-ui-num");
             if (cUiNum) {
               const odo = cUiNum.querySelector("dx-odometer, ui-odometer");
               const exactDelay = Math.round(delay + (offset + charIdx) * speed);
               charIdx += 1;
               cUiNum.style.animationDelay = `${exactDelay}ms`;
-              if (odo) {
-                odo.style.setProperty("--d", exactDelay);
-              }
-            } else if (!w.querySelector("i")) {
-              const text = w.textContent || "";
+              if (odo) odo.style.setProperty("--d", exactDelay);
+            } else if (!tw.querySelector(":is(dx-c, t-c, i)")) {
+              const text = tw.textContent || "";
               if (text) {
-                const chars = text.match(/&[a-z0-9]+;|./gu) || [];
+                const chars = [...text];
                 let inner = "";
                 for (let j = 0; j < chars.length; j++) {
                   const ch = chars[j];
                   const exactDelay = Math.round(delay + (offset + charIdx++) * speed);
                   const cClass = ch === "\xB7" || ch === "\u2022" ? ' class="bullet-dot"' : "";
-                  inner += `<i${cClass} style="animation-delay:${exactDelay}ms">${ch}</i>`;
+                  inner += `<dx-c${cClass} style="animation-delay:${exactDelay}ms">${ch}</dx-c>`;
                 }
-                w.innerHTML = inner;
+                tw.innerHTML = inner;
               }
             } else {
-              charIdx += w.querySelectorAll("i").length;
+              charIdx += tw.querySelectorAll(":is(dx-c, t-c, i)").length;
             }
-            w.setAttribute("data-ready", "true");
+            tw.setAttribute("data-ready", "true");
           }
         }
       }
@@ -662,14 +808,16 @@ var DxType = (() => {
           const start = odo.getAttribute("start") || null;
           odo.innerHTML = generateRibbonHtml(numVal, type, comma, prefix, suffix, start);
         }
+        expandOdometerDrums(odo);
       }
-      const allI = tLayer.querySelectorAll("i");
-      if (allI.length > 0) {
-        const lastI = allI[allI.length - 1];
-        lastI.setAttribute("data-last", "true");
-        lastI.classList.add("last-char");
+      const allTC = tLayer.querySelectorAll(":is(dx-c, t-c, i)");
+      if (allTC.length > 0) {
+        const lastTC = allTC[allTC.length - 1];
+        lastTC.setAttribute("data-last", "true");
+        lastTC.classList.add("last-char");
       }
     }
+    tpl._prepared = true;
     return true;
   }
   function unpackTemplate(el2) {
@@ -679,20 +827,33 @@ var DxType = (() => {
       el2.classList.add(DX_ANIM.TYPED);
       return false;
     }
+    const tsWithW = el2.querySelector(":scope > :is(dx-s, t-s, s-t)[w]");
+    if (tsWithW && !el2.querySelector(":scope > :is(dx-t, t-t, t)")) {
+      prepareTemplateContent(el2);
+      if (!el2.getAttribute("role")) el2.setAttribute("role", "text");
+      const ts = el2.querySelector(":scope > :is(dx-s, t-s, s-t)");
+      if (ts && !el2.getAttribute("aria-label")) {
+        const raw = (ts.textContent || "").replace(/\s+/g, " ").trim();
+        if (raw) el2.setAttribute("aria-label", raw);
+      }
+      const tt = el2.querySelector(":scope > :is(dx-t, t-t, t)");
+      if (tt) tt.setAttribute("aria-hidden", "true");
+      return true;
+    }
     const tpl = el2.querySelector(":scope > template");
     if (tpl && tpl.content) {
       prepareTemplateContent(el2);
       if (!el2.getAttribute("role")) el2.setAttribute("role", "text");
-      const st = el2.querySelector(":scope > s-t");
-      if (st) {
+      const ts = el2.querySelector(":scope > :is(dx-s, t-s, s-t)");
+      if (ts) {
         if (!el2.getAttribute("aria-label")) {
-          const raw = (st.textContent || "").replace(/\s+/g, " ").trim();
+          const raw = (ts.textContent || "").replace(/\s+/g, " ").trim();
           if (raw) el2.setAttribute("aria-label", raw);
         }
       }
       tpl.replaceWith(tpl.content);
-      const t = el2.querySelector(":scope > t");
-      if (t) t.setAttribute("aria-hidden", "true");
+      const tt = el2.querySelector(":scope > :is(dx-t, t-t, t)");
+      if (tt) tt.setAttribute("aria-hidden", "true");
       return true;
     }
     return false;
@@ -714,9 +875,11 @@ var DxType = (() => {
       unpackTemplate(targetEl);
       targetEl.classList.add(DX_ANIM.TYPING);
     });
-    queueIdleUnpack(el2, (targetEl) => {
-      prepareTemplateContent(targetEl);
-    });
+    if (el2.querySelector(":scope > template")) {
+      queueIdleUnpack(el2, (targetEl) => {
+        prepareTemplateContent(targetEl);
+      });
+    }
   }
   function mountTypewriter(el2, e) {
     if (e && e.animationName && e.animationName !== DX_ANIM.KF_TYPE_SDA) return;
@@ -740,15 +903,16 @@ var DxType = (() => {
   function cleanupTypedDOM(typeEl) {
     if (!typeEl || typeEl._cleanedUp) return;
     typeEl._cleanedUp = true;
+    typeEl._tLayer = null;
     const doc = typeEl.ownerDocument || (typeof document !== "undefined" ? document : null);
     if (!doc) return;
     const directTpl = typeEl.querySelector(":scope > template");
     if (directTpl) directTpl.remove();
-    const tLayer = typeEl.querySelector(":scope > t, t");
+    const tLayer = typeEl.querySelector(":scope > :is(dx-t, t-t), :is(dx-t, t-t)");
     if (tLayer) {
       tLayer.remove();
     }
-    const stMeters = typeEl.querySelectorAll ? typeEl.querySelectorAll("s-t dx-odometer, s-t ui-odometer, s-t dx-number, s-t ui-number") : [];
+    const stMeters = typeEl.querySelectorAll ? typeEl.querySelectorAll(":is(dx-s, t-s) :is(dx-odometer, ui-odometer, dx-number, ui-number)") : [];
     for (let i = 0; i < stMeters.length; i++) {
       const m = stMeters[i];
       if (typeof m.makeStatic === "function") m.makeStatic();
@@ -768,14 +932,17 @@ var DxType = (() => {
     if (!cEl) return false;
     const parent = cEl.closest("dx-type-sda, dx-type, .type-sda, .type, .TYPE-, ui-type, ui-type-sda");
     if (parent) {
-      if (parent.classList.contains(DX_ANIM.TYPED)) return false;
+      if (parent.classList.contains(DX_ANIM.TYPED)) {
+        if (!parent._cleanedUp) cleanupTypedDOM(parent);
+        return false;
+      }
       if (parent.querySelector(":scope > template")) return false;
       const isEmbed = cEl.tagName === "DX-ODOMETER" || cEl.tagName === "UI-ODOMETER" || cEl.tagName === "DX-NUMBER" || cEl.tagName === "UI-NUMBER";
       let lastC = parent._lastC;
       if (!lastC) {
-        lastC = parent.querySelector('t [data-last="true"], t .last-char, [data-last="true"], .last-char');
+        lastC = parent.querySelector(':is(dx-t, t-t) [data-last="true"], :is(dx-t, t-t) .last-char, [data-last="true"], .last-char');
         if (!lastC) {
-          const allC = parent.querySelectorAll("t i:not(.c-ui-num), i:not(.c-ui-num)");
+          const allC = parent.querySelectorAll(":is(dx-t, t-t) :is(dx-c, t-c):not(.c-ui-num), :is(dx-c, t-c):not(.c-ui-num)");
           lastC = allC.length ? allC[allC.length - 1] : null;
         }
         if (typeof document === "undefined" || document.readyState !== "loading") {
@@ -790,7 +957,7 @@ var DxType = (() => {
       if (isEmbed) {
         cEl._animDone = true;
       }
-      const tLayer = parent.querySelector(":scope > t, t") || parent;
+      const tLayer = parent.querySelector(":scope > dx-t, dx-t") || parent;
       const embeds = Array.from(tLayer.querySelectorAll("dx-odometer, ui-odometer, dx-number, ui-number"));
       const allEmbedsDone = embeds.length === 0 || embeds.every((e) => e._animDone || e.isStatic || e.classList.contains("data-static"));
       const charDone = !lastC || !!parent._charDone;
@@ -1021,9 +1188,9 @@ var DxType = (() => {
           onTypewriterEnd(target, e);
         } else {
           if (!this._lastC) {
-            this._lastC = this.querySelector('t [data-last="true"], t .last-char, [data-last="true"], .last-char');
+            this._lastC = this.querySelector('dx-t [data-last="true"], dx-t .last-char, [data-last="true"], .last-char');
             if (!this._lastC) {
-              const allC = this.querySelectorAll("i:not(.c-ui-num)");
+              const allC = this.querySelectorAll("dx-c:not(.c-ui-num)");
               this._lastC = allC.length ? allC[allC.length - 1] : null;
             }
           }
@@ -1052,9 +1219,11 @@ var DxType = (() => {
         unpackTemplate(el2);
         el2.classList.add(DX_ANIM.TYPING);
       });
-      queueIdleUnpack(this, (el2) => {
-        prepareTemplateContent(el2);
-      });
+      if (this.querySelector(":scope > template")) {
+        queueIdleUnpack(this, (el2) => {
+          prepareTemplateContent(el2);
+        });
+      }
     }
     _onAnimEnd = (e) => {
       if (e.animationName === DX_ANIM.KF_TYPE_IN) {
@@ -1064,9 +1233,9 @@ var DxType = (() => {
           onTypewriterEnd(target, e);
         } else {
           if (!this._lastC) {
-            this._lastC = this.querySelector('t [data-last="true"], t .last-char, [data-last="true"], .last-char');
+            this._lastC = this.querySelector('dx-t [data-last="true"], dx-t .last-char, [data-last="true"], .last-char');
             if (!this._lastC) {
-              const allC = this.querySelectorAll("i:not(.c-ui-num)");
+              const allC = this.querySelectorAll("dx-c:not(.c-ui-num)");
               this._lastC = allC.length ? allC[allC.length - 1] : null;
             }
           }
@@ -1240,7 +1409,7 @@ var DxType = (() => {
     }
     connectedCallback() {
       if (this._initialized) return;
-      const inST = typeof this.closest === "function" ? !!this.closest("s-t") : false;
+      const inST = typeof this.closest === "function" ? !!this.closest("dx-s") : false;
       if (inST) {
         this.makeStatic();
         this.innerHTML = this.getStaticHTML();
@@ -1267,7 +1436,7 @@ var DxType = (() => {
       if (typeof this.closest !== "function") {
         return true;
       }
-      const parentChar = this.closest("i");
+      const parentChar = this.closest("dx-c");
       const parentReveal = this.closest(REVEAL_PARENT_SEL);
       const parentActionBar = this.closest(".action-bar, .action-bar-wrapper");
       if (parentActionBar) {
@@ -1276,8 +1445,11 @@ var DxType = (() => {
           return false;
         }
         this._inViewport = true;
-        this._parentReady = true;
-        return true;
+        const isAbShown = !!this.closest(".show-action-bar") || typeof document !== "undefined" && document.body && document.body.classList.contains("show-action-bar");
+        if (isAbShown) {
+          this._parentReady = true;
+        }
+        return Boolean(this._parentReady);
       }
       if (!parentChar && !parentReveal) {
         this._parentReady = true;
@@ -1300,11 +1472,12 @@ var DxType = (() => {
       const t = parseFloat(this.style?.getPropertyValue?.("--t") || "") || parseFloat(typeof this.closest === "function" ? this.closest('[style*="--t"]')?.style?.getPropertyValue?.("--t") : 0) || 0;
       return t > 0 ? t : 600;
     }
-    _checkAndTrigger() {
+    _checkAndTrigger(skipDelay = false) {
       const ready = this.isReadyToAnimate();
       if (!ready) return;
+      const parentActionBar = typeof this.closest === "function" ? this.closest(".action-bar, .action-bar-wrapper") : null;
       const d = parseFloat(this.style?.getPropertyValue?.("--d") || "") || parseFloat(typeof this.closest === "function" ? this.closest('[style*="--d"]')?.style?.getPropertyValue?.("--d") : 0) || 0;
-      const delay = d > 0 ? d : typeof this.closest === "function" && this.closest(REVEAL_PARENT_SEL) ? 100 : 0;
+      const delay = skipDelay || parentActionBar ? 0 : d > 0 ? d : typeof this.closest === "function" && this.closest(REVEAL_PARENT_SEL) ? 100 : 0;
       if (this._pendingVal) {
         const { targetValue, duration } = this._pendingVal;
         this._pendingVal = null;
@@ -1339,12 +1512,12 @@ var DxType = (() => {
         clearTimeout(this._timeoutId);
         this._timeoutId = null;
       }
-      const inST = typeof this.closest === "function" ? !!this.closest("s-t") : false;
+      const inST = typeof this.closest === "function" ? !!this.closest("dx-s") : false;
       const isStatic = this.classList && this.classList.contains("data-static") || this.isStatic || inST;
       const targetVal = this._targetValue !== void 0 && !isNaN(this._targetValue) && this._targetValue !== 0 ? this._targetValue : parseFloat(this.getAttribute("percent")) || this.getNumericValue() || 0;
       this._targetValue = targetVal;
       const hasSsr = typeof this.querySelector === "function" && Boolean(this.querySelector(".ui-num, .dx-num-wrap"));
-      const parentChar = typeof this.closest === "function" ? this.closest("i") : null;
+      const parentChar = typeof this.closest === "function" ? this.closest("dx-c") : null;
       const parentReveal = typeof this.closest === "function" ? this.closest(REVEAL_PARENT_SEL) : null;
       const parentActionBar = typeof this.closest === "function" ? this.closest(".action-bar, .action-bar-wrapper") : null;
       const hasParent = Boolean(parentChar || parentReveal || parentActionBar);
@@ -1378,6 +1551,22 @@ var DxType = (() => {
       }
       if (parentActionBar) {
         this._inViewport = true;
+        const isAbShown = parentActionBar.classList && parentActionBar.classList.contains("show-action-bar") || typeof document !== "undefined" && document.body && document.body.classList.contains("show-action-bar");
+        if (isAbShown) {
+          this._parentReady = true;
+          this._checkAndTrigger(true);
+        } else {
+          const onAbTrigger = (e) => {
+            if (!e || !e.animationName || e.animationName === "dxc-trigger" || e.animationName === "actionbar-slide-up") {
+              this._parentReady = true;
+              this._checkAndTrigger(true);
+            }
+          };
+          this.addEventListener("animationstart", onAbTrigger, { once: true });
+          parentActionBar.addEventListener("animationstart", onAbTrigger, { once: true });
+          parentActionBar.addEventListener("animationend", onAbTrigger, { once: true });
+          parentActionBar.addEventListener("transitionend", onAbTrigger, { once: true });
+        }
       } else {
         observeIO(this, () => {
           this._inViewport = true;
@@ -1716,10 +1905,38 @@ var DxType = (() => {
       this._digitCount = 0;
       this._digitsDone = 0;
     }
+    expandDrums() {
+      expandOdometerDrums(this);
+    }
+    unpackDataO(dataO) {
+      if (!dataO) return;
+      const drums = dataO.split(",");
+      let digitsHtml = "";
+      for (let i = 0; i < drums.length; i++) {
+        const seq = drums[i];
+        const lastChar = seq.slice(-1) || "0";
+        const finalPos = seq.length > 1 ? -((seq.length - 1) * 100) : 0;
+        const expandedSeq = [...seq].join("\n");
+        digitsHtml += `<dx-d data-seq="${expandedSeq}" style="--p:${finalPos}%">${lastChar}</dx-d>`;
+      }
+      let b = this.querySelector("b");
+      if (!b) {
+        b = document.createElement("b");
+        const sfx = this.querySelector(".ui-sfx");
+        if (sfx) this.insertBefore(b, sfx);
+        else this.appendChild(b);
+      }
+      b.innerHTML = digitsHtml;
+    }
     connectedCallback() {
+      const dataO = this.getAttribute("data-o");
+      if (dataO && !this.querySelector("dx-d") && !this.closest("dx-s, t-s") && !this.classList.contains("data-static")) {
+        this.unpackDataO(dataO);
+      }
+      expandOdometerDrums(this);
       if (this._initialized) return;
       this._initialized = true;
-      if (this.closest("s-t")) {
+      if (this.closest("dx-s, t-s")) {
         this.classList.add("data-static");
         return;
       }
@@ -1732,7 +1949,8 @@ var DxType = (() => {
       if (twEmbed) {
         const checkEmbedReady = () => {
           if (!this.isConnected || this._animDone) return;
-          const dCount = this.querySelectorAll("d[data-seq]").length;
+          expandOdometerDrums(this);
+          const dCount = this.querySelectorAll("dx-d[data-seq]").length;
           const spanCount = this.querySelectorAll(".odometer-ribbon-inner").length;
           if (dCount === 0 && spanCount === 0 && !this.closest("template")) {
             this._animDone = true;
@@ -1754,7 +1972,8 @@ var DxType = (() => {
       } else {
         const setupStandalone = () => {
           if (!this.isConnected || this._animDone || this.classList.contains("data-static")) return;
-          const digits = this.querySelectorAll("d[data-seq]");
+          expandOdometerDrums(this);
+          const digits = this.querySelectorAll("dx-d[data-seq]");
           this._digitCount = digits.length;
           if (this._digitCount === 0) {
             if (document.readyState === "loading") {
@@ -1788,10 +2007,10 @@ var DxType = (() => {
     _onAnimEnd = (e) => {
       if (this._animDone) return;
       const target = e.target;
-      if (!target || target.tagName !== "D" && !target.classList?.contains("odometer-ribbon-inner")) return;
+      if (!target || target.tagName !== "DX-D" && !target.classList?.contains("odometer-ribbon-inner")) return;
       e.stopPropagation();
       if (!this._digitCount) {
-        const dCount = this.querySelectorAll("d[data-seq]").length;
+        const dCount = this.querySelectorAll("dx-d[data-seq]").length;
         const spanCount = this.querySelectorAll(".odometer-ribbon-inner").length;
         this._digitCount = dCount || spanCount || 1;
       }
@@ -2061,7 +2280,7 @@ var DxType = (() => {
       const targetVal = this._targetValue !== void 0 && !isNaN(this._targetValue) ? this._targetValue : this.getNumericValue();
       const formattedFull = this.formatValue(targetVal);
       let wrap = this.querySelector(".dx-num-wrap");
-      let st = this.querySelector("s-t");
+      let st = this.querySelector("dx-s");
       if (!wrap) {
         const hasB = targetVal >= 1e9;
         const hasM = targetVal >= 1e6;
@@ -2075,7 +2294,7 @@ var DxType = (() => {
         const kHtml = `<span class="dx-k"${hasK ? "" : ' style="display: none;"'}></span>`;
         const uHtml = `<span class="dx-u"></span>`;
         const decHtml = `<span class="dx-dec"${hasDec ? "" : ' style="display: none;"'}>${cfg.comma || ","}</span>`;
-        this.innerHTML = `<s-t>${formattedFull}</s-t><span class="dx-num-wrap">${pfxHtml}${bHtml}${mHtml}${kHtml}${uHtml}${decHtml}${sfxHtml}</span>`;
+        this.innerHTML = `<dx-s>${formattedFull}</dx-s><span class="dx-num-wrap">${pfxHtml}${bHtml}${mHtml}${kHtml}${uHtml}${decHtml}${sfxHtml}</span>`;
       } else {
         if (st && st.textContent !== formattedFull) {
           st.textContent = formattedFull;
@@ -2099,7 +2318,7 @@ var DxType = (() => {
       }
       this._cachedCfg = typeof this.getFormatConfig === "function" ? this.getFormatConfig() : {};
     }
-    _updateCounterVars(currentVal) {
+    _updateCounterVars(currentVal, isFinal = false) {
       if (!this._elDec && !this._elU) {
         this._cacheDOMElements();
       }
@@ -2113,27 +2332,45 @@ var DxType = (() => {
       if (this._elB) {
         const bStr = hasB ? String(c.b) : "";
         if (this._elB.textContent !== bStr) this._elB.textContent = bStr;
-        if (this._elB.style) this._elB.style.setProperty("--dxc-b", bStr || "0");
       }
       if (this._elM) {
         const mStr = hasM ? hasB ? String(c.m).padStart(3, "0") : String(c.m) : "";
         if (this._elM.textContent !== mStr) this._elM.textContent = mStr;
-        if (this._elM.style) this._elM.style.setProperty("--dxc-m", mStr || "0");
       }
       if (this._elK) {
         const kStr = hasK ? hasM ? String(c.k).padStart(3, "0") : String(c.k) : "";
         if (this._elK.textContent !== kStr) this._elK.textContent = kStr;
-        if (this._elK.style) this._elK.style.setProperty("--dxc-k", kStr || "0");
       }
       if (this._elU) {
         const uStr = hasK ? String(c.u).padStart(3, "0") : String(c.u);
         if (this._elU.textContent !== uStr) this._elU.textContent = uStr;
-        if (this._elU.style) this._elU.style.setProperty("--dxc-u", uStr || "0");
       }
       if (this._elDec) {
         const decStr = hasDec ? `${radix}${String(c.dec).padStart(2, "0")}` : "";
         if (this._elDec.textContent !== decStr) this._elDec.textContent = decStr;
-        if (this._elDec.style) this._elDec.style.setProperty("--dxc-dec", String(c.dec));
+      }
+      if (hasB !== this._lastHasB) {
+        if (this._elB) this._elB.style.display = hasB ? "inline" : "none";
+        this._lastHasB = hasB;
+      }
+      if (hasM !== this._lastHasM) {
+        if (this._elM) this._elM.style.display = hasM ? "inline" : "none";
+        this._lastHasM = hasM;
+      }
+      if (hasK !== this._lastHasK) {
+        if (this._elK) this._elK.style.display = hasK ? "inline" : "none";
+        this._lastHasK = hasK;
+      }
+      if (hasDec !== this._lastHasDec) {
+        if (this._elDec) this._elDec.style.display = hasDec ? "inline" : "none";
+        this._lastHasDec = hasDec;
+      }
+      if (isFinal || _DxCounter.supportsHoudini) {
+        if (this._elB?.style) this._elB.style.setProperty("--dxc-b", hasB ? String(c.b) : "0");
+        if (this._elM?.style) this._elM.style.setProperty("--dxc-m", hasM ? String(c.m) : "0");
+        if (this._elK?.style) this._elK.style.setProperty("--dxc-k", hasK ? String(c.k) : "0");
+        if (this._elU?.style) this._elU.style.setProperty("--dxc-u", String(c.u));
+        if (this._elDec?.style) this._elDec.style.setProperty("--dxc-dec", String(c.dec));
       }
       if (this.style && typeof this.style.setProperty === "function") {
         if (c.b !== this._lastB) {
@@ -2157,13 +2394,6 @@ var DxType = (() => {
           this._lastDec = c.dec;
         }
       }
-      const setDisp = (el2, v) => {
-        if (el2 && el2.style.display !== v) el2.style.display = v;
-      };
-      setDisp(this._elB, hasB ? "inline" : "none");
-      setDisp(this._elM, hasM ? "inline" : "none");
-      setDisp(this._elK, hasK ? "inline" : "none");
-      setDisp(this._elDec, hasDec ? "inline" : "none");
     }
     _stepAnimation(now) {
       if (this._animStartTime === null || this._animStartTime === void 0) {
@@ -2178,14 +2408,14 @@ var DxType = (() => {
         this.setAttribute("percent", this._value);
         this.makeStatic();
         this.classList.remove("ui-number-running");
-        this._updateCounterVars(targetValue);
+        this._updateCounterVars(targetValue, true);
         this.setAccessibility(targetValue);
         unregisterRAF(this);
       } else {
         const progress = elapsed / duration;
         const easeProgress = progress * (2 - progress);
         this._value = startValue + (targetValue - startValue) * easeProgress;
-        this._updateCounterVars(this._value);
+        this._updateCounterVars(this._value, false);
       }
     }
     animateTo(targetValue, duration) {
@@ -2195,17 +2425,21 @@ var DxType = (() => {
       this._animDuration = duration;
       this._animStartTime = null;
       this._lastTickTime = null;
+      this._lastHasB = null;
+      this._lastHasM = null;
+      this._lastHasK = null;
+      this._lastHasDec = null;
       this.classList.add("ui-number-running");
-      this._updateCounterVars(this._animStartValue);
+      this._updateCounterVars(this._animStartValue, false);
       registerRAF(this);
     }
     _onAnimEnd(e) {
       if (e && e.target && !e.target.classList.contains("dx-num")) return;
       this._value = this._targetValue;
-      this._updateCounterVars(this._value);
+      this._updateCounterVars(this._value, true);
       this.classList.remove("dx-counter-running");
       this.makeStatic();
-      const st = this.querySelector("s-t");
+      const st = this.querySelector("dx-s");
       if (st) {
         st.textContent = this.formatValue(this._value);
       }
@@ -2237,7 +2471,7 @@ var DxType = (() => {
       this._pendingVal = null;
       this.setAttribute("percent", parsedValue);
       this.setAccessibility(parsedValue);
-      const st = this.querySelector("s-t");
+      const st = this.querySelector("dx-s");
       if (st) st.textContent = this.formatValue(parsedValue);
       if (_DxCounter.supportsHoudini) {
         unregisterRAF(this);
