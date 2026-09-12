@@ -1305,7 +1305,7 @@ defCustomElement("dx-type-ready", DxTypeReady);
 
 // src/client/components/dx-number.js
 var TYPE_PARENT_SEL = "dx-type-sda, dx-type, .type-sda, .type, ui-type, ui-type-sda";
-var REVEAL_PARENT_SEL2 = "dx-reveal-sda, dx-reveal, .reveal-sda, .reveal, ui-reveal-sda, ui-reveal";
+var REVEAL_PARENT_SEL = "dx-reveal-sda, dx-reveal, .reveal-sda, .reveal, ui-reveal-sda, ui-reveal";
 var DxNumber = class extends DxMeter {
   static get observedAttributes() {
     return ["prefix", "suffix", "comma", "type", "percent", "value", "duration", "start"];
@@ -1371,7 +1371,7 @@ var DxNumber = class extends DxMeter {
       return true;
     }
     const parentChar = this.closest("dx-c");
-    const parentReveal = this.closest(REVEAL_PARENT_SEL2);
+    const parentReveal = this.closest(REVEAL_PARENT_SEL);
     const parentActionBar = this.closest(".action-bar, .action-bar-wrapper");
     if (parentActionBar) {
       const isAbShowing = !!this.closest(".show-action-bar, .showing-action-bar") || typeof document !== "undefined" && document.body && (document.body.classList.contains("show-action-bar") || document.body.classList.contains("showing-action-bar"));
@@ -1411,7 +1411,7 @@ var DxNumber = class extends DxMeter {
     if (!ready) return;
     const parentActionBar = typeof this.closest === "function" ? this.closest(".action-bar, .action-bar-wrapper") : null;
     const d = parseFloat(this.style?.getPropertyValue?.("--d") || "") || parseFloat(typeof this.closest === "function" ? this.closest('[style*="--d"]')?.style?.getPropertyValue?.("--d") : 0) || 0;
-    const delay = skipDelay || parentActionBar ? 0 : d > 0 ? d : typeof this.closest === "function" && this.closest(REVEAL_PARENT_SEL2) ? 100 : 0;
+    const delay = skipDelay || parentActionBar ? 0 : d > 0 ? d : typeof this.closest === "function" && this.closest(REVEAL_PARENT_SEL) ? 100 : 0;
     if (this._pendingVal) {
       const { targetValue, duration } = this._pendingVal;
       this._pendingVal = null;
@@ -1452,7 +1452,7 @@ var DxNumber = class extends DxMeter {
     this._targetValue = targetVal;
     const hasSsr = typeof this.querySelector === "function" && Boolean(this.querySelector(".ui-num, .dx-num-wrap"));
     const parentChar = typeof this.closest === "function" ? this.closest("dx-c") : null;
-    const parentReveal = typeof this.closest === "function" ? this.closest(REVEAL_PARENT_SEL2) : null;
+    const parentReveal = typeof this.closest === "function" ? this.closest(REVEAL_PARENT_SEL) : null;
     const parentActionBar = typeof this.closest === "function" ? this.closest(".action-bar, .action-bar-wrapper") : null;
     const hasParent = Boolean(parentChar || parentReveal || parentActionBar);
     if (isStatic) {
@@ -1836,11 +1836,8 @@ var DxOdometer = class extends DxMeter {
   constructor() {
     super();
     this._animDone = false;
-    this._animStarted = false;
     this._digitCount = 0;
     this._digitsDone = 0;
-    this._twDelayId = null;
-    this._fallbackTimer = null;
   }
   expandDrums() {
     expandOdometerDrums(this);
@@ -1882,92 +1879,64 @@ var DxOdometer = class extends DxMeter {
     this.addEventListener("animationstart", (e) => {
       if (e?.stopPropagation) e.stopPropagation();
     }, { passive: true });
-    const parentChar = typeof this.closest === "function" ? this.closest(":is(dx-c, t-c, i, c)") : null;
-    const parentReveal = typeof this.closest === "function" ? this.closest(REVEAL_PARENT_SEL) : null;
-    const parentType = typeof this.closest === "function" ? this.closest(TYPE_PARENT_SEL2) : null;
-    if (parentChar) {
-      if (parentType && (parentType.classList.contains(DX_ANIM.TYPED) || parentType.classList.contains("typed") || parentType.hasAttribute("data-static"))) {
-        this._animDone = true;
-        this.makeStatic();
-      } else {
-        parentChar.addEventListener("animationstart", (e) => {
-          if (e.target === parentChar) {
-            let u = 40;
-            if (parentChar.style?.getPropertyValue("--u")) {
-              u = parseFloat(parentChar.style.getPropertyValue("--u"));
-            } else if (parentType?.style?.getPropertyValue("--u")) {
-              u = parseFloat(parentType.style.getPropertyValue("--u"));
-            } else {
-              const computedU = parseFloat(getComputedStyle(parentChar).getPropertyValue("--u"));
-              if (!isNaN(computedU) && computedU > 0) u = computedU;
-            }
-            if (isNaN(u) || u <= 0) u = 40;
-            this._twDelayId = setTimeout(() => {
-              this.startAnimation();
-            }, u * 0.35);
-          }
-        }, { once: true });
-        const charDelay = parseFloat(parentChar.style?.animationDelay) || parseFloat(this.style?.getPropertyValue("--d")) || 0;
-        this._fallbackTimer = setTimeout(() => {
-          if (!this._animStarted && !this._animDone && this.isConnected) {
-            this.startAnimation();
-          }
-        }, charDelay + 600);
-      }
-    } else if (parentReveal) {
-      if (parentReveal.classList && (parentReveal.classList.contains(DX_ANIM.REVEALED) || parentReveal.classList.contains(DX_ANIM.REVEALING) || parentReveal.classList.contains("revealed") || parentReveal.classList.contains("revealing") || parentReveal.hasAttribute && parentReveal.hasAttribute("data-static"))) {
-        this.startAnimation();
-      } else {
-        const onParentAnim = () => {
-          this.startAnimation();
-        };
-        parentReveal.addEventListener("animationstart", onParentAnim, { once: true });
-        parentReveal.addEventListener("transitionstart", onParentAnim, { once: true });
-        parentReveal.addEventListener("animationend", onParentAnim, { once: true });
-      }
-    } else {
-      const inFooter = this.closest("footer, .ins-tile--footer, #tile-footer-MNure7");
-      if (!inFooter) {
-        observeIO(this, () => {
-          const delay = parseFloat(this.style?.getPropertyValue("--d")) || parseFloat(this.getAttribute("delay")) || 0;
-          if (delay > 0) {
-            this._twDelayId = setTimeout(() => this.startAnimation(), delay);
-          } else {
-            this.startAnimation();
-          }
-        });
-      }
-    }
-  }
-  startAnimation() {
-    if (this._animStarted || this._animDone || this.classList.contains("data-static") || !this.isConnected) return;
-    this._animStarted = true;
-    if (this._fallbackTimer) {
-      clearTimeout(this._fallbackTimer);
-      this._fallbackTimer = null;
-    }
-    expandOdometerDrums(this);
-    const digits = this.querySelectorAll("dx-d[data-seq]");
-    this._digitCount = digits.length || this.querySelectorAll(".odometer-ribbon-inner").length || 1;
-    if (this._digitCount === 0) {
-      this._animDone = true;
-      this.makeStatic();
-      onTypewriterEnd(this);
-      return;
-    }
-    this.classList.add(DX_ANIM.TYPING);
-    const maxDur = 1400 + this._digitCount * 60 + 600;
-    setTimeout(() => {
-      if (!this._animDone && this.isConnected) {
-        this._animDone = true;
-        const twEmbed = this.classList.contains("tw-embed") || !!this.closest(TYPE_PARENT_SEL2);
-        if (!twEmbed) {
-          this.makeStatic();
-        } else {
+    const twEmbed = this.classList.contains("tw-embed") || !!this.closest("dx-type, dx-type-sda, .type, .type-sda, ui-type, ui-type-sda");
+    if (twEmbed) {
+      const checkEmbedReady = () => {
+        if (!this.isConnected || this._animDone) return;
+        expandOdometerDrums(this);
+        const dCount = this.querySelectorAll("dx-d[data-seq]").length;
+        const spanCount = this.querySelectorAll(".odometer-ribbon-inner").length;
+        if (dCount === 0 && spanCount === 0 && !this.closest("template")) {
+          this._animDone = true;
           onTypewriterEnd(this);
         }
+      };
+      if (document.readyState === "loading") {
+        document.addEventListener("DOMContentLoaded", checkEmbedReady, { once: true });
+      } else {
+        requestAnimationFrame(checkEmbedReady);
       }
-    }, maxDur);
+      const delay = parseFloat(this.style.getPropertyValue("--d")) || 0;
+      setTimeout(() => {
+        if (!this._animDone && this.isConnected) {
+          this._animDone = true;
+          onTypewriterEnd(this);
+        }
+      }, delay + 1200);
+    } else {
+      const setupStandalone = () => {
+        if (!this.isConnected || this._animDone || this.classList.contains("data-static")) return;
+        expandOdometerDrums(this);
+        const digits = this.querySelectorAll("dx-d[data-seq]");
+        this._digitCount = digits.length;
+        if (this._digitCount === 0) {
+          if (document.readyState === "loading") {
+            document.addEventListener("DOMContentLoaded", setupStandalone, { once: true });
+            return;
+          }
+          this.classList.add("data-static");
+          return;
+        }
+        const parentType = this.closest(TYPE_PARENT_SEL2);
+        const inFooter = this.closest("footer, .ins-tile--footer, #tile-footer-MNure7");
+        if (!parentType && !inFooter) {
+          observeIO(this, (el2) => {
+            el2.classList.add(DX_ANIM.TYPING);
+            setTimeout(() => {
+              if (!this._animDone && this.isConnected) {
+                this._animDone = true;
+                this.makeStatic();
+              }
+            }, 2500);
+          });
+        }
+      };
+      if (document.readyState === "loading") {
+        document.addEventListener("DOMContentLoaded", setupStandalone, { once: true });
+      } else {
+        requestAnimationFrame(setupStandalone);
+      }
+    }
   }
   _onAnimEnd = (e) => {
     if (this._animDone) return;
@@ -1982,7 +1951,7 @@ var DxOdometer = class extends DxMeter {
     this._digitsDone++;
     if (this._digitsDone >= this._digitCount) {
       this._animDone = true;
-      const twEmbed = this.classList.contains("tw-embed") || !!this.closest(TYPE_PARENT_SEL2);
+      const twEmbed = this.classList.contains("tw-embed") || !!this.closest("dx-type, dx-type-sda, .type, .type-sda, ui-type, ui-type-sda");
       if (!twEmbed) {
         this.makeStatic();
       } else {
@@ -1998,14 +1967,6 @@ var DxOdometer = class extends DxMeter {
   }
   disconnectedCallback() {
     this.removeEventListener("animationend", this._onAnimEnd);
-    if (this._twDelayId) {
-      clearTimeout(this._twDelayId);
-      this._twDelayId = null;
-    }
-    if (this._fallbackTimer) {
-      clearTimeout(this._fallbackTimer);
-      this._fallbackTimer = null;
-    }
   }
   /** Read-only — throws if called with a new value. */
   val(newValue) {
@@ -2119,15 +2080,14 @@ var DxCounter = class _DxCounter extends DxNumber {
   }
   _decompose(val) {
     const num = Math.abs(parseFloat(val) || 0);
-    const rounded = Math.round(num * 100) / 100;
-    const intPart = Math.floor(rounded);
-    const decPart = Math.round((rounded - intPart) * 100);
+    const intPart = Math.floor(num);
+    const decPart = Math.round((num - intPart) * 100);
     return {
       b: Math.floor(intPart / 1e9),
       m: Math.floor(intPart % 1e9 / 1e6),
       k: Math.floor(intPart % 1e6 / 1e3),
       u: Math.floor(intPart % 1e3),
-      dec: decPart === 100 ? 0 : decPart
+      dec: decPart
     };
   }
   _setupTiming(start, target, dur) {

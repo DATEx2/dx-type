@@ -109,16 +109,15 @@ export class DxCounter extends DxNumber {
 
     _decompose(val) {
         const num = Math.abs(parseFloat(val) || 0);
-        const rounded = Math.round(num * 100) / 100;
-        const intPart = Math.floor(rounded);
-        const decPart = Math.round((rounded - intPart) * 100);
+        const intPart = Math.floor(num);
+        const decPart = Math.round((num - intPart) * 100);
 
         return {
             b: Math.floor(intPart / 1e9),
             m: Math.floor((intPart % 1e9) / 1e6),
             k: Math.floor((intPart % 1e6) / 1e3),
             u: Math.floor(intPart % 1e3),
-            dec: decPart === 100 ? 0 : decPart
+            dec: decPart
         };
     }
 
