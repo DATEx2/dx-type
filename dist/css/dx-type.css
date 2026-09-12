@@ -58,6 +58,9 @@ dx-type-sda {
     pointer-events: auto !important;
   }
   &:not(.dx-typed) > dx-s {
+    opacity: 0 !important;
+    visibility: hidden !important;
+    pointer-events: none !important;
     color: transparent !important;
     -webkit-text-fill-color: transparent !important;
     text-shadow: none !important;
@@ -65,6 +68,9 @@ dx-type-sda {
     -webkit-filter: none !important;
     box-shadow: none !important;
     & * {
+      opacity: 0 !important;
+      visibility: hidden !important;
+      pointer-events: none !important;
       color: transparent !important;
       -webkit-text-fill-color: transparent !important;
       text-shadow: none !important;
@@ -106,8 +112,15 @@ dx-type-sda {
   }
   &.dx-typed {
     & > dx-s {
+      opacity: 1 !important;
+      visibility: visible !important;
       pointer-events: auto !important;
       user-select: text !important;
+      & * {
+        opacity: 1 !important;
+        visibility: visible !important;
+        pointer-events: auto !important;
+      }
     }
     & > dx-t {
       display: none !important;
@@ -278,12 +291,7 @@ dx-d::before {
   transform: translateY(0);
 }
 :is(dx-odometer.dx-typing, dx-odometer.dx-typed) dx-d::before {
-  animation: run-odometer calc((var(--odo-dur, 1400ms) - (var(--r, 0) * var(--odo-stag, 60ms))) * var(--A, 1)) cubic-bezier(0.37, 0, 0.63, 1) calc((var(--d, 0) * 1ms + var(--r, 0) * 60ms) * var(--A, 1)) both !important;
-  animation-play-state: running !important;
-}
-:is(dx-type-sda.dx-typing, dx-type-sda.dx-typed, dx-type.dx-typing, dx-type.dx-typed, .dx-type-ready) dx-odometer dx-d::before,
-dx-odometer.tw-embed dx-d::before {
-  animation: run-odometer calc(var(--odo-dur, 600ms) * var(--A, 1)) cubic-bezier(0.37, 0, 0.63, 1) calc(var(--d, 0) * 1ms * var(--A, 1)) both !important;
+  animation: run-odometer calc((var(--odo-dur, 1400ms) - (var(--r, 0) * var(--odo-stag, 60ms))) * var(--A, 1)) cubic-bezier(0.37, 0, 0.63, 1) calc((var(--r, 0) * var(--odo-stag, 60ms)) * var(--A, 1)) both !important;
   animation-play-state: running !important;
 }
 @keyframes run-odometer {

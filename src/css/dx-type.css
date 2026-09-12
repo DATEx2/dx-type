@@ -69,6 +69,9 @@ dx-type-sda {
     }
 
     &:not(.dx-typed) > dx-s {
+        opacity: 0 !important;
+        visibility: hidden !important;
+        pointer-events: none !important;
         color: transparent !important;
         -webkit-text-fill-color: transparent !important;
         text-shadow: none !important;
@@ -77,6 +80,9 @@ dx-type-sda {
         box-shadow: none !important;
 
         & * {
+            opacity: 0 !important;
+            visibility: hidden !important;
+            pointer-events: none !important;
             color: transparent !important;
             -webkit-text-fill-color: transparent !important;
             text-shadow: none !important;
@@ -122,8 +128,16 @@ dx-type-sda {
 
     &.dx-typed {
         & > dx-s {
+            opacity: 1 !important;
+            visibility: visible !important;
             pointer-events: auto !important;
             user-select: text !important;
+
+            & * {
+                opacity: 1 !important;
+                visibility: visible !important;
+                pointer-events: auto !important;
+            }
         }
 
         & > dx-t {
@@ -294,25 +308,12 @@ dx-d::before {
     transform: translateY(0);
 }
 
-/* ─── Odometer animation trigger (standalone) ────────────────────────────── */
+/* ─── Odometer animation trigger (Universal 1400ms Duration & 60ms Stagger) ── */
 :is(dx-odometer.dx-typing, dx-odometer.dx-typed) dx-d::before {
     animation: run-odometer
         calc((var(--odo-dur, 1400ms) - (var(--r, 0) * var(--odo-stag, 60ms))) * var(--A, 1))
         cubic-bezier(0.37, 0, 0.63, 1)
-        calc((var(--d, 0) * 1ms + var(--r, 0) * 60ms) * var(--A, 1))
-        both !important;
-    animation-play-state: running !important;
-}
-
-/* ─── Odometer animation trigger (embedded in typewriter) ─────────────────── */
-:is(dx-type-sda.dx-typing, dx-type-sda.dx-typed,
-    dx-type.dx-typing, dx-type.dx-typed,
-    .dx-type-ready) dx-odometer dx-d::before,
-dx-odometer.tw-embed dx-d::before {
-    animation: run-odometer
-        calc(var(--odo-dur, 600ms) * var(--A, 1))
-        cubic-bezier(0.37, 0, 0.63, 1)
-        calc(var(--d, 0) * 1ms * var(--A, 1))
+        calc((var(--r, 0) * var(--odo-stag, 60ms)) * var(--A, 1))
         both !important;
     animation-play-state: running !important;
 }
