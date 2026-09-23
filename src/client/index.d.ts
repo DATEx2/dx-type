@@ -60,6 +60,8 @@ export function ensureElementsUpToTarget(target: Element | null): void;
 export function cleanupTypedDOM(typeEl: Element | null): void;
 export function onTypewriterEnd(cEl: Element | null, event?: AnimationEvent): boolean;
 export function bootstrapTypewriterObserver(root?: Document | Element | null): void;
+export function syncSectionHeaderTyping(el: Element | null): void;
+export const SECTION_HEADER_SEL: string;
 
 export class DxTyping extends DxBase {
     readonly isTyped: boolean;

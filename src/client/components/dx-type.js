@@ -9,36 +9,19 @@ export class DxType extends DxTyping {
             if (this.querySelector(':scope > template')) {
                 this.unpackTemplate();
             }
-            this.addEventListener('animationend', this._onAnimEnd);
-        }
-    }
 
-    _onAnimEnd = (e) => {
-        if (e.animationName === DX_ANIM.KF_TYPE_IN || e.animationName === DX_ANIM.KF_TYPE_SDA) {
-            const target = e.target;
-            if (target.classList?.contains('c-ui-num')) return;
-
-            if (target.classList?.contains('last-char') || target.hasAttribute?.('last-char') || target.getAttribute?.('data-last') === 'true') {
-                onTypewriterEnd(target, e);
-            } else {
-                if (!this._lastC) {
-                    this._lastC = this.querySelector('dx-t [data-last="true"], dx-t .last-char, [data-last="true"], .last-char');
-                    if (!this._lastC) {
-                        const allC = this.querySelectorAll('dx-c:not(.c-ui-num)');
-                        this._lastC = allC.length ? allC[allC.length - 1] : null;
-                    }
-                }
-                if (target === this._lastC) {
-                    onTypewriterEnd(target, e);
-                }
+            const lastChar = this.querySelector('dx-t [data-last="true"], dx-t .last-char, [data-last="true"], .last-char');
+            if (lastChar && !lastChar._hasTwEnd) {
+                lastChar._hasTwEnd = true;
+                lastChar.addEventListener('animationend', (ev) => {
+                    onTypewriterEnd(lastChar, ev);
+                }, { once: true });
             }
-        }
-    };
 
-    disconnectedCallback() {
-        this.removeEventListener('animationend', this._onAnimEnd);
+        }
     }
 }
 
 defCustomElement('dx-type', DxType);
 defCustomElement('ui-type', DxType);
+

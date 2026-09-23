@@ -35,6 +35,9 @@ export const DX_ANIM = Object.freeze({
 let ioInstance = null;
 const ioCallbacks = new WeakMap();
 
+let ioLookaheadInstance = null;
+const ioLookaheadCallbacks = new WeakMap();
+
 let _sdaTopGap = '0%';
 let _sdaBottomGap = '-110px';
 
@@ -61,6 +64,51 @@ export function getSdaGaps() {
         sdaTopGap: winTop !== undefined ? winTop : _sdaTopGap,
         sdaBottomGap: winBottom !== undefined ? winBottom : _sdaBottomGap
     };
+}
+
+function ioLookaheadHandler(entries) {
+    for (let i = 0; i < entries.length; i++) {
+        const entry = entries[i];
+        if (entry.isIntersecting) {
+            const el = entry.target;
+            if (ioLookaheadInstance) ioLookaheadInstance.unobserve(el);
+            const cb = ioLookaheadCallbacks.get(el);
+            if (cb) {
+                ioLookaheadCallbacks.delete(el);
+                cb(el);
+            }
+        }
+    }
+}
+
+export function getLookaheadIO() {
+    if (ioLookaheadInstance) return ioLookaheadInstance;
+    const IO = rootWin?.IntersectionObserver;
+    if (typeof IO === 'function') {
+        ioLookaheadInstance = new IO(ioLookaheadHandler, {
+            root: null,
+            rootMargin: '0px 0px 500px 0px',
+            threshold: 0
+        });
+    }
+    return ioLookaheadInstance;
+}
+
+export function observeLookaheadIO(el, callback) {
+    if (!el) return;
+    const obs = getLookaheadIO();
+    if (obs) {
+        ioLookaheadCallbacks.set(el, callback);
+        obs.observe(el);
+    } else {
+        callback(el);
+    }
+}
+
+export function unobserveLookaheadIO(el) {
+    if (!el) return;
+    ioLookaheadCallbacks.delete(el);
+    if (ioLookaheadInstance) ioLookaheadInstance.unobserve(el);
 }
 
 function ioHandler(entries) {
@@ -145,9 +193,12 @@ function processNextIdle() {
 
 export function queueIdleUnpack(el, callback) {
     if (!el) return;
-    // Prevent duplicate entries
+    // Prevent duplicate entries; update callback if already queued
     for (let i = 0; i < idleQueue.length; i++) {
-        if (idleQueue[i].el === el) return;
+        if (idleQueue[i].el === el) {
+            idleQueue[i].callback = callback;
+            return;
+        }
     }
     idleQueue.push({ el, callback });
     if (!isIdleScheduled) {
@@ -161,6 +212,52 @@ export function removeFromIdleQueue(el) {
     for (let i = idleQueue.length - 1; i >= 0; i--) {
         if (idleQueue[i].el === el) {
             idleQueue.splice(i, 1);
+        }
+    }
+}
+
+// ─── Idle Cleanup Queue (1 cleanup per requestIdleCallback slot) ─────────────
+const idleCleanupQueue = [];
+let isCleanupIdleScheduled = false;
+
+function processNextIdleCleanup() {
+    if (idleCleanupQueue.length === 0) {
+        isCleanupIdleScheduled = false;
+        return;
+    }
+    const item = idleCleanupQueue.shift();
+    if (item && item.el) {
+        try {
+            item.callback(item.el);
+        } catch (e) {
+            console.error('[dx-type] Idle cleanup failed:', e);
+        }
+    }
+    if (idleCleanupQueue.length > 0) {
+        scheduleIdle(processNextIdleCleanup);
+    } else {
+        isCleanupIdleScheduled = false;
+    }
+}
+
+export function queueIdleCleanup(el, callback) {
+    if (!el) return;
+    for (let i = 0; i < idleCleanupQueue.length; i++) {
+        if (idleCleanupQueue[i].el === el) return;
+    }
+    idleCleanupQueue.push({ el, callback });
+    if (!isCleanupIdleScheduled) {
+        isCleanupIdleScheduled = true;
+        scheduleIdle(processNextIdleCleanup);
+    }
+}
+
+export function flushIdleCleanup(el) {
+    if (!el) return;
+    for (let i = idleCleanupQueue.length - 1; i >= 0; i--) {
+        if (idleCleanupQueue[i].el === el) {
+            const item = idleCleanupQueue.splice(i, 1)[0];
+            try { item.callback(item.el); } catch (e) {}
         }
     }
 }

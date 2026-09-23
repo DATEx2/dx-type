@@ -7,57 +7,67 @@
 // exports: DxTypeSda
 // used_by: src/client/index.js
 
-import { DxTyping, unpackTemplate, prepareTemplateContent, isElementHidden, onTypewriterEnd } from '../base/dx-typing.js';
+import { DxTyping, unpackTemplate, prepareTemplateContent, isElementHidden, syncSectionHeaderTyping, SECTION_HEADER_SEL } from '../base/dx-typing.js';
 import { defCustomElement } from '../base/dx-base.js';
-import { DX_ANIM, observeIO, queueIdleUnpack, removeFromIdleQueue } from '../base/dx-scheduler.js';
+import { DX_ANIM, observeIO, unobserveIO, observeLookaheadIO, unobserveLookaheadIO, queueIdleUnpack, removeFromIdleQueue } from '../base/dx-scheduler.js';
+
+const REVEAL_PARENT_SEL = 'dx-reveal-sda, dx-reveal, .reveal-sda, .reveal, ui-reveal-sda, ui-reveal';
 
 export class DxTypeSda extends DxTyping {
     connectedCallback() {
-        if (this.isTyped) return;
+        if (this.isTyped) {
+            const secHeader = this.closest?.(SECTION_HEADER_SEL);
+            if (secHeader) secHeader.classList.add(DX_ANIM.TYPED);
+            return;
+        }
         this._syncTimingAttributes();
 
-        this.addEventListener('animationend', this._onAnimEnd);
-
-        // When scrolled into view, Singleton IO unpacks template and triggers time-based typing animation
-        observeIO(this, (el) => {
-            if (isElementHidden(el)) return;
-            removeFromIdleQueue(el);
-            unpackTemplate(el);
-            el.classList.add(DX_ANIM.TYPING);
-        });
-
-        // Background Pre-warm on Idle: ONLY inside <template>.content, NEVER in live DOM!
-        if (this.querySelector(':scope > template')) {
+        // 1. Preemptive JIT Lookahead Unpack (+500px or idle queue)
+        if (this.querySelector(':scope > template') || this.querySelector(':scope > dx-s[w]')) {
+            observeLookaheadIO(this, (el) => {
+                removeFromIdleQueue(el);
+                unpackTemplate(el);
+            });
             queueIdleUnpack(this, (el) => {
                 prepareTemplateContent(el);
             });
         }
+
+        // 2. Trigger Typing Animation (When crossing -110px threshold past actionbar/footer)
+        observeIO(this, (el) => {
+            if (el.isTyped || el.classList.contains(DX_ANIM.TYPED)) return;
+            if (isElementHidden(el)) return;
+            el._inViewport = true;
+
+            const triggerTyping = () => {
+                if (el.isTyped || el.classList.contains(DX_ANIM.TYPED)) return;
+                removeFromIdleQueue(el);
+                unobserveLookaheadIO(el);
+                unpackTemplate(el); // Fast no-op if already unpacked by lookahead/idle
+                el.classList.add(DX_ANIM.TYPING);
+                syncSectionHeaderTyping(el);
+            };
+
+            const isHeader = !!el.closest?.(SECTION_HEADER_SEL);
+            const parentRev = el.closest?.(REVEAL_PARENT_SEL);
+            if (!isHeader && parentRev && !parentRev.classList.contains(DX_ANIM.REVEALED) && !parentRev.classList.contains(DX_ANIM.REVEALING)) {
+                // If parent reveal container hasn't started yet, wait for it to start revealing
+                const onParentStart = () => {
+                    parentRev.removeEventListener('animationstart', onParentStart);
+                    triggerTyping();
+                };
+                parentRev.addEventListener('animationstart', onParentStart, { once: true });
+                return;
+            }
+
+            triggerTyping();
+        });
     }
 
-    _onAnimEnd = (e) => {
-        if (e.animationName === DX_ANIM.KF_TYPE_IN) {
-            const target = e.target;
-            if (target.classList?.contains('c-ui-num')) return;
-
-            if (target.classList?.contains('last-char') || target.hasAttribute?.('last-char') || target.getAttribute?.('data-last') === 'true') {
-                onTypewriterEnd(target, e);
-            } else {
-                if (!this._lastC) {
-                    this._lastC = this.querySelector('dx-t [data-last="true"], dx-t .last-char, [data-last="true"], .last-char');
-                    if (!this._lastC) {
-                        const allC = this.querySelectorAll('dx-c:not(.c-ui-num)');
-                        this._lastC = allC.length ? allC[allC.length - 1] : null;
-                    }
-                }
-                if (this._lastC && target === this._lastC) {
-                    onTypewriterEnd(target, e);
-                }
-            }
-        }
-    };
-
     disconnectedCallback() {
-        this.removeEventListener('animationend', this._onAnimEnd);
+        unobserveIO(this);
+        unobserveLookaheadIO(this);
+        removeFromIdleQueue(this);
     }
 }
 

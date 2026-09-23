@@ -25,7 +25,7 @@ export default function testServerTokenizer() {
     const sdaTw = ssrDxType('Smart Chargers', { isSda: true, delay: 50, duration: 400 });
     assert(sdaTw.startsWith('<dx-type-sda'), 'Should generate <dx-type-sda>');
     assert(sdaTw.includes('Smart') && sdaTw.includes('Chargers') && sdaTw.includes('<dx-s'), 'Should generate search-text tag');
-    assert(!sdaTw.includes('<template>'), 'SDA should NOT pack in <template> anymore');
+    assert(sdaTw.includes('<template>'), 'SDA should pack in <template>');
 
     // 3. Tokenize with embedded <dx-number>
     const mixed = tokenize('Battery <dx-number percent="48">48</dx-number>V power');

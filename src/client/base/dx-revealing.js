@@ -1,10 +1,12 @@
 // dx-revealing.js — DATEx2 Base Class & Lifecycle for Reveal Components.
 //
-// exports: DxRevealing, finishReveal, startReveal
+// exports: DxRevealing, finishReveal, startReveal, REVEAL_CONTAINER_SEL
 // used_by: src/client/components/dx-reveal.js, src/client/components/dx-reveal-sda.js
 
 import { DxBase, rootWin } from './dx-base.js';
 import { DX_ANIM } from './dx-scheduler.js';
+
+export const REVEAL_CONTAINER_SEL = 'dx-reveal-sda, dx-reveal, .reveal-sda, .reveal, ui-reveal-sda, ui-reveal';
 
 // ─── finishReveal — called on animationend for reveal components ─────────────
 export function finishReveal(el, e) {
@@ -50,6 +52,12 @@ export class DxRevealing extends DxBase {
         return ['delay', 'd', 'duration', 't'];
     }
 
+    constructor() {
+        super();
+        this._inViewport = false;
+        this._isRevealingStarted = false;
+    }
+
     attributeChangedCallback(name, oldVal, newVal) {
         if (oldVal === newVal) return;
         this._syncTimingAttributes();
@@ -70,12 +78,80 @@ export class DxRevealing extends DxBase {
         return this.classList.contains(DX_ANIM.REVEALED);
     }
 
+    getParentReveal() {
+        return this.parentElement?.closest(REVEAL_CONTAINER_SEL) || null;
+    }
+
+    _checkAndTrigger() {
+        if (this._isRevealingStarted || this.isRevealed) return;
+        if (!this._inViewport) return;
+
+        const parentReveal = this.getParentReveal();
+        if (parentReveal && !parentReveal.classList.contains(DX_ANIM.REVEALED) && !parentReveal.isRevealed) {
+            // Parent reveal is still hidden or currently animating; wait for parent animationend!
+            return;
+        }
+
+        this._startRevealing();
+    }
+
+    _startRevealing() {
+        if (this._isRevealingStarted || this.isRevealed) return;
+        this._isRevealingStarted = true;
+        this.classList.add(DX_ANIM.REVEALING);
+        if (typeof this._triggerChildren === 'function') {
+            const delayStr = this.style.getPropertyValue('--d') || this.getAttribute('delay') || this.getAttribute('d') || '0';
+            const delayMs = Math.max(0, parseFloat(delayStr) || 0);
+            if (delayMs > 0) {
+                this._childTriggerTimer = setTimeout(() => {
+                    this._childTriggerTimer = null;
+                    if (this.isConnected && !this.isRevealed) {
+                        this._triggerChildren();
+                    }
+                }, delayMs);
+            } else {
+                this._triggerChildren();
+            }
+        }
+    }
+
+    _triggerNestedReveals() {
+        const nestedReveals = this.querySelectorAll(REVEAL_CONTAINER_SEL);
+        for (let i = 0; i < nestedReveals.length; i++) {
+            const nested = nestedReveals[i];
+            if (nested.parentElement?.closest(REVEAL_CONTAINER_SEL) === this) {
+                if (typeof nested._checkAndTrigger === 'function') {
+                    nested._checkAndTrigger();
+                } else if (nested._inViewport) {
+                    nested.classList.add(DX_ANIM.REVEALING);
+                }
+            }
+        }
+    }
+
     markRevealed() {
+        if (this._childTriggerTimer) {
+            clearTimeout(this._childTriggerTimer);
+            this._childTriggerTimer = null;
+        }
         this.classList.remove('reveal-sda', 'reveal', DX_ANIM.REVEALING);
         this.classList.add(DX_ANIM.REVEALED);
 
         if (typeof rootWin?.__datex2TriggerPendingUiNumbers === 'function') {
             rootWin.__datex2TriggerPendingUiNumbers(this);
+        }
+
+        if (typeof this._triggerChildren === 'function') {
+            this._triggerChildren();
+        }
+
+        this._triggerNestedReveals();
+    }
+
+    disconnectedCallback() {
+        if (this._childTriggerTimer) {
+            clearTimeout(this._childTriggerTimer);
+            this._childTriggerTimer = null;
         }
     }
 }
@@ -83,6 +159,6 @@ export class DxRevealing extends DxBase {
 // ─── Global Exports ──────────────────────────────────────────────────────────
 if (rootWin) {
     Object.assign(rootWin, {
-        DxRevealing, UiRevealing: DxRevealing, finishReveal, startReveal
+        DxRevealing, UiRevealing: DxRevealing, finishReveal, startReveal, REVEAL_CONTAINER_SEL
     });
 }

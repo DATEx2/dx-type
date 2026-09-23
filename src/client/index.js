@@ -4,8 +4,8 @@
 
 // Base classes & lifecycle functions
 export { DxBase, rootWin } from './base/dx-base.js';
-export { DX_ANIM, getIO, observeIO, unobserveIO, queueIdleUnpack, removeFromIdleQueue, registerRAF, unregisterRAF, onAllAnimationsEnd, setSdaGaps, getSdaGaps } from './base/dx-scheduler.js';
-export { DxTyping, unpackTemplate, prepareTemplateContent, observeTypewriter, mountTypewriter, ensureElementsUpToTarget, onTypewriterEnd, cleanupTypedDOM, bootstrapTypewriterObserver, getTypewriterObserver, buildTypingLayer, HEX_LUT } from './base/dx-typing.js';
+export { DX_ANIM, getIO, observeIO, unobserveIO, getLookaheadIO, observeLookaheadIO, unobserveLookaheadIO, queueIdleUnpack, removeFromIdleQueue, queueIdleCleanup, flushIdleCleanup, registerRAF, unregisterRAF, onAllAnimationsEnd, setSdaGaps, getSdaGaps } from './base/dx-scheduler.js';
+export { DxTyping, unpackTemplate, prepareTemplateContent, observeTypewriter, mountTypewriter, ensureElementsUpToTarget, onTypewriterEnd, cleanupTypedDOM, bootstrapTypewriterObserver, getTypewriterObserver, buildTypingLayer, HEX_LUT, syncSectionHeaderTyping, SECTION_HEADER_SEL } from './base/dx-typing.js';
 export { DxRevealing, finishReveal, startReveal } from './base/dx-revealing.js';
 export { DxMeter, uiNum, formatNumber, generateRibbonHtml, generateDataO, expandOdometerDrums } from './base/dx-meter.js';
 
@@ -18,3 +18,7 @@ export { DxTypeReady } from './components/dx-type-ready.js';
 export { DxNumber } from './components/dx-number.js';
 export { DxOdometer } from './components/dx-odometer.js';
 export { DxCounter } from './components/dx-counter.js';
+export { DxCheck } from './components/dx-check.js';
+
+// Typewriter & Meter String Utilities
+export { ssrDxType, ssrDxReveal, ssrDxOdometer, tokenize } from '../server/index.js';

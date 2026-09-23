@@ -25,9 +25,9 @@ export default function testCssContracts() {
     assert(css.includes('dx-odometer'), 'CSS should reference dx-odometer');
     assert(css.includes('inline-block'), 'Number/odometer should be inline-block');
 
-    // 3. Final state cleanup: animation: none on TYPED/REVEALED
-    assert(css.includes('.TYPED'), 'CSS should handle TYPED final state');
-    assert(css.includes('.REVEALED'), 'CSS should handle REVEALED final state');
+    // 3. Final state cleanup: animation: none on dx-typed/dx-revealed
+    assert(css.includes('.dx-typed'), 'CSS should handle dx-typed final state');
+    assert(css.includes('.dx-revealed'), 'CSS should handle dx-revealed final state');
     assert(css.includes('animation: none'), 'Final states should clear animation');
     assert(css.includes('will-change: auto'), 'Final states should clear will-change');
 
@@ -66,4 +66,9 @@ export default function testCssContracts() {
     // 9. Typing animation layer (<t-t>) MUST be hidden on .dx-typed to prevent text duplication
     assert(css.includes('.dx-typed') && css.includes('display: none !important'), 'Typing layer t-t must be display: none on .dx-typed');
     assert(!css.includes('& > dx-t {\n            position: relative') && !css.includes('& > dx-t {\r\n            position: relative'), 't-t must NEVER be position: relative on .dx-typed');
+
+    // 10. Universal 1400ms duration and 60ms stagger contract for odometers
+    assert(css.includes('var(--odo-dur, 1400ms)'), 'Odometer CSS must use universal 1400ms duration');
+    assert(!css.includes('var(--odo-dur, 600ms)'), 'Odometer CSS must NEVER use 600ms duration for odometers');
+    assert(css.includes('var(--odo-stag, 60ms)'), 'Odometer CSS must use universal 60ms stagger');
 }

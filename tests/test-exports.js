@@ -58,8 +58,8 @@ export default function testExports() {
     assert(css.includes('dx-w'), 'CSS should target t-w');
     assert(css.includes('dx-c'), 'CSS should target t-c');
     assert(css.includes('display: contents'), 'CSS should set display: contents');
-    assert(css.includes('.TYPED'), 'CSS should handle .TYPED state');
-    assert(css.includes('.REVEALED'), 'CSS should handle .REVEALED state');
+    assert(css.includes('.dx-typed'), 'CSS should handle .dx-typed state');
+    assert(css.includes('.dx-revealed'), 'CSS should handle .dx-revealed state');
 
     // 5. Verify package.json
     const pkg = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8'));

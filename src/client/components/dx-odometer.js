@@ -34,7 +34,7 @@ export class DxOdometer extends DxMeter {
         for (let i = 0; i < drums.length; i++) {
             const seq = drums[i];
             const lastChar = seq.slice(-1) || '0';
-            const finalPos = seq.length > 1 ? -((seq.length - 1) * 100) : 0;
+            const finalPos = seq.length > 1 ? -(((seq.length - 1) / seq.length) * 100).toFixed(4) : 0;
             const expandedSeq = [...seq].join('\n');
             digitsHtml += `<dx-d data-seq="${expandedSeq}" style="--p:${finalPos}%">${lastChar}</dx-d>`;
         }
@@ -93,14 +93,6 @@ export class DxOdometer extends DxMeter {
             } else {
                 requestAnimationFrame(checkEmbedReady);
             }
-            // Safety timeout: ensure embedded meter always resolves so parent typewriter never hangs
-            const delay = parseFloat(this.style.getPropertyValue('--d')) || 0;
-            setTimeout(() => {
-                if (!this._animDone && this.isConnected) {
-                    this._animDone = true;
-                    onTypewriterEnd(this);
-                }
-            }, delay + 1200);
         } else {
             const setupStandalone = () => {
                 if (!this.isConnected || this._animDone || this.classList.contains('data-static')) return;
@@ -120,12 +112,6 @@ export class DxOdometer extends DxMeter {
                 if (!parentType && !inFooter) {
                     observeIO(this, (el) => {
                         el.classList.add(DX_ANIM.TYPING);
-                        setTimeout(() => {
-                            if (!this._animDone && this.isConnected) {
-                                this._animDone = true;
-                                this.makeStatic();
-                            }
-                        }, 2500);
                     });
                 }
             };

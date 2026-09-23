@@ -14,8 +14,16 @@ export class DxTypeReady extends DxBase {
             this._pristineHTML = this.innerHTML;
         }
         if (!this.classList.contains('dx-type-ready')) {
-            requestAnimationFrame(() => {
-                this.classList.add('dx-type-ready');
+            const fontsReady = (typeof document !== 'undefined' && document.fonts && document.fonts.ready)
+                ? Promise.race([document.fonts.ready, new Promise(r => setTimeout(r, 800))])
+                : Promise.resolve();
+
+            fontsReady.then(() => {
+                requestAnimationFrame(() => {
+                    if (!this.classList.contains('dx-type-ready')) {
+                        this.classList.add('dx-type-ready');
+                    }
+                });
             });
         }
     }

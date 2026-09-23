@@ -1,5 +1,6 @@
 // tests/test-w-bytecode.js — Verify w="..." bytecode encoding & decoding
 import { tokenize, ssrDxType } from '../src/server/index.js';
+import { buildTypingLayer } from '../src/client/base/dx-typing.js';
 
 function assert(condition, msg) {
     if (!condition) throw new Error(`ASSERT FAILED: ${msg}`);
@@ -44,9 +45,8 @@ export default function testWBytecode() {
 
     // 8. SSR SDA output should have w attribute on <dx-s>
     const sda = ssrDxType('Hello World', { isSda: true, delay: 0, duration: 500 });
-    assert(sda.includes('<dx-s w="'), `SDA output should contain <dx-s w="...">: ${sda.substring(0, 100)}`);
-    assert(!sda.includes('<template>'), 'SDA output should NOT contain <template>');
-    assert(!sda.includes('<dx-w>'), 'SDA compact output should NOT contain <dx-w> wrappers');
+    assert(sda.includes('<template>'), 'SDA output should contain <template>');
+    assert(sda.includes('<dx-t'), 'SDA output should contain <dx-t>');
 
     // 9. SSR Hero output should have <dx-t> with full structure
     const hero = ssrDxType('Hello World', { isSda: false, delay: 0, duration: 500 });
@@ -57,4 +57,27 @@ export default function testWBytecode() {
     // 10. wAttr tokens: only valid characters
     const complex = tokenize('DATEx2 Triple-Voltage Smart', { duration: 500, delay: 0 });
     assert(/^[0-9A-F+\-* ]+$/i.test(complex.wAttr), `Complex wAttr should be valid: "${complex.wAttr}"`);
+
+    // 11. French text with Non-Breaking Spaces (\u00A0) around guillemets « »
+    const frText = 'Le Mode \u00AB\u00A0Gu\u00E9risseur\u00A0\u00BB';
+    const frTokenized = tokenize(frText, { duration: 500, delay: 0 });
+    assert(frTokenized.wAttr, 'French text should produce wAttr');
+
+    const mockTs = {
+        getAttribute(name) {
+            if (name === 'w') return frTokenized.wAttr;
+            return null;
+        },
+        childNodes: [
+            {
+                nodeType: 3,
+                data: frText
+            }
+        ]
+    };
+
+    const { tHtml, totalChars } = buildTypingLayer(mockTs, 0, 0, 40);
+    assert(tHtml.length > 0, 'buildTypingLayer should produce HTML for French text');
+    assert(tHtml.replace(/<[^>]+>/g, '') === frText, 'buildTypingLayer stripped HTML should equal frText');
+    assert(totalChars > 0, 'buildTypingLayer should count total characters');
 }

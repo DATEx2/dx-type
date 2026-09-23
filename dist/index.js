@@ -24,6 +24,8 @@ var DX_ANIM = Object.freeze({
 });
 var ioInstance = null;
 var ioCallbacks = /* @__PURE__ */ new WeakMap();
+var ioLookaheadInstance = null;
+var ioLookaheadCallbacks = /* @__PURE__ */ new WeakMap();
 var _sdaTopGap = "0%";
 var _sdaBottomGap = "-110px";
 function formatMarginValue(v) {
@@ -47,6 +49,47 @@ function getSdaGaps() {
     sdaTopGap: winTop !== void 0 ? winTop : _sdaTopGap,
     sdaBottomGap: winBottom !== void 0 ? winBottom : _sdaBottomGap
   };
+}
+function ioLookaheadHandler(entries) {
+  for (let i = 0; i < entries.length; i++) {
+    const entry = entries[i];
+    if (entry.isIntersecting) {
+      const el2 = entry.target;
+      if (ioLookaheadInstance) ioLookaheadInstance.unobserve(el2);
+      const cb = ioLookaheadCallbacks.get(el2);
+      if (cb) {
+        ioLookaheadCallbacks.delete(el2);
+        cb(el2);
+      }
+    }
+  }
+}
+function getLookaheadIO() {
+  if (ioLookaheadInstance) return ioLookaheadInstance;
+  const IO = rootWin?.IntersectionObserver;
+  if (typeof IO === "function") {
+    ioLookaheadInstance = new IO(ioLookaheadHandler, {
+      root: null,
+      rootMargin: "0px 0px 500px 0px",
+      threshold: 0
+    });
+  }
+  return ioLookaheadInstance;
+}
+function observeLookaheadIO(el2, callback) {
+  if (!el2) return;
+  const obs = getLookaheadIO();
+  if (obs) {
+    ioLookaheadCallbacks.set(el2, callback);
+    obs.observe(el2);
+  } else {
+    callback(el2);
+  }
+}
+function unobserveLookaheadIO(el2) {
+  if (!el2) return;
+  ioLookaheadCallbacks.delete(el2);
+  if (ioLookaheadInstance) ioLookaheadInstance.unobserve(el2);
 }
 function ioHandler(entries) {
   for (let i = 0; i < entries.length; i++) {
@@ -118,7 +161,10 @@ function processNextIdle() {
 function queueIdleUnpack(el2, callback) {
   if (!el2) return;
   for (let i = 0; i < idleQueue.length; i++) {
-    if (idleQueue[i].el === el2) return;
+    if (idleQueue[i].el === el2) {
+      idleQueue[i].callback = callback;
+      return;
+    }
   }
   idleQueue.push({ el: el2, callback });
   if (!isIdleScheduled) {
@@ -131,6 +177,50 @@ function removeFromIdleQueue(el2) {
   for (let i = idleQueue.length - 1; i >= 0; i--) {
     if (idleQueue[i].el === el2) {
       idleQueue.splice(i, 1);
+    }
+  }
+}
+var idleCleanupQueue = [];
+var isCleanupIdleScheduled = false;
+function processNextIdleCleanup() {
+  if (idleCleanupQueue.length === 0) {
+    isCleanupIdleScheduled = false;
+    return;
+  }
+  const item = idleCleanupQueue.shift();
+  if (item && item.el) {
+    try {
+      item.callback(item.el);
+    } catch (e) {
+      console.error("[dx-type] Idle cleanup failed:", e);
+    }
+  }
+  if (idleCleanupQueue.length > 0) {
+    scheduleIdle(processNextIdleCleanup);
+  } else {
+    isCleanupIdleScheduled = false;
+  }
+}
+function queueIdleCleanup(el2, callback) {
+  if (!el2) return;
+  for (let i = 0; i < idleCleanupQueue.length; i++) {
+    if (idleCleanupQueue[i].el === el2) return;
+  }
+  idleCleanupQueue.push({ el: el2, callback });
+  if (!isCleanupIdleScheduled) {
+    isCleanupIdleScheduled = true;
+    scheduleIdle(processNextIdleCleanup);
+  }
+}
+function flushIdleCleanup(el2) {
+  if (!el2) return;
+  for (let i = idleCleanupQueue.length - 1; i >= 0; i--) {
+    if (idleCleanupQueue[i].el === el2) {
+      const item = idleCleanupQueue.splice(i, 1)[0];
+      try {
+        item.callback(item.el);
+      } catch (e) {
+      }
     }
   }
 }
@@ -379,20 +469,20 @@ function pruneMiddleFrames(drumValues) {
 function formatNumber(val, type = "int", comma = ",", prefix = "", suffix = "") {
   const num = parseFloat(val) || 0;
   let formatted = "";
-  if (type === "int" || type.startsWith("int-") || type === "number" || type.startsWith("number-")) {
-    const isFloat = type === "float";
-    if (isFloat) {
-      formatted = num.toFixed(1).replace(".", comma);
-    } else {
-      const intVal = Math.round(num);
-      const str = intVal.toString();
-      formatted = str.replace(/\B(?=(\d{3})+(?!\d))/g, " ");
-    }
+  if (type.includes("number-1dec") || type === "float" || type.startsWith("float")) {
+    formatted = num.toFixed(1).replace(".", comma);
+  } else if (type.includes("number-2dec") || type === "number") {
+    formatted = num.toFixed(2).replace(".", comma);
+  } else if (type === "int" || type.startsWith("int-") || type.startsWith("number-")) {
+    const intVal = Math.round(num);
+    const str = intVal.toString();
+    formatted = str.replace(/\B(?=(\d{3})+(?!\d))/g, " ");
   } else {
     formatted = num.toString().replace(".", comma);
   }
-  const pfx = prefix || "";
-  const sfx = suffix || "";
+  const pfx = prefix ? `${prefix}${prefix.endsWith(" ") ? "" : " "}` : "";
+  const noLeadingSpace = /^[%°"”″’'VvAaWw€$£]|\//.test(suffix);
+  const sfx = suffix ? `${suffix.startsWith(" ") || noLeadingSpace ? "" : " "}${suffix}` : "";
   return `${pfx}${formatted}${sfx}`;
 }
 function generateRibbonHtml(numericValue, type = "int", comma = ",", prefix = "", suffix = "", startValue = null) {
@@ -431,6 +521,11 @@ function generateRibbonHtml(numericValue, type = "int", comma = ",", prefix = ""
     startDigitsStr = startDigits.join("");
   }
   const isYearWithStart = isYear && startDigitsStr && startDigitsStr.length === targetDigitsStr.length;
+  let intDigitsCount = 0;
+  for (let i = 0; i < mainDigits.length; i++) {
+    if (mainDigits[i] >= "0" && mainDigits[i] <= "9") intDigitsCount++;
+  }
+  const maxLeadingZeroIdx = Math.max(-1, intDigitsCount - 2);
   const startDigitsForLeading = [];
   for (let i = 0; i < targetDigitsStr.length; i++) {
     startDigitsForLeading.push(
@@ -447,7 +542,7 @@ function generateRibbonHtml(numericValue, type = "int", comma = ",", prefix = ""
   if (firstSignificant >= startDigitsForLeading.length) {
     firstSignificant = startDigitsForLeading.length - 1;
   }
-  const lastLeadingZeroIdx = firstSignificant - 1;
+  const lastLeadingZeroIdx = Math.min(firstSignificant - 1, maxLeadingZeroIdx);
   let digitIndex = 0;
   let digitsHtml = "";
   for (let i = 0; i < formattedNumberStr.length; i++) {
@@ -489,18 +584,17 @@ function generateRibbonHtml(numericValue, type = "int", comma = ",", prefix = ""
       }
       const totalItems = drumValues.length;
       const finalIndex = totalItems - 1;
-      const finalPosPercent = totalItems > 1 ? -(finalIndex * 100) : 0;
+      const finalPosPercent = totalItems > 1 ? -(finalIndex / totalItems * 100).toFixed(4) : 0;
       const seqStr = drumValues.map((v) => v === " " ? " " : v).join("");
       digitsHtml += `<dx-d data-seq="${seqStr}" style="--p:${finalPosPercent}%">${char}</dx-d>`;
     } else {
       digitsHtml += `<span class="ui-radix">${char}</span>`;
     }
   }
-  const prefixHasSpace = (numberPartMatch?.[1] || "").endsWith(" ");
-  const prefixSpace = prefixHasSpace ? " " : "";
-  const suffixHasSpace = (numberPartMatch?.[5] || "").startsWith(" ");
-  const suffixSpace = suffixHasSpace ? " " : "";
-  const pfxHtml = prefixText ? `<span class="ui-pfx">${prefixText}${prefixSpace}</span>` : "";
+  const pfxHtml = prefixText ? `<span class="ui-pfx">${prefixText}${prefix.endsWith(" ") ? "" : " "}</span>` : "";
+  const hasExplicitSpace = suffix.startsWith(" ");
+  const noSfxSpace = /^[%°"”″’'VvAaWw€$£]|\//.test(suffixText);
+  const suffixSpace = hasExplicitSpace || !noSfxSpace ? suffixText ? " " : "" : "";
   const sfxHtml = suffixText ? `<span class="ui-sfx">${suffixSpace}${suffixText}</span>` : "";
   return `${pfxHtml}<b>${digitsHtml}</b>${sfxHtml}`;
 }
@@ -525,7 +619,7 @@ function expandOdometerDrums(root) {
     }
     if (seq && d.style && typeof d.style.getPropertyValue === "function" && !d.style.getPropertyValue("--p")) {
       const totalItems = seq.includes("\n") ? seq.split("\n").length : seq.length;
-      const finalPosPercent = totalItems > 1 ? -((totalItems - 1) * 100) : 0;
+      const finalPosPercent = totalItems > 1 ? -((totalItems - 1) / totalItems * 100).toFixed(4) : 0;
       d.style.setProperty("--p", `${finalPosPercent}%`);
     }
   }
@@ -554,8 +648,9 @@ function buildTypingLayer(ts, delay, offset, speed) {
         const chars = [...child.data];
         let ci = 0;
         while (ci < chars.length) {
-          if (chars[ci] === " " || chars[ci] === "\n" || chars[ci] === "	") {
-            tHtml += chars[ci];
+          const ch = chars[ci];
+          if (ch <= " " || ch === "\xA0" || ch === "\uFEFF" || /\s/.test(ch)) {
+            tHtml += ch;
             ci++;
             continue;
           }
@@ -573,33 +668,57 @@ function buildTypingLayer(ts, delay, offset, speed) {
           if (extended) {
             len = HEX_LUT[wAttr.charCodeAt(wi)] << 4 | HEX_LUT[wAttr.charCodeAt(wi + 1)];
             wi += 2;
-          } else {
+          } else if (wi < wAttr.length) {
             len = HEX_LUT[wAttr.charCodeAt(wi)];
             wi++;
+          }
+          if (!len || len <= 0) {
+            const sc = chars[ci++];
+            const d = Math.round(delay + (offset + charIdx++) * speed);
+            const cls = sc === "\xB7" || sc === "\u2022" ? ' class="bullet-dot"' : "";
+            tHtml += `<dx-w><dx-c${cls} style="animation-delay:${d}ms">${sc}</dx-c></dx-w>`;
+            continue;
           }
           const wClass = hyphen ? ' class="word"' : "";
           tHtml += `<dx-w${wClass}>`;
           for (let c = 0; c < len && ci < chars.length; c++, ci++) {
-            const ch = chars[ci];
+            const curCh = chars[ci];
             const d = Math.round(delay + (offset + charIdx++) * speed);
-            const cls = ch === "\xB7" || ch === "\u2022" ? ' class="bullet-dot"' : "";
-            tHtml += `<dx-c${cls} style="animation-delay:${d}ms">${ch}</dx-c>`;
+            const cls = curCh === "\xB7" || curCh === "\u2022" ? ' class="bullet-dot"' : "";
+            tHtml += `<dx-c${cls} style="animation-delay:${d}ms">${curCh}</dx-c>`;
           }
           tHtml += "</dx-w>";
         }
       } else if (child.nodeType === 1) {
-        if (wi < wAttr.length) {
-          const tok = wAttr[wi++];
-          if (tok === "*") {
-            const d = Math.round(delay + (offset + charIdx++) * speed);
-            tHtml += `<dx-w><dx-c class="c-ui-num" style="animation-delay:${d}ms">${child.outerHTML}</dx-c></dx-w>`;
-          } else if (tok === " ") {
-            const tag = child.tagName.toLowerCase();
-            let attrs = "";
-            for (let a = 0; a < child.attributes.length; a++) {
-              const at = child.attributes[a];
-              if (at.name !== "w") attrs += ` ${at.name}="${at.value}"`;
+        const tok = wi < wAttr.length ? wAttr[wi++] : " ";
+        if (tok === "*") {
+          const d = Math.round(delay + (offset + charIdx++) * speed);
+          const cleanHtml = child.outerHTML.replace(/\bdata-static\b/g, "").replace(/\s{2,}/g, " ");
+          tHtml += `<dx-w><dx-c class="c-ui-num" style="animation-delay:${d}ms">${cleanHtml}</dx-c></dx-w>`;
+        } else {
+          const tag = child.tagName.toLowerCase();
+          const isVoid = /^(?:area|base|br|col|embed|hr|img|input|link|meta|param|source|track|wbr)$/i.test(tag);
+          const exactDelay = Math.round(delay + (offset + charIdx) * speed);
+          let attrs = "";
+          let hasStyle = false;
+          for (let a = 0; a < child.attributes.length; a++) {
+            const at = child.attributes[a];
+            if (at.name === "w") continue;
+            if (!isVoid && at.name === "style") {
+              hasStyle = true;
+              const trimmed = at.value.trim();
+              const sep = trimmed && !trimmed.endsWith(";") ? ";" : "";
+              attrs += ` style="${trimmed}${sep}--dx-delay:${exactDelay}ms;"`;
+            } else {
+              attrs += ` ${at.name}="${at.value}"`;
             }
+          }
+          if (!isVoid && !hasStyle) {
+            attrs += ` style="--dx-delay:${exactDelay}ms;"`;
+          }
+          if (isVoid) {
+            tHtml += `<${tag}${attrs}>`;
+          } else {
             tHtml += `<${tag}${attrs}>`;
             walk(child);
             tHtml += `</${tag}>`;
@@ -614,52 +733,54 @@ function buildTypingLayer(ts, delay, offset, speed) {
 function prepareTemplateContent(el2) {
   if (!el2) return false;
   if (el2.classList && el2.classList.contains(DX_ANIM.TYPED)) return false;
-  const ts = el2.querySelector(":scope > dx-s[w]");
-  if (ts && !el2.querySelector(":scope > dx-t")) {
-    const style = el2.getAttribute("style") || "";
-    const dMatch = style.match(/--d:([\d.]+)/);
-    const bMatch = style.match(/--b:([\d.]+)/);
-    const uMatch = style.match(/--u:([\d.]+)/);
-    const delay = dMatch ? parseFloat(dMatch[1]) : 0;
-    const offset = bMatch ? parseFloat(bMatch[1]) : 0;
-    const speed = uMatch ? parseFloat(uMatch[1]) : 40;
-    const charDur = Math.round(speed * 3.5);
-    const { tHtml, totalChars } = buildTypingLayer(ts, delay, offset, speed);
-    if (tHtml) {
-      const doc = el2.ownerDocument || (typeof document !== "undefined" ? document : null);
-      if (doc) {
-        const tLayer2 = doc.createElement("dx-t");
-        tLayer2.setAttribute("aria-hidden", "true");
-        tLayer2.setAttribute("style", `animation-duration:${charDur}ms`);
-        tLayer2.innerHTML = tHtml;
-        const allTC = tLayer2.querySelectorAll("dx-c");
-        if (allTC.length > 0) {
-          const lastTC = allTC[allTC.length - 1];
-          lastTC.setAttribute("data-last", "true");
-          lastTC.classList.add("last-char");
-        }
-        const odometers = tLayer2.querySelectorAll("dx-odometer, ui-odometer");
-        for (let i = 0; i < odometers.length; i++) {
-          const odo = odometers[i];
-          odo.classList.remove("data-static");
-          if (!odo.querySelector("b")) {
-            const val = odo.getAttribute("percent") || odo.getAttribute("value") || odo.textContent.trim();
-            const numVal = parseFloat(val) || 0;
-            const type = odo.getAttribute("type") || "int";
-            const comma = odo.getAttribute("comma") || ",";
-            const prefix = odo.getAttribute("prefix") || "";
-            const suffix = odo.getAttribute("suffix") || "";
-            const start = odo.getAttribute("start") || null;
-            odo.innerHTML = generateRibbonHtml(numVal, type, comma, prefix, suffix, start);
+  const tpl = el2.querySelector(":scope > template");
+  if (!tpl) {
+    const ts = el2.querySelector(":scope > dx-s[w]");
+    if (ts && !el2.querySelector(":scope > dx-t")) {
+      const style = el2.getAttribute("style") || "";
+      const dMatch = style.match(/--d:([\d.]+)/);
+      const bMatch = style.match(/--b:([\d.]+)/);
+      const uMatch = style.match(/--u:([\d.]+)/);
+      const delay = dMatch ? parseFloat(dMatch[1]) : 0;
+      const offset = bMatch ? parseFloat(bMatch[1]) : 0;
+      const speed = uMatch ? parseFloat(uMatch[1]) : 40;
+      const charDur = Math.round(speed * 3.5);
+      const { tHtml, totalChars } = buildTypingLayer(ts, delay, offset, speed);
+      if (tHtml) {
+        const doc = el2.ownerDocument || (typeof document !== "undefined" ? document : null);
+        if (doc) {
+          const tLayer2 = doc.createElement("dx-t");
+          tLayer2.setAttribute("aria-hidden", "true");
+          tLayer2.setAttribute("style", `animation-duration:${charDur}ms`);
+          tLayer2.innerHTML = tHtml;
+          const allTC = tLayer2.querySelectorAll("dx-c");
+          if (allTC.length > 0) {
+            const lastTC = allTC[allTC.length - 1];
+            lastTC.setAttribute("data-last", "true");
+            lastTC.classList.add("last-char");
           }
-          expandOdometerDrums(odo);
+          const odometers = tLayer2.querySelectorAll("dx-odometer, ui-odometer");
+          for (let i = 0; i < odometers.length; i++) {
+            const odo = odometers[i];
+            odo.classList.remove("data-static");
+            if (!odo.querySelector("b")) {
+              const val = odo.getAttribute("percent") || odo.getAttribute("value") || odo.textContent.trim();
+              const numVal = parseFloat(val) || 0;
+              const type = odo.getAttribute("type") || "int";
+              const comma = odo.getAttribute("comma") || ",";
+              const prefix = odo.getAttribute("prefix") || "";
+              const suffix = odo.getAttribute("suffix") || "";
+              const start = odo.getAttribute("start") || null;
+              odo.innerHTML = generateRibbonHtml(numVal, type, comma, prefix, suffix, start);
+            }
+            expandOdometerDrums(odo);
+          }
+          el2.appendChild(tLayer2);
+          return true;
         }
-        el2.appendChild(tLayer2);
       }
     }
-    return true;
   }
-  const tpl = el2.querySelector(":scope > template");
   if (!tpl || !tpl.content) return false;
   if (tpl._prepared) return true;
   let tLayer = tpl.content.querySelector(":is(dx-t, t-t, t)");
@@ -681,50 +802,53 @@ function prepareTemplateContent(el2) {
     }
   }
   if (tLayer) {
-    const nodes = tLayer.childNodes;
-    if (nodes.length > 0) {
-      const style = el2.getAttribute("style") || "";
-      const dMatch = style.match(/--d:([\d.]+)/);
-      const bMatch = style.match(/--b:([\d.]+)/);
-      const uMatch = style.match(/--u:([\d.]+)/);
-      const delay = dMatch ? parseFloat(dMatch[1]) : 0;
-      const offset = bMatch ? parseFloat(bMatch[1]) : 0;
-      const speed = uMatch ? parseFloat(uMatch[1]) : 40;
-      let charIdx = 0;
-      for (let i = 0; i < nodes.length; i++) {
-        const node = nodes[i];
-        if (node.nodeType === 3) {
-          charIdx += (node.textContent || "").length;
-        } else if (node.nodeType === 1) {
-          const tw = node;
-          if (tw.hasAttribute("data-ready")) {
-            charIdx += tw.querySelectorAll(":is(dx-c, t-c, i)").length;
-            continue;
-          }
-          const cUiNum = tw.querySelector(":is(dx-c, t-c, i).c-ui-num");
-          if (cUiNum) {
-            const odo = cUiNum.querySelector("dx-odometer, ui-odometer");
-            const exactDelay = Math.round(delay + (offset + charIdx) * speed);
-            charIdx += 1;
-            cUiNum.style.animationDelay = `${exactDelay}ms`;
-            if (odo) odo.style.setProperty("--d", exactDelay);
-          } else if (!tw.querySelector(":is(dx-c, t-c, i)")) {
-            const text = tw.textContent || "";
-            if (text) {
-              const chars = [...text];
-              let inner = "";
-              for (let j = 0; j < chars.length; j++) {
-                const ch = chars[j];
-                const exactDelay = Math.round(delay + (offset + charIdx++) * speed);
-                const cClass = ch === "\xB7" || ch === "\u2022" ? ' class="bullet-dot"' : "";
-                inner += `<dx-c${cClass} style="animation-delay:${exactDelay}ms">${ch}</dx-c>`;
-              }
-              tw.innerHTML = inner;
+    const hasExistingC = tLayer.querySelector(":is(dx-c, t-c)");
+    if (!hasExistingC) {
+      const nodes = tLayer.childNodes;
+      if (nodes.length > 0) {
+        const style = el2.getAttribute("style") || "";
+        const dMatch = style.match(/--d:([\d.]+)/);
+        const bMatch = style.match(/--b:([\d.]+)/);
+        const uMatch = style.match(/--u:([\d.]+)/);
+        const delay = dMatch ? parseFloat(dMatch[1]) : 0;
+        const offset = bMatch ? parseFloat(bMatch[1]) : 0;
+        const speed = uMatch ? parseFloat(uMatch[1]) : 40;
+        let charIdx = 0;
+        for (let i = 0; i < nodes.length; i++) {
+          const node = nodes[i];
+          if (node.nodeType === 3) {
+            charIdx += (node.textContent || "").length;
+          } else if (node.nodeType === 1) {
+            const tw = node;
+            if (tw.hasAttribute("data-ready")) {
+              charIdx += tw.querySelectorAll(":is(dx-c, t-c, i)").length;
+              continue;
             }
-          } else {
-            charIdx += tw.querySelectorAll(":is(dx-c, t-c, i)").length;
+            const cUiNum = tw.querySelector(":is(dx-c, t-c, i).c-ui-num");
+            if (cUiNum) {
+              const odo = cUiNum.querySelector("dx-odometer, ui-odometer");
+              const exactDelay = Math.round(delay + (offset + charIdx) * speed);
+              charIdx += 1;
+              cUiNum.style.animationDelay = `${exactDelay}ms`;
+              if (odo) odo.style.setProperty("--d", exactDelay);
+            } else if (!tw.querySelector(":is(dx-c, t-c, i)")) {
+              const text = tw.textContent || "";
+              if (text) {
+                const chars = [...text];
+                let inner = "";
+                for (let j = 0; j < chars.length; j++) {
+                  const ch = chars[j];
+                  const exactDelay = Math.round(delay + (offset + charIdx++) * speed);
+                  const cClass = ch === "\xB7" || ch === "\u2022" ? ' class="bullet-dot"' : "";
+                  inner += `<dx-c${cClass} style="animation-delay:${exactDelay}ms">${ch}</dx-c>`;
+                }
+                tw.innerHTML = inner;
+              }
+            } else {
+              charIdx += tw.querySelectorAll(":is(dx-c, t-c, i)").length;
+            }
+            tw.setAttribute("data-ready", "true");
           }
-          tw.setAttribute("data-ready", "true");
         }
       }
     }
@@ -761,19 +885,6 @@ function unpackTemplate(el2) {
     el2.classList.add(DX_ANIM.TYPED);
     return false;
   }
-  const tsWithW = el2.querySelector(":scope > :is(dx-s, t-s, s-t)[w]");
-  if (tsWithW && !el2.querySelector(":scope > :is(dx-t, t-t, t)")) {
-    prepareTemplateContent(el2);
-    if (!el2.getAttribute("role")) el2.setAttribute("role", "text");
-    const ts = el2.querySelector(":scope > :is(dx-s, t-s, s-t)");
-    if (ts && !el2.getAttribute("aria-label")) {
-      const raw = (ts.textContent || "").replace(/\s+/g, " ").trim();
-      if (raw) el2.setAttribute("aria-label", raw);
-    }
-    const tt = el2.querySelector(":scope > :is(dx-t, t-t, t)");
-    if (tt) tt.setAttribute("aria-hidden", "true");
-    return true;
-  }
   const tpl = el2.querySelector(":scope > template");
   if (tpl && tpl.content) {
     prepareTemplateContent(el2);
@@ -787,7 +898,52 @@ function unpackTemplate(el2) {
     }
     tpl.replaceWith(tpl.content);
     const tt = el2.querySelector(":scope > :is(dx-t, t-t, t)");
-    if (tt) tt.setAttribute("aria-hidden", "true");
+    if (tt) {
+      tt.setAttribute("aria-hidden", "true");
+      if (!tt._boundStopProp) {
+        tt._boundStopProp = true;
+        tt.addEventListener("animationend", (ev) => {
+          ev.stopPropagation();
+        });
+      }
+      const lastChar = tt.querySelector('[data-last="true"], .last-char');
+      if (lastChar && !lastChar._hasTwEnd) {
+        lastChar._hasTwEnd = true;
+        lastChar.addEventListener("animationend", (ev) => {
+          onTypewriterEnd(lastChar, ev);
+        }, { once: true });
+      }
+    }
+    return true;
+  }
+  const tsWithW = el2.querySelector(":scope > :is(dx-s, t-s, s-t)[w]");
+  if (tsWithW && !el2.querySelector(":scope > :is(dx-t, t-t, t)")) {
+    prepareTemplateContent(el2);
+    if (!el2.getAttribute("role")) el2.setAttribute("role", "text");
+    const ts = el2.querySelector(":scope > :is(dx-s, t-s, s-t)");
+    if (ts) {
+      if (!el2.getAttribute("aria-label")) {
+        const raw = (ts.textContent || "").replace(/\s+/g, " ").trim();
+        if (raw) el2.setAttribute("aria-label", raw);
+      }
+    }
+    const tt = el2.querySelector(":scope > :is(dx-t, t-t, t)");
+    if (tt) {
+      tt.setAttribute("aria-hidden", "true");
+      if (!tt._boundStopProp) {
+        tt._boundStopProp = true;
+        tt.addEventListener("animationend", (ev) => {
+          ev.stopPropagation();
+        });
+      }
+      const lastChar = tt.querySelector('[data-last="true"], .last-char');
+      if (lastChar && !lastChar._hasTwEnd) {
+        lastChar._hasTwEnd = true;
+        lastChar.addEventListener("animationend", (ev) => {
+          onTypewriterEnd(lastChar, ev);
+        }, { once: true });
+      }
+    }
     return true;
   }
   return false;
@@ -795,19 +951,61 @@ function unpackTemplate(el2) {
 function isElementHidden(el2) {
   if (!el2) return true;
   if (!el2.closest("summary") && el2.closest("details:not([open])")) return true;
+  const drawer = el2.closest('.spec-drawer, [role="dialog"].spec-drawer');
+  if (drawer && !drawer.classList.contains("dx-type-ready")) return true;
   const isMobile = typeof window !== "undefined" && window.matchMedia && window.matchMedia("(max-width: 719.5px), (max-width: 1024px) and (orientation: portrait)").matches;
   const hiddenParent = el2.closest(isMobile ? ".hidden, [hidden], .wait-stuck:not(.is-stuck), .favorite-product__button--saved" : ".hidden, [hidden], .favorite-product__button--saved");
   if (hiddenParent && !hiddenParent.closest(".favorite-product--saved, .is-stuck")) return true;
   return false;
 }
+var SECTION_HEADER_SEL = ".section-header, .po-header, .wholesale-header, .features-header, .cg-header, .fe-header, .as-header, .vs-header, .fq-header, .ga-header, .eco-header, .cs-header, .cs-header-wrapper, .ip-header, .ip-header-wrapper, .spec-drawer-header";
+function syncSectionHeaderTyping(el2) {
+  if (!el2) return;
+  const secHeader = el2.closest?.(SECTION_HEADER_SEL);
+  if (secHeader && !secHeader.classList.contains(DX_ANIM.TYPING) && !secHeader.classList.contains(DX_ANIM.TYPED)) {
+    let dur = el2.style?.getPropertyValue?.("--t");
+    let del = el2.style?.getPropertyValue?.("--d");
+    let u = el2.style?.getPropertyValue?.("--u");
+    if (!dur) {
+      const m = el2.getAttribute?.("style")?.match(/--t:\s*([\d.]+)/);
+      if (m) dur = m[1];
+    }
+    if (!del) {
+      const m = el2.getAttribute?.("style")?.match(/--d:\s*([\d.]+)/);
+      if (m) del = m[1];
+    }
+    if (!u) {
+      const m = el2.getAttribute?.("style")?.match(/--u:\s*([\d.]+)/);
+      if (m) u = m[1];
+    }
+    const baseDur = dur ? parseFloat(dur) : 680;
+    const delayMs = del ? parseFloat(del) : 0;
+    const speed = u ? parseFloat(u) : 40;
+    const charDur = Math.round(speed * 3.5);
+    const totalDur = Math.round(baseDur + charDur);
+    secHeader.style.setProperty("--header-line-dur", `${totalDur}ms`);
+    if (delayMs > 0) {
+      secHeader.style.setProperty("--header-line-del", `${Math.round(delayMs)}ms`);
+    }
+    secHeader.classList.add(DX_ANIM.TYPING);
+  }
+}
 function observeTypewriter(el2) {
   if (!el2) return;
   if (el2.classList && el2.classList.contains(DX_ANIM.TYPED)) return;
+  observeLookaheadIO(el2, (targetEl) => {
+    if (isElementHidden(targetEl)) return;
+    queueIdleUnpack(targetEl, (t) => {
+      unpackTemplate(t);
+    });
+  });
   observeIO(el2, (targetEl) => {
     if (isElementHidden(targetEl)) return;
     removeFromIdleQueue(targetEl);
+    unobserveLookaheadIO(targetEl);
     unpackTemplate(targetEl);
     targetEl.classList.add(DX_ANIM.TYPING);
+    syncSectionHeaderTyping(targetEl);
   });
   if (el2.querySelector(":scope > template")) {
     queueIdleUnpack(el2, (targetEl) => {
@@ -838,12 +1036,41 @@ function cleanupTypedDOM(typeEl) {
   if (!typeEl || typeEl._cleanedUp) return;
   typeEl._cleanedUp = true;
   typeEl._tLayer = null;
+  if (typeEl._safetyTimer) {
+    clearTimeout(typeEl._safetyTimer);
+    typeEl._safetyTimer = null;
+  }
   const doc = typeEl.ownerDocument || (typeof document !== "undefined" ? document : null);
   if (!doc) return;
   const directTpl = typeEl.querySelector(":scope > template");
   if (directTpl) directTpl.remove();
   const tLayer = typeEl.querySelector(":scope > :is(dx-t, t-t), :is(dx-t, t-t)");
   if (tLayer) {
+    const sLayer = typeEl.querySelector(":scope > :is(dx-s, t-s)");
+    if (sLayer) {
+      const tOdos = tLayer.querySelectorAll ? tLayer.querySelectorAll("dx-odometer, ui-odometer") : [];
+      const sOdos = sLayer.querySelectorAll ? sLayer.querySelectorAll("dx-odometer, ui-odometer") : [];
+      const len = Math.min(tOdos.length, sOdos.length);
+      for (let i = 0; i < len; i++) {
+        const tOdo = tOdos[i];
+        const sOdo = sOdos[i];
+        const drumB = tOdo.querySelector ? tOdo.querySelector("b") : null;
+        if (drumB) {
+          if (!sOdo.querySelector(":scope > :is(dx-s, t-s, s-t)")) {
+            const staticWrap = doc.createElement("dx-s");
+            while (sOdo.firstChild) staticWrap.appendChild(sOdo.firstChild);
+            sOdo.appendChild(staticWrap);
+          }
+          const pfx = tOdo.querySelector ? tOdo.querySelector(".ui-pfx") : null;
+          const sfx = tOdo.querySelector ? tOdo.querySelector(".ui-sfx") : null;
+          if (pfx) sOdo.insertBefore(pfx.cloneNode(true), sOdo.firstChild);
+          sOdo.appendChild(drumB.cloneNode(true));
+          if (sfx) sOdo.appendChild(sfx.cloneNode(true));
+          const dataO = tOdo.getAttribute ? tOdo.getAttribute("data-o") : null;
+          if (dataO) sOdo.setAttribute("data-o", dataO);
+        }
+      }
+    }
     tLayer.remove();
   }
   const stMeters = typeEl.querySelectorAll ? typeEl.querySelectorAll(":is(dx-s, t-s) :is(dx-odometer, ui-odometer, dx-number, ui-number)") : [];
@@ -867,7 +1094,6 @@ function onTypewriterEnd(cEl, event) {
   const parent = cEl.closest("dx-type-sda, dx-type, .type-sda, .type, .TYPE-, ui-type, ui-type-sda");
   if (parent) {
     if (parent.classList.contains(DX_ANIM.TYPED)) {
-      if (!parent._cleanedUp) cleanupTypedDOM(parent);
       return false;
     }
     if (parent.querySelector(":scope > template")) return false;
@@ -883,7 +1109,7 @@ function onTypewriterEnd(cEl, event) {
         parent._lastC = lastC;
       }
     }
-    const isLastChar = !isEmbed && !cEl.classList?.contains("c-ui-num") && (cEl === lastC || cEl.getAttribute?.("data-last") === "true" || cEl.classList?.contains("last-char") || lastC && (cEl.contains(lastC) || lastC.contains(cEl)));
+    const isLastChar = !isEmbed && (cEl === lastC || cEl.getAttribute?.("data-last") === "true" || cEl.classList?.contains("last-char") || lastC && (cEl.contains(lastC) || lastC.contains(cEl)));
     if (!isLastChar && !isEmbed) return false;
     if (isLastChar) {
       parent._charDone = true;
@@ -894,55 +1120,15 @@ function onTypewriterEnd(cEl, event) {
     const tLayer = parent.querySelector(":scope > dx-t, dx-t") || parent;
     const embeds = Array.from(tLayer.querySelectorAll("dx-odometer, ui-odometer, dx-number, ui-number"));
     const allEmbedsDone = embeds.length === 0 || embeds.every((e) => e._animDone || e.isStatic || e.classList.contains("data-static"));
-    const charDone = !lastC || !!parent._charDone;
+    const hasRegularChars = !!tLayer.querySelector(":is(dx-c, t-c):not(.c-ui-num)");
+    const charDone = !hasRegularChars || !lastC || !!parent._charDone;
     if (charDone && allEmbedsDone) {
-      if (parent._embedTimeout) {
-        clearTimeout(parent._embedTimeout);
-        parent._embedTimeout = null;
-      }
-      const doCleanup = () => {
-        if (!parent.classList.contains(DX_ANIM.TYPED)) {
-          if (typeof parent.markTyped === "function") {
-            parent.markTyped();
-          } else {
-            DxTyping.prototype.markTyped.call(parent);
-          }
+      if (!parent.classList.contains(DX_ANIM.TYPED)) {
+        if (typeof parent.markTyped === "function") {
+          parent.markTyped();
+        } else {
+          DxTyping.prototype.markTyped.call(parent);
         }
-      };
-      if (typeof window !== "undefined" && typeof window.requestIdleCallback === "function") {
-        try {
-          const handle = window.requestIdleCallback(doCleanup, { timeout: 300 });
-          if (handle === void 0) doCleanup();
-        } catch (e) {
-          doCleanup();
-        }
-      } else {
-        doCleanup();
-      }
-    } else if (charDone) {
-      if (!parent._embedTimeout) {
-        parent._embedTimeout = setTimeout(() => {
-          parent._embedTimeout = null;
-          const doCleanup = () => {
-            if (!parent.classList.contains(DX_ANIM.TYPED)) {
-              if (typeof parent.markTyped === "function") {
-                parent.markTyped();
-              } else {
-                DxTyping.prototype.markTyped.call(parent);
-              }
-            }
-          };
-          if (typeof window !== "undefined" && typeof window.requestIdleCallback === "function") {
-            try {
-              const handle = window.requestIdleCallback(doCleanup, { timeout: 300 });
-              if (handle === void 0) doCleanup();
-            } catch (e) {
-              doCleanup();
-            }
-          } else {
-            doCleanup();
-          }
-        }, 1200);
       }
     }
   }
@@ -970,29 +1156,46 @@ var DxTyping = class extends DxBase {
     return this.classList.contains(DX_ANIM.TYPED);
   }
   unpackTemplate() {
-    const res = unpackTemplate(this);
-    if (res) this.classList.add(DX_ANIM.TYPING);
-    return res;
+    return unpackTemplate(this);
   }
   markTyped() {
     if (this.querySelector(":scope > template")) return;
+    if (this._safetyTimer) {
+      clearTimeout(this._safetyTimer);
+      this._safetyTimer = null;
+    }
     if (this.cls) {
       this.cls({ [DX_ANIM.TYPING]: 0, [DX_ANIM.TYPED]: 1 });
     } else {
       this.classList.remove(DX_ANIM.TYPING);
       this.classList.add(DX_ANIM.TYPED);
     }
+    const secHeader = this.closest?.(SECTION_HEADER_SEL);
+    if (secHeader) {
+      const pending = Array.from(secHeader.querySelectorAll(":is(dx-type, dx-type-sda, .type-sda)")).some((c) => c !== this && !c.classList.contains(DX_ANIM.TYPED));
+      if (!pending) {
+        secHeader.classList.remove(DX_ANIM.TYPING);
+        secHeader.classList.add(DX_ANIM.TYPED);
+      }
+    }
     if (typeof rootWin2?.__datex2TriggerPendingUiNumbers === "function") {
       rootWin2.__datex2TriggerPendingUiNumbers(this);
     }
-    cleanupTypedDOM(this);
+    queueIdleCleanup(this, (target) => {
+      cleanupTypedDOM(target);
+    });
   }
 };
 var checkAndObserve = (el2) => {
-  if (!el2?.querySelector || el2.classList.contains(DX_ANIM.TYPED)) return;
+  if (!el2?.querySelector) return;
+  if (el2.classList.contains(DX_ANIM.TYPED)) {
+    const secHeader = el2.closest?.(SECTION_HEADER_SEL);
+    if (secHeader) secHeader.classList.add(DX_ANIM.TYPED);
+    return;
+  }
   const closedDetails = !el2.closest("summary") && el2.closest("details:not([open])");
   if (closedDetails) return;
-  if (el2.querySelector(":scope > template")) {
+  if (el2.querySelector(":scope > template") || el2.querySelector(":scope > :is(dx-s, t-s)[w]")) {
     observeTypewriter(el2);
   }
 };
@@ -1012,13 +1215,14 @@ if (typeof document !== "undefined") {
   document.addEventListener("toggle", (e) => {
     const details = e.target;
     if (details && details.tagName === "DETAILS" && details.open) {
-      details.querySelectorAll("dx-type-sda, dx-type").forEach((typeEl) => {
+      details.querySelectorAll("dx-type:not(dx-type-sda)").forEach((typeEl) => {
         if (!typeEl.classList.contains(DX_ANIM.TYPED)) {
           unpackTemplate(typeEl);
           typeEl.classList.add(DX_ANIM.TYPING);
         }
       });
       details.querySelectorAll("dx-counter, dx-number").forEach((child) => {
+        if (child.closest("dx-type-sda")) return;
         if (typeof child._checkAndTrigger === "function") {
           child._inViewport = true;
           child._parentReady = true;
@@ -1039,11 +1243,14 @@ if (rootWin2) {
     onTypewriterEnd,
     __twEnd: onTypewriterEnd,
     __datex2CleanupTypedDOM: cleanupTypedDOM,
-    bootstrapTypewriterObserver
+    bootstrapTypewriterObserver,
+    syncSectionHeaderTyping,
+    SECTION_HEADER_SEL
   });
 }
 
 // src/client/base/dx-revealing.js
+var REVEAL_CONTAINER_SEL = "dx-reveal-sda, dx-reveal, .reveal-sda, .reveal, ui-reveal-sda, ui-reveal";
 function finishReveal(el2, e) {
   if (!el2) return;
   if (e && e.target && e.target !== el2) return;
@@ -1069,6 +1276,11 @@ var DxRevealing = class extends DxBase {
   static get observedAttributes() {
     return ["delay", "d", "duration", "t"];
   }
+  constructor() {
+    super();
+    this._inViewport = false;
+    this._isRevealingStarted = false;
+  }
   attributeChangedCallback(name, oldVal, newVal) {
     if (oldVal === newVal) return;
     this._syncTimingAttributes();
@@ -1086,11 +1298,69 @@ var DxRevealing = class extends DxBase {
   get isRevealed() {
     return this.classList.contains(DX_ANIM.REVEALED);
   }
+  getParentReveal() {
+    return this.parentElement?.closest(REVEAL_CONTAINER_SEL) || null;
+  }
+  _checkAndTrigger() {
+    if (this._isRevealingStarted || this.isRevealed) return;
+    if (!this._inViewport) return;
+    const parentReveal = this.getParentReveal();
+    if (parentReveal && !parentReveal.classList.contains(DX_ANIM.REVEALED) && !parentReveal.isRevealed) {
+      return;
+    }
+    this._startRevealing();
+  }
+  _startRevealing() {
+    if (this._isRevealingStarted || this.isRevealed) return;
+    this._isRevealingStarted = true;
+    this.classList.add(DX_ANIM.REVEALING);
+    if (typeof this._triggerChildren === "function") {
+      const delayStr = this.style.getPropertyValue("--d") || this.getAttribute("delay") || this.getAttribute("d") || "0";
+      const delayMs = Math.max(0, parseFloat(delayStr) || 0);
+      if (delayMs > 0) {
+        this._childTriggerTimer = setTimeout(() => {
+          this._childTriggerTimer = null;
+          if (this.isConnected && !this.isRevealed) {
+            this._triggerChildren();
+          }
+        }, delayMs);
+      } else {
+        this._triggerChildren();
+      }
+    }
+  }
+  _triggerNestedReveals() {
+    const nestedReveals = this.querySelectorAll(REVEAL_CONTAINER_SEL);
+    for (let i = 0; i < nestedReveals.length; i++) {
+      const nested = nestedReveals[i];
+      if (nested.parentElement?.closest(REVEAL_CONTAINER_SEL) === this) {
+        if (typeof nested._checkAndTrigger === "function") {
+          nested._checkAndTrigger();
+        } else if (nested._inViewport) {
+          nested.classList.add(DX_ANIM.REVEALING);
+        }
+      }
+    }
+  }
   markRevealed() {
+    if (this._childTriggerTimer) {
+      clearTimeout(this._childTriggerTimer);
+      this._childTriggerTimer = null;
+    }
     this.classList.remove("reveal-sda", "reveal", DX_ANIM.REVEALING);
     this.classList.add(DX_ANIM.REVEALED);
     if (typeof rootWin2?.__datex2TriggerPendingUiNumbers === "function") {
       rootWin2.__datex2TriggerPendingUiNumbers(this);
+    }
+    if (typeof this._triggerChildren === "function") {
+      this._triggerChildren();
+    }
+    this._triggerNestedReveals();
+  }
+  disconnectedCallback() {
+    if (this._childTriggerTimer) {
+      clearTimeout(this._childTriggerTimer);
+      this._childTriggerTimer = null;
     }
   }
 };
@@ -1099,7 +1369,8 @@ if (rootWin2) {
     DxRevealing,
     UiRevealing: DxRevealing,
     finishReveal,
-    startReveal
+    startReveal,
+    REVEAL_CONTAINER_SEL
   });
 }
 
@@ -1111,140 +1382,91 @@ var DxType = class extends DxTyping {
       if (this.querySelector(":scope > template")) {
         this.unpackTemplate();
       }
-      this.addEventListener("animationend", this._onAnimEnd);
-    }
-  }
-  _onAnimEnd = (e) => {
-    if (e.animationName === DX_ANIM.KF_TYPE_IN || e.animationName === DX_ANIM.KF_TYPE_SDA) {
-      const target = e.target;
-      if (target.classList?.contains("c-ui-num")) return;
-      if (target.classList?.contains("last-char") || target.hasAttribute?.("last-char") || target.getAttribute?.("data-last") === "true") {
-        onTypewriterEnd(target, e);
-      } else {
-        if (!this._lastC) {
-          this._lastC = this.querySelector('dx-t [data-last="true"], dx-t .last-char, [data-last="true"], .last-char');
-          if (!this._lastC) {
-            const allC = this.querySelectorAll("dx-c:not(.c-ui-num)");
-            this._lastC = allC.length ? allC[allC.length - 1] : null;
-          }
-        }
-        if (target === this._lastC) {
-          onTypewriterEnd(target, e);
-        }
+      const lastChar = this.querySelector('dx-t [data-last="true"], dx-t .last-char, [data-last="true"], .last-char');
+      if (lastChar && !lastChar._hasTwEnd) {
+        lastChar._hasTwEnd = true;
+        lastChar.addEventListener("animationend", (ev) => {
+          onTypewriterEnd(lastChar, ev);
+        }, { once: true });
       }
     }
-  };
-  disconnectedCallback() {
-    this.removeEventListener("animationend", this._onAnimEnd);
   }
 };
 defCustomElement("dx-type", DxType);
 defCustomElement("ui-type", DxType);
 
 // src/client/components/dx-type-sda.js
+var REVEAL_PARENT_SEL = "dx-reveal-sda, dx-reveal, .reveal-sda, .reveal, ui-reveal-sda, ui-reveal";
 var DxTypeSda = class extends DxTyping {
   connectedCallback() {
-    if (this.isTyped) return;
+    if (this.isTyped) {
+      const secHeader = this.closest?.(SECTION_HEADER_SEL);
+      if (secHeader) secHeader.classList.add(DX_ANIM.TYPED);
+      return;
+    }
     this._syncTimingAttributes();
-    this.addEventListener("animationend", this._onAnimEnd);
-    observeIO(this, (el2) => {
-      if (isElementHidden(el2)) return;
-      removeFromIdleQueue(el2);
-      unpackTemplate(el2);
-      el2.classList.add(DX_ANIM.TYPING);
-    });
-    if (this.querySelector(":scope > template")) {
+    if (this.querySelector(":scope > template") || this.querySelector(":scope > dx-s[w]")) {
+      observeLookaheadIO(this, (el2) => {
+        removeFromIdleQueue(el2);
+        unpackTemplate(el2);
+      });
       queueIdleUnpack(this, (el2) => {
         prepareTemplateContent(el2);
       });
     }
-  }
-  _onAnimEnd = (e) => {
-    if (e.animationName === DX_ANIM.KF_TYPE_IN) {
-      const target = e.target;
-      if (target.classList?.contains("c-ui-num")) return;
-      if (target.classList?.contains("last-char") || target.hasAttribute?.("last-char") || target.getAttribute?.("data-last") === "true") {
-        onTypewriterEnd(target, e);
-      } else {
-        if (!this._lastC) {
-          this._lastC = this.querySelector('dx-t [data-last="true"], dx-t .last-char, [data-last="true"], .last-char');
-          if (!this._lastC) {
-            const allC = this.querySelectorAll("dx-c:not(.c-ui-num)");
-            this._lastC = allC.length ? allC[allC.length - 1] : null;
-          }
-        }
-        if (this._lastC && target === this._lastC) {
-          onTypewriterEnd(target, e);
-        }
+    observeIO(this, (el2) => {
+      if (el2.isTyped || el2.classList.contains(DX_ANIM.TYPED)) return;
+      if (isElementHidden(el2)) return;
+      el2._inViewport = true;
+      const triggerTyping = () => {
+        if (el2.isTyped || el2.classList.contains(DX_ANIM.TYPED)) return;
+        removeFromIdleQueue(el2);
+        unobserveLookaheadIO(el2);
+        unpackTemplate(el2);
+        el2.classList.add(DX_ANIM.TYPING);
+        syncSectionHeaderTyping(el2);
+      };
+      const isHeader = !!el2.closest?.(SECTION_HEADER_SEL);
+      const parentRev = el2.closest?.(REVEAL_PARENT_SEL);
+      if (!isHeader && parentRev && !parentRev.classList.contains(DX_ANIM.REVEALED) && !parentRev.classList.contains(DX_ANIM.REVEALING)) {
+        const onParentStart = () => {
+          parentRev.removeEventListener("animationstart", onParentStart);
+          triggerTyping();
+        };
+        parentRev.addEventListener("animationstart", onParentStart, { once: true });
+        return;
       }
-    }
-  };
+      triggerTyping();
+    });
+  }
   disconnectedCallback() {
-    this.removeEventListener("animationend", this._onAnimEnd);
+    unobserveIO(this);
+    unobserveLookaheadIO(this);
+    removeFromIdleQueue(this);
   }
 };
 defCustomElement("dx-type-sda", DxTypeSda);
 defCustomElement("ui-type-sda", DxTypeSda);
 
 // src/client/components/dx-reveal.js
-var REVEAL_CONTAINER_SEL = "dx-reveal-sda, dx-reveal, .reveal-sda, .reveal, ui-reveal-sda, ui-reveal";
 var DxReveal = class extends DxRevealing {
   connectedCallback() {
     if (this.isRevealed) return;
     this._syncTimingAttributes();
-    const typeReady = this.closest("dx-type-ready, .dx-type-ready");
-    if (!typeReady) {
-      observeIO(this, (el2) => {
-        unpackTemplate(el2);
-        el2.classList.add(DX_ANIM.REVEALING);
-        el2.querySelectorAll("dx-counter, dx-number").forEach((child) => {
-          if (typeof child._checkAndTrigger === "function") {
-            if (child.closest(REVEAL_CONTAINER_SEL) === el2) {
-              child._inViewport = true;
-              child._parentReady = true;
-              child._checkAndTrigger();
-            }
-          }
-        });
-      });
-    }
-    this.addEventListener("animationend", this._onAnimEnd);
-  }
-  _onAnimEnd = (e) => {
-    if (e.target !== this) return;
-    finishReveal(this, e);
-    if (this.isRevealed) {
-      this.removeEventListener("animationend", this._onAnimEnd);
-    }
-  };
-  disconnectedCallback() {
-    this.removeEventListener("animationend", this._onAnimEnd);
-  }
-};
-defCustomElement("dx-reveal", DxReveal);
-defCustomElement("ui-reveal", DxReveal);
-
-// src/client/components/dx-reveal-sda.js
-var REVEAL_CONTAINER_SEL2 = "dx-reveal-sda, dx-reveal, .reveal-sda, .reveal, ui-reveal-sda, ui-reveal";
-var DxRevealSda = class extends DxRevealing {
-  connectedCallback() {
-    if (this.isRevealed) return;
-    this._syncTimingAttributes();
     this._triggerChildren = () => {
-      this.querySelectorAll("dx-counter, dx-number, dx-type-sda, dx-type").forEach((child) => {
+      this.querySelectorAll("dx-counter, dx-number, dx-type").forEach((child) => {
         const closedDetails = !child.closest("summary") && child.closest("details:not([open])");
         if (closedDetails && this.contains(closedDetails)) return;
         const hiddenParent = child.closest(".hidden, [hidden], .favorite-product__button--saved");
         if (hiddenParent && this.contains(hiddenParent) && !hiddenParent.closest(".favorite-product--saved")) return;
+        if (child.closest(REVEAL_CONTAINER_SEL) !== this) return;
         if (typeof child._checkAndTrigger === "function") {
-          if (child.closest(REVEAL_CONTAINER_SEL2) === this) {
-            child._inViewport = true;
-            child._parentReady = true;
-            child._checkAndTrigger();
-          }
+          child._inViewport = true;
+          child._parentReady = true;
+          child._checkAndTrigger();
         }
         const tag = (child.tagName || "").toUpperCase();
-        if (tag === "DX-TYPE-SDA" || tag === "DX-TYPE") {
+        if (tag === "DX-TYPE") {
           if (!child.classList.contains(DX_ANIM.TYPED)) {
             unpackTemplate(child);
             child.classList.add(DX_ANIM.TYPING);
@@ -1252,26 +1474,91 @@ var DxRevealSda = class extends DxRevealing {
         }
       });
     };
-    observeIO(this, (el2) => {
-      removeFromIdleQueue(el2);
-      unpackTemplate(el2);
-      el2.classList.add(DX_ANIM.REVEALING);
-      this._triggerChildren();
-    });
-    queueIdleUnpack(this, (el2) => {
-      prepareTemplateContent(el2);
-    });
+    const typeReady = this.closest("dx-type-ready, .dx-type-ready");
+    if (typeReady) {
+      this.addEventListener("animationend", this._onAnimEnd);
+      this.addEventListener("animationcancel", this._onAnimEnd);
+    } else {
+      observeIO(this, () => {
+        unpackTemplate(this);
+        this._inViewport = true;
+        this._checkAndTrigger();
+      });
+    }
+  }
+  _startRevealing() {
+    if (this._isRevealingStarted || this.isRevealed) return;
     this.addEventListener("animationend", this._onAnimEnd);
+    this.addEventListener("animationcancel", this._onAnimEnd);
+    super._startRevealing();
   }
   _onAnimEnd = (e) => {
     if (e.target !== this) return;
     finishReveal(this, e);
-    if (this.isRevealed) {
-      this.removeEventListener("animationend", this._onAnimEnd);
-    }
+    this.removeEventListener("animationend", this._onAnimEnd);
+    this.removeEventListener("animationcancel", this._onAnimEnd);
   };
   disconnectedCallback() {
+    super.disconnectedCallback?.();
     this.removeEventListener("animationend", this._onAnimEnd);
+    this.removeEventListener("animationcancel", this._onAnimEnd);
+  }
+};
+defCustomElement("dx-reveal", DxReveal);
+defCustomElement("ui-reveal", DxReveal);
+
+// src/client/components/dx-reveal-sda.js
+var DxRevealSda = class extends DxRevealing {
+  connectedCallback() {
+    if (this.isRevealed) return;
+    this._syncTimingAttributes();
+    this._triggerChildren = () => {
+      this.querySelectorAll("dx-counter, dx-number, dx-type").forEach((child) => {
+        const closedDetails = !child.closest("summary") && child.closest("details:not([open])");
+        if (closedDetails && this.contains(closedDetails)) return;
+        const hiddenParent = child.closest(".hidden, [hidden], .favorite-product__button--saved");
+        if (hiddenParent && this.contains(hiddenParent) && !hiddenParent.closest(".favorite-product--saved")) return;
+        if (child.closest(REVEAL_CONTAINER_SEL) !== this) return;
+        if (typeof child._checkAndTrigger === "function") {
+          child._inViewport = true;
+          child._parentReady = true;
+          child._checkAndTrigger();
+        }
+        const tag = (child.tagName || "").toUpperCase();
+        if (tag === "DX-TYPE") {
+          if (!child.classList.contains(DX_ANIM.TYPED)) {
+            unpackTemplate(child);
+            child.classList.add(DX_ANIM.TYPING);
+          }
+        }
+      });
+    };
+    observeIO(this, () => {
+      removeFromIdleQueue(this);
+      unpackTemplate(this);
+      this._inViewport = true;
+      this._checkAndTrigger();
+    });
+    queueIdleUnpack(this, (el2) => {
+      prepareTemplateContent(el2);
+    });
+  }
+  _startRevealing() {
+    if (this._isRevealingStarted || this.isRevealed) return;
+    this.addEventListener("animationend", this._onAnimEnd);
+    this.addEventListener("animationcancel", this._onAnimEnd);
+    super._startRevealing();
+  }
+  _onAnimEnd = (e) => {
+    if (e.target !== this) return;
+    finishReveal(this, e);
+    this.removeEventListener("animationend", this._onAnimEnd);
+    this.removeEventListener("animationcancel", this._onAnimEnd);
+  };
+  disconnectedCallback() {
+    super.disconnectedCallback?.();
+    this.removeEventListener("animationend", this._onAnimEnd);
+    this.removeEventListener("animationcancel", this._onAnimEnd);
   }
 };
 defCustomElement("dx-reveal-sda", DxRevealSda);
@@ -1284,8 +1571,13 @@ var DxTypeReady = class extends DxBase {
       this._pristineHTML = this.innerHTML;
     }
     if (!this.classList.contains("dx-type-ready")) {
-      requestAnimationFrame(() => {
-        this.classList.add("dx-type-ready");
+      const fontsReady = typeof document !== "undefined" && document.fonts && document.fonts.ready ? Promise.race([document.fonts.ready, new Promise((r) => setTimeout(r, 800))]) : Promise.resolve();
+      fontsReady.then(() => {
+        requestAnimationFrame(() => {
+          if (!this.classList.contains("dx-type-ready")) {
+            this.classList.add("dx-type-ready");
+          }
+        });
       });
     }
   }
@@ -1305,7 +1597,7 @@ defCustomElement("dx-type-ready", DxTypeReady);
 
 // src/client/components/dx-number.js
 var TYPE_PARENT_SEL = "dx-type-sda, dx-type, .type-sda, .type, ui-type, ui-type-sda";
-var REVEAL_PARENT_SEL = "dx-reveal-sda, dx-reveal, .reveal-sda, .reveal, ui-reveal-sda, ui-reveal";
+var REVEAL_PARENT_SEL2 = "dx-reveal-sda, dx-reveal, .reveal-sda, .reveal, ui-reveal-sda, ui-reveal";
 var DxNumber = class extends DxMeter {
   static get observedAttributes() {
     return ["prefix", "suffix", "comma", "type", "percent", "value", "duration", "start"];
@@ -1371,7 +1663,7 @@ var DxNumber = class extends DxMeter {
       return true;
     }
     const parentChar = this.closest("dx-c");
-    const parentReveal = this.closest(REVEAL_PARENT_SEL);
+    const parentReveal = this.closest(REVEAL_PARENT_SEL2);
     const parentActionBar = this.closest(".action-bar, .action-bar-wrapper");
     if (parentActionBar) {
       const isAbShowing = !!this.closest(".show-action-bar, .showing-action-bar") || typeof document !== "undefined" && document.body && (document.body.classList.contains("show-action-bar") || document.body.classList.contains("showing-action-bar"));
@@ -1411,7 +1703,7 @@ var DxNumber = class extends DxMeter {
     if (!ready) return;
     const parentActionBar = typeof this.closest === "function" ? this.closest(".action-bar, .action-bar-wrapper") : null;
     const d = parseFloat(this.style?.getPropertyValue?.("--d") || "") || parseFloat(typeof this.closest === "function" ? this.closest('[style*="--d"]')?.style?.getPropertyValue?.("--d") : 0) || 0;
-    const delay = skipDelay || parentActionBar ? 0 : d > 0 ? d : typeof this.closest === "function" && this.closest(REVEAL_PARENT_SEL) ? 100 : 0;
+    const delay = skipDelay || parentActionBar ? 0 : d > 0 ? d : typeof this.closest === "function" && this.closest(REVEAL_PARENT_SEL2) ? 100 : 0;
     if (this._pendingVal) {
       const { targetValue, duration } = this._pendingVal;
       this._pendingVal = null;
@@ -1452,7 +1744,7 @@ var DxNumber = class extends DxMeter {
     this._targetValue = targetVal;
     const hasSsr = typeof this.querySelector === "function" && Boolean(this.querySelector(".ui-num, .dx-num-wrap"));
     const parentChar = typeof this.closest === "function" ? this.closest("dx-c") : null;
-    const parentReveal = typeof this.closest === "function" ? this.closest(REVEAL_PARENT_SEL) : null;
+    const parentReveal = typeof this.closest === "function" ? this.closest(REVEAL_PARENT_SEL2) : null;
     const parentActionBar = typeof this.closest === "function" ? this.closest(".action-bar, .action-bar-wrapper") : null;
     const hasParent = Boolean(parentChar || parentReveal || parentActionBar);
     if (isStatic) {
@@ -1849,7 +2141,7 @@ var DxOdometer = class extends DxMeter {
     for (let i = 0; i < drums.length; i++) {
       const seq = drums[i];
       const lastChar = seq.slice(-1) || "0";
-      const finalPos = seq.length > 1 ? -((seq.length - 1) * 100) : 0;
+      const finalPos = seq.length > 1 ? -((seq.length - 1) / seq.length * 100).toFixed(4) : 0;
       const expandedSeq = [...seq].join("\n");
       digitsHtml += `<dx-d data-seq="${expandedSeq}" style="--p:${finalPos}%">${lastChar}</dx-d>`;
     }
@@ -1896,13 +2188,6 @@ var DxOdometer = class extends DxMeter {
       } else {
         requestAnimationFrame(checkEmbedReady);
       }
-      const delay = parseFloat(this.style.getPropertyValue("--d")) || 0;
-      setTimeout(() => {
-        if (!this._animDone && this.isConnected) {
-          this._animDone = true;
-          onTypewriterEnd(this);
-        }
-      }, delay + 1200);
     } else {
       const setupStandalone = () => {
         if (!this.isConnected || this._animDone || this.classList.contains("data-static")) return;
@@ -1922,12 +2207,6 @@ var DxOdometer = class extends DxMeter {
         if (!parentType && !inFooter) {
           observeIO(this, (el2) => {
             el2.classList.add(DX_ANIM.TYPING);
-            setTimeout(() => {
-              if (!this._animDone && this.isConnected) {
-                this._animDone = true;
-                this.makeStatic();
-              }
-            }, 2500);
           });
         }
       };
@@ -2429,9 +2708,479 @@ defCustomElement("dx-counter", DxCounter);
 if (rootWin2) {
   Object.assign(rootWin2, { DxCounter });
 }
+
+// src/client/components/dx-check.js
+var DxCheck = class extends DxBase {
+  connectedCallback() {
+    if (!this.getAttribute("aria-hidden")) {
+      this.setAttribute("aria-hidden", "true");
+    }
+  }
+};
+defCustomElement("dx-check", DxCheck);
+
+// src/server/index.js
+function formatNumber2(val, type = "int", comma = ",", prefix = "", suffix = "") {
+  const num = parseFloat(val) || 0;
+  let formatted = "";
+  if (type.includes("number-1dec") || type === "float" || type.startsWith("float")) {
+    formatted = num.toFixed(1).replace(".", comma);
+  } else if (type.includes("number-2dec") || type === "number") {
+    formatted = num.toFixed(2).replace(".", comma);
+  } else if (type === "int" || type.startsWith("int-") || type.startsWith("number-")) {
+    const intVal = Math.round(num);
+    const str = intVal.toString();
+    formatted = str.replace(/\B(?=(\d{3})+(?!\d))/g, " ");
+  } else {
+    formatted = num.toString().replace(".", comma);
+  }
+  const pfx = prefix ? `${prefix}${prefix.endsWith(" ") ? "" : " "}` : "";
+  const noLeadingSpace = /^[%°"”″’'VvAaWw€$£]|\//.test(suffix);
+  const sfx = suffix ? `${suffix.startsWith(" ") || noLeadingSpace ? "" : " "}${suffix}` : "";
+  return `${pfx}${formatted}${sfx}`;
+}
+function generateRibbonHtml2(numericValue, type = "int", comma = ",", prefix = "", suffix = "", startValue = null) {
+  const formatted = formatNumber2(numericValue, type, comma, prefix, suffix);
+  const numberPartMatch = /(.*?-?)(\d(?:[\d\s]*\d)?)([,.]?)(\d*)(.*)/.exec(formatted);
+  const prefixText = (numberPartMatch?.[1] || "").trim();
+  const mainDigits = numberPartMatch?.[2] || "";
+  const radixMark = numberPartMatch?.[3] || "";
+  const decimalDigits = numberPartMatch?.[4] || "";
+  const suffixText = (numberPartMatch?.[5] || "").trim();
+  const formattedNumberStr = mainDigits + radixMark + decimalDigits;
+  let formattedStartStr = null;
+  if (startValue !== null && startValue !== void 0 && startValue !== "") {
+    const startNumeric = parseFloat(startValue);
+    if (!isNaN(startNumeric)) {
+      const startFormatted = formatNumber2(startNumeric, type, comma, prefix, suffix);
+      const startMatch = /(.*?-?)(\d(?:[\d\s]*\d)?)([,.]?)(\d*)(.*)/.exec(startFormatted);
+      formattedStartStr = (startMatch?.[2] || "") + (startMatch?.[3] || "") + (startMatch?.[4] || "");
+    }
+  }
+  const isYear = type === "year";
+  const allDigitPositions = [];
+  for (let i = 0; i < formattedNumberStr.length; i++) {
+    if (formattedNumberStr[i] >= "0" && formattedNumberStr[i] <= "9") allDigitPositions.push(i);
+  }
+  const totalDigits = allDigitPositions.length;
+  let digitsHtml = "";
+  let digitIndex = 0;
+  for (let i = 0; i < formattedNumberStr.length; i++) {
+    const char = formattedNumberStr[i];
+    if (char >= "0" && char <= "9") {
+      const curDigitIdx = digitIndex++;
+      const digitR = totalDigits - 1 - curDigitIdx;
+      const digitVal = parseInt(char, 10);
+      let startDigitVal = 0;
+      if (formattedStartStr) {
+        const paddedStart = formattedStartStr.padStart(formattedNumberStr.length, "0");
+        startDigitVal = parseInt(paddedStart[i], 10);
+        if (isNaN(startDigitVal)) startDigitVal = 0;
+      }
+      let drumValues = [];
+      if (isYear && formattedStartStr) {
+        if (startDigitVal === digitVal) {
+          drumValues.push(digitVal);
+        } else {
+          let cur = startDigitVal;
+          drumValues.push(cur);
+          while (cur !== digitVal && drumValues.length <= 20) {
+            cur = (cur + 1) % 10;
+            drumValues.push(cur);
+          }
+        }
+      } else {
+        const isSingleDigit = totalDigits === 1;
+        const cycles = isSingleDigit ? 0 : digitR === 0 ? 2 : digitR === 1 ? 1 : 0;
+        const totalSteps = cycles * 10 + (digitVal - startDigitVal + 10) % 10;
+        const effectiveSteps = totalSteps === 0 && cycles === 0 ? 0 : totalSteps;
+        let cur = startDigitVal;
+        drumValues.push(cur);
+        for (let s = 0; s < effectiveSteps; s++) {
+          cur = (cur + 1) % 10;
+          drumValues.push(cur);
+        }
+        if (drumValues.length >= 10) {
+          const removeCount = Math.floor(drumValues.length / 5);
+          if (removeCount > 0) {
+            const keepStart = 3;
+            const keepEnd = 4;
+            const midCount = drumValues.length - keepStart - keepEnd;
+            if (midCount > removeCount) {
+              const step = midCount / (removeCount + 1);
+              const dropIndices = /* @__PURE__ */ new Set();
+              for (let r = 1; r <= removeCount; r++) {
+                dropIndices.add(keepStart + Math.round(r * step) - 1);
+              }
+              drumValues = drumValues.filter((_, idx) => !dropIndices.has(idx));
+            }
+          }
+        }
+        let intDigitsCount = 0;
+        for (let j = 0; j < mainDigits.length; j++) {
+          if (mainDigits[j] >= "0" && mainDigits[j] <= "9") intDigitsCount++;
+        }
+        const maxLeadingZeroIdx = Math.max(-1, intDigitsCount - 2);
+        const isLeadingZero = !isYear && curDigitIdx <= maxLeadingZeroIdx && drumValues[0] === 0;
+        if (isLeadingZero) {
+          let allZero = true;
+          for (let z = 0; z <= curDigitIdx; z++) {
+            const sd = formattedStartStr ? parseInt(formattedStartStr.padStart(formattedNumberStr.length, "0")[allDigitPositions[z]], 10) : 0;
+            if (sd !== 0) {
+              allZero = false;
+              break;
+            }
+          }
+          if (allZero) drumValues[0] = " ";
+        }
+      }
+      const totalItems = drumValues.length;
+      const finalIndex = totalItems - 1;
+      const finalPosPercent = totalItems > 1 ? -(finalIndex / totalItems * 100).toFixed(4) : 0;
+      const seqStr = drumValues.map((v) => v === " " ? " " : v).join("");
+      digitsHtml += `<dx-d data-seq="${seqStr}" style="--p:${finalPosPercent}%">${char}</dx-d>`;
+    } else {
+      digitsHtml += `<span class="ui-radix">${char}</span>`;
+    }
+  }
+  const pfxHtml = prefixText ? `<span class="ui-pfx">${prefixText}${prefix.endsWith(" ") ? "" : " "}</span>` : "";
+  const hasExplicitSpace = suffix.startsWith(" ");
+  const noSfxSpace = /^[%°"”″’'VvAaWw€$£]|\//.test(suffixText);
+  const sfxSpace = hasExplicitSpace || !noSfxSpace ? suffixText ? " " : "" : "";
+  const sfxHtml = suffixText ? `<span class="ui-sfx">${sfxSpace}${suffixText}</span>` : "";
+  return `${pfxHtml}<b>${digitsHtml}</b>${sfxHtml}`;
+}
+function ssrDxOdometer(numericValue, options = {}) {
+  const {
+    type = "int",
+    comma = ",",
+    prefix = "",
+    suffix = "",
+    className = "",
+    twContext = false
+  } = options;
+  const safePrefix = prefix.trim();
+  const safeSuffix = suffix.trim();
+  const safeAttrPrefix = safePrefix.replace(/"/g, "&quot;");
+  const safeAttrSuffix = safeSuffix.replace(/"/g, "&quot;");
+  const prefixAttr = safePrefix ? ` prefix="${safeAttrPrefix}"` : "";
+  const suffixAttr = safeSuffix ? ` suffix="${safeAttrSuffix}"` : "";
+  const commaAttr = comma ? ` comma="${comma}"` : "";
+  const typeAttr = ` type="${type}"`;
+  const classStr = twContext ? `tw-embed ${className}`.trim() : className;
+  const classAttr = classStr ? ` class="${classStr}"` : "";
+  let cleanPercent = String(numericValue);
+  if (type.includes("number-1dec")) {
+    const parsed = parseFloat(numericValue);
+    if (!isNaN(parsed)) cleanPercent = parsed.toFixed(1);
+  } else if (type.includes("number-2dec")) {
+    const parsed = parseFloat(numericValue);
+    if (!isNaN(parsed)) cleanPercent = parsed.toFixed(2);
+  }
+  const formattedText = formatNumber2(numericValue, type, comma, safePrefix, safeSuffix);
+  const ariaLabel = formattedText.replace(/·/g, "").replace(/\s+/g, " ").trim().replace(/"/g, "&quot;");
+  const ribbonHtml = generateRibbonHtml2(numericValue, type, comma, safePrefix, safeSuffix, options.start);
+  return `<dx-odometer${classAttr}${typeAttr} percent="${cleanPercent}"${prefixAttr}${suffixAttr}${commaAttr} aria-label="${ariaLabel}" aria-hidden="true"><dx-s>${formattedText}</dx-s>${ribbonHtml}</dx-odometer>`;
+}
+function splitChars(str) {
+  return [...str];
+}
+function encodeW(entries) {
+  let w = "";
+  for (const e of entries) {
+    if (e.meter) {
+      w += "*";
+      continue;
+    }
+    if (e.element) {
+      w += " ";
+      continue;
+    }
+    if (e.hyphen) w += "-";
+    if (e.len > 15) {
+      w += "+" + e.len.toString(16).toUpperCase().padStart(2, "0");
+    } else {
+      w += e.len.toString(16).toUpperCase();
+    }
+  }
+  return w;
+}
+function tokenize(html, options = {}) {
+  if (!html) return { html: "", cleanText: "", totalUnits: 0, speed: 40, duration: 0, delay: 0, style: "" };
+  const duration = Number(options.duration ?? options.t ?? options.time ?? 580);
+  const delay = Number(options.delay ?? options.d ?? 0);
+  const offset = Number(options.offset ?? options.b ?? 0);
+  const cleanText = html.replace(/<(?:ui|dx)-odometer[^>]*aria-label="([^"]*)"[^>]*>[\s\S]*?<\/(?:ui|dx)-odometer>/gi, "$1").replace(/<(?:ui|dx)-number[^>]*aria-label="([^"]*)"[^>]*>[\s\S]*?<\/(?:ui|dx)-number>/gi, "$1").replace(/<(?:ui|dx)-number[^>]*>([\s\S]*?)<\/(?:ui|dx)-number>/gi, "$1").replace(/<[^>]+>/g, "").replace(/&amp;/gi, "&").replace(/&lt;/gi, "<").replace(/&gt;/gi, ">").replace(/&quot;/gi, '"').trim().replace(/\s+/g, " ");
+  const tokens = [];
+  const tokenRegex = /(<[^>]+>)|(&(?:[a-z0-9]+|#[0-9]+|#x[0-9a-f]+);)|([^<&]+|&)/gi;
+  let tokenMatch;
+  while ((tokenMatch = tokenRegex.exec(html)) !== null) {
+    if (tokenMatch[1]) tokens.push({ type: "tag", value: tokenMatch[1] });
+    else if (tokenMatch[2]) tokens.push({ type: "entity", value: tokenMatch[2] });
+    else if (tokenMatch[3]) tokens.push({ type: "text", value: tokenMatch[3] });
+  }
+  let preUnits = 0;
+  for (let i = 0; i < tokens.length; i++) {
+    const token = tokens[i];
+    if (token.type === "tag") {
+      if (/^<(?:dx|ui)-(?:number|odometer)\b/i.test(token.value)) {
+        let compTag = token.value;
+        let depth = 1;
+        while (i + 1 < tokens.length && depth > 0) {
+          i++;
+          compTag += tokens[i].value;
+          if (tokens[i].type === "tag") {
+            if (/^<(?:dx|ui)-(?:number|odometer)\b/i.test(tokens[i].value)) depth++;
+            else if (/^<\/(?:dx|ui)-(?:number|odometer)>/i.test(tokens[i].value)) depth--;
+          }
+        }
+        preUnits += 1;
+      }
+    } else if (token.type === "entity") {
+      preUnits += 1;
+    } else {
+      const parts = token.value.split(/(\s+)/);
+      for (let j = 0; j < parts.length; j++) {
+        const part = parts[j];
+        if (/^\s+$/.test(part)) {
+          preUnits += 1;
+        } else if (part.length > 0) {
+          let punct = "";
+          if (i + 1 < tokens.length && tokens[i + 1].type === "text") {
+            const nextText = tokens[i + 1].value;
+            const punctMatch = nextText.match(/^[.,;:!?\\"'"']+/);
+            if (punctMatch) {
+              punct = punctMatch[0];
+            }
+          }
+          const wordChars = splitChars(part);
+          const punctChars = splitChars(punct);
+          preUnits += wordChars.length + punctChars.length;
+        }
+      }
+    }
+  }
+  const totalUnits = Math.max(1, preUnits);
+  const speed = duration / totalUnits;
+  const style = `--b:${offset};--a:${totalUnits};--d:${delay};--t:${duration};--u:${speed.toFixed(3)}`;
+  function makeCharTag(ch, idx, extraClass = "") {
+    const exactDelay = Math.round(delay + (offset + idx) * speed);
+    const styleAttr = ` style="animation-delay:${exactDelay}ms"`;
+    const cClass = ch === "\xB7" || ch === "\u2022" ? ` class="bullet-dot${extraClass ? " " + extraClass : ""}"` : extraClass ? ` class="${extraClass}"` : "";
+    return `<dx-c${cClass}${styleAttr}>${ch}</dx-c>`;
+  }
+  let result = "";
+  let compactParts = [];
+  let wStack = [{ entries: [], tagIdx: -1 }];
+  function currentWEntries() {
+    return wStack[wStack.length - 1].entries;
+  }
+  let charIdx = 0;
+  for (let i = 0; i < tokens.length; i++) {
+    const token = tokens[i];
+    if (token.type === "tag") {
+      if (/^<(?:dx|ui)-(?:number|odometer)\b/i.test(token.value)) {
+        let compHTML = token.value;
+        let depth = 1;
+        while (i + 1 < tokens.length && depth > 0) {
+          i++;
+          compHTML += tokens[i].value;
+          if (tokens[i].type === "tag") {
+            if (/^<(?:dx|ui)-(?:number|odometer)\b/i.test(tokens[i].value)) depth++;
+            else if (/^<\/(?:dx|ui)-(?:number|odometer)>/i.test(tokens[i].value)) depth--;
+          }
+        }
+        const exactDelay = Math.round(delay + (offset + charIdx) * speed);
+        charIdx += 1;
+        compHTML = compHTML.replace(/<((?:dx|ui)-(?:number|odometer)\b)([^>]*)>/i, (m, compTagName, attrs) => {
+          let newAttrs = attrs;
+          if (!/\btw-embed\b/.test(newAttrs)) {
+            if (/class="([^"]*)"/i.test(newAttrs)) {
+              newAttrs = newAttrs.replace(/class="([^"]*)"/i, 'class="$1 tw-embed"');
+            } else if (/class='([^']*)'/i.test(newAttrs)) {
+              newAttrs = newAttrs.replace(/class='([^']*)'/i, "class='$1 tw-embed'");
+            } else {
+              newAttrs = ` class="tw-embed"${newAttrs}`;
+            }
+          }
+          if (/style="([^"]*)"/i.test(newAttrs)) {
+            newAttrs = newAttrs.replace(/style="([^"]*)"/i, (sm, sContent) => {
+              let cleanS = sContent.replace(/--d:\s*\d+(?:ms)?\s*;?/g, "").trim();
+              if (cleanS && !cleanS.endsWith(";")) cleanS += ";";
+              return `style="${cleanS} --d: ${exactDelay};"`;
+            });
+          } else if (/style='([^']*)'/i.test(newAttrs)) {
+            newAttrs = newAttrs.replace(/style='([^']*)'/i, (sm, sContent) => {
+              let cleanS = sContent.replace(/--d:\s*\d+(?:ms)?\s*;?/g, "").trim();
+              if (cleanS && !cleanS.endsWith(";")) cleanS += ";";
+              return `style='${cleanS} --d: ${exactDelay};'`;
+            });
+          } else {
+            newAttrs = `${newAttrs} style="--d: ${exactDelay};"`;
+          }
+          return `<${compTagName}${newAttrs}>`;
+        });
+        const compTag = `<dx-c class="c-ui-num" style="animation-delay:${exactDelay}ms">${compHTML}</dx-c>`;
+        result += `<dx-w>${compTag}</dx-w>`;
+        currentWEntries().push({ meter: true });
+        compactParts.push(compHTML);
+      } else {
+        if (/^<\//.test(token.value)) {
+          result += token.value;
+          if (wStack.length > 1) {
+            const level = wStack.pop();
+            const wVal = encodeW(level.entries);
+            if (wVal && level.tagIdx >= 0) {
+              const openTag = compactParts[level.tagIdx];
+              compactParts[level.tagIdx] = openTag.replace(/>$/, ` w="${wVal}">`);
+            }
+          }
+          compactParts.push(token.value);
+        } else {
+          const isVoid = /^<(?:area|base|br|col|embed|hr|img|input|link|meta|param|source|track|wbr)\b/i.test(token.value) || /\/>$/.test(token.value);
+          if (isVoid) {
+            result += token.value;
+            compactParts.push(token.value);
+            currentWEntries().push({ element: true });
+          } else {
+            const exactDelay = Math.round(delay + (offset + charIdx) * speed);
+            let styledTag = token.value;
+            if (/\bstyle=["']([^"']*)["']/i.test(styledTag)) {
+              styledTag = styledTag.replace(/\bstyle=(["'])([^"']*)\1/i, (m, quote, val) => {
+                const trimmed = val.trim();
+                const sep = trimmed && !trimmed.endsWith(";") ? ";" : "";
+                return `style=${quote}${trimmed}${sep}--dx-delay:${exactDelay}ms;${quote}`;
+              });
+            } else {
+              styledTag = styledTag.replace(/>$/, ` style="--dx-delay:${exactDelay}ms;">`);
+            }
+            result += styledTag;
+            const tagIdx = compactParts.length;
+            compactParts.push(token.value);
+            currentWEntries().push({ element: true });
+            wStack.push({ entries: [], tagIdx });
+          }
+        }
+      }
+    } else if (token.type === "entity") {
+      const entTag = makeCharTag(token.value, charIdx++);
+      result += `<dx-w>${entTag}</dx-w>`;
+      currentWEntries().push({ len: 1 });
+      compactParts.push(token.value);
+    } else {
+      const parts = token.value.split(/(\s+)/);
+      for (let j = 0; j < parts.length; j++) {
+        const part = parts[j];
+        if (/^\s+$/.test(part)) {
+          result += part;
+          compactParts.push(part);
+          charIdx += 1;
+        } else if (part.length > 0) {
+          let punct = "";
+          if (i + 1 < tokens.length && tokens[i + 1].type === "text") {
+            const nextText = tokens[i + 1].value;
+            const punctMatch = nextText.match(/^[.,;:!?\\"'"']+/);
+            if (punctMatch) {
+              punct = punctMatch[0];
+              tokens[i + 1].value = nextText.substring(punct.length);
+            }
+          }
+          const wordChars = splitChars(part);
+          const punctChars = splitChars(punct);
+          const cTags = wordChars.map((ch) => makeCharTag(ch, charIdx++)).join("");
+          const pTags = punctChars.map((ch) => makeCharTag(ch, charIdx++)).join("");
+          const wClass = part.includes("-") || punct.includes("-") ? ' class="word"' : "";
+          result += `<dx-w${wClass}>${cTags}${pTags}</dx-w>`;
+          const totalLen = [...part + punct].length;
+          const isHyphen = part.includes("-") || punct.includes("-");
+          currentWEntries().push({ len: totalLen, hyphen: isHyphen });
+          compactParts.push(part + punct);
+        }
+      }
+    }
+  }
+  const allMatches = [...result.matchAll(/<dx-c\b([^>]*)>/gi)];
+  let targetMatch = null;
+  for (let m = allMatches.length - 1; m >= 0; m--) {
+    if (!/\bc-ui-num\b/.test(allMatches[m][1])) {
+      targetMatch = allMatches[m];
+      break;
+    }
+  }
+  if (!targetMatch && allMatches.length > 0) {
+    targetMatch = allMatches[allMatches.length - 1];
+  }
+  if (targetMatch) {
+    const idx = targetMatch.index + targetMatch[0].length - 1;
+    result = result.slice(0, idx) + ' data-last="true" onanimationend="return onTypewriterEnd(this, event)"' + result.slice(idx);
+  }
+  const rootW = encodeW(wStack[0].entries);
+  const compactHtml = compactParts.join("");
+  return {
+    html: result,
+    compactHtml,
+    wAttr: rootW,
+    cleanText,
+    totalUnits,
+    speed,
+    duration,
+    delay,
+    offset,
+    style
+  };
+}
+function ssrDxType(content, options = {}) {
+  const tagName = options.tagName || (options.isSda ? "dx-type-sda" : "dx-type");
+  const isSda = tagName === "dx-type-sda" || !!options.isSda;
+  const res = tokenize(content, options);
+  const safeAria = (options.ariaLabel || res.cleanText || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+  const ariaAttr = safeAria ? ` aria-label="${safeAria}"` : "";
+  const classAttr = options.className ? ` class="${options.className}"` : "";
+  const stContent = typeof content === "string" ? content.replace(/<(?:dx|ui)-odometer\b([^>]*)>([\s\S]*?)<\/(?:dx|ui)-odometer>/gi, (match, attrs, inner) => {
+    const cleanAttrs = attrs.replace(/\bdata-static(?:="[^"]*")?/gi, "").trim();
+    const existingDxS = inner ? inner.match(/<dx-s>([\s\S]*?)<\/dx-s>/i) : null;
+    let cleanText;
+    if (existingDxS) {
+      cleanText = existingDxS[1];
+    } else {
+      const valMatch = attrs.match(/\bpercent=["']([^"']+)["']/i) || attrs.match(/\bvalue=["']([^"']+)["']/i);
+      const sfxMatch = attrs.match(/\bsuffix=["']([^"']+)["']/i);
+      const pfxMatch = attrs.match(/\bprefix=["']([^"']+)["']/i);
+      const val = valMatch ? valMatch[1] : "";
+      const pfx = pfxMatch ? pfxMatch[1] : "";
+      const sfx = sfxMatch ? sfxMatch[1] : "";
+      cleanText = `${pfx}${val}${sfx}`.trim();
+    }
+    let mergedAttrs = cleanAttrs;
+    if (/\bclass=["']([^"']*)["']/i.test(mergedAttrs)) {
+      mergedAttrs = mergedAttrs.replace(/\bclass=["']([^"']*)["']/i, (m, cls) => `class="${cls.trim()} data-static"`);
+    } else {
+      mergedAttrs = `${mergedAttrs} class="data-static"`.trim();
+    }
+    return `<dx-odometer ${mergedAttrs}><dx-s>${cleanText}</dx-s></dx-odometer>`;
+  }) : content;
+  const charDur = Math.round(res.speed * 3.5);
+  const tStyle = ` style="animation-duration:${charDur}ms"`;
+  const stTokens = tokenize(stContent, options);
+  const sdaStContent = stTokens.compactHtml || stContent;
+  const wAttr = stTokens.wAttr ? ` w="${stTokens.wAttr}"` : "";
+  if (isSda) {
+    return `<${tagName}${classAttr} style="${res.style}"${ariaAttr}><dx-s${wAttr}>${sdaStContent}</dx-s><template><dx-t aria-hidden="true"${tStyle}>${res.html}</dx-t></template></${tagName}>`;
+  }
+  return `<${tagName}${classAttr} style="${res.style}"${ariaAttr}><dx-s${wAttr}>${sdaStContent}</dx-s><dx-t aria-hidden="true"${tStyle}>${res.html}</dx-t></${tagName}>`;
+}
+function ssrDxReveal(content, options = {}) {
+  const tagName = options.tagName || (options.isSda ? "dx-reveal-sda" : "dx-reveal");
+  const duration = Number(options.duration ?? options.t ?? options.time ?? (options.isSda ? 500 : 600));
+  const delay = Number(options.delay ?? options.d ?? 0);
+  const classAttr = options.className ? ` class="${options.className}"` : "";
+  const styleAttr = ` style="--d:${delay};--t:${duration}"`;
+  return `<${tagName}${classAttr}${styleAttr}>${content}</${tagName}>`;
+}
 export {
   DX_ANIM,
   DxBase,
+  DxCheck,
   DxCounter,
   DxMeter,
   DxNumber,
@@ -2444,32 +3193,43 @@ export {
   DxTypeSda,
   DxTyping,
   HEX_LUT,
+  SECTION_HEADER_SEL,
   bootstrapTypewriterObserver,
   buildTypingLayer,
   cleanupTypedDOM,
   ensureElementsUpToTarget,
   expandOdometerDrums,
   finishReveal,
+  flushIdleCleanup,
   formatNumber,
   generateDataO,
   generateRibbonHtml,
   getIO,
+  getLookaheadIO,
   getSdaGaps,
   getTypewriterObserver,
   mountTypewriter,
   observeIO,
+  observeLookaheadIO,
   observeTypewriter,
   onAllAnimationsEnd,
   onTypewriterEnd,
   prepareTemplateContent,
+  queueIdleCleanup,
   queueIdleUnpack,
   registerRAF,
   removeFromIdleQueue,
   rootWin2 as rootWin,
   setSdaGaps,
+  ssrDxOdometer,
+  ssrDxReveal,
+  ssrDxType,
   startReveal,
+  syncSectionHeaderTyping,
+  tokenize,
   uiNum,
   unobserveIO,
+  unobserveLookaheadIO,
   unpackTemplate,
   unregisterRAF
 };

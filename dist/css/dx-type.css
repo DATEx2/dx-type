@@ -5,11 +5,13 @@ dx-number,
 dx-odometer,
 ui-odometer,
 dx-counter,
+dx-check,
 :host(dx-type),
 :host(dx-type-sda),
 :host(dx-number),
 :host(dx-odometer),
 :host(dx-counter),
+:host(dx-check),
 :is(dx-type, dx-type-sda) :is(dx-s, dx-t, dx-w, dx-c),
 :is(dx-odometer, ui-odometer) :is(dx-s, b, dx-d, span, .ui-pfx, .ui-sfx, .ui-radix),
 dx-number :is(.ui-num-wrap, .ui-num, .ui-pad, .ui-pfx, .ui-sfx),
@@ -35,6 +37,33 @@ dx-reveal-sda,
   contain: layout style !important;
   box-sizing: border-box !important;
 }
+:is(dx-type, dx-type-sda) {
+  &,
+  & :is(dx-s, dx-t, dx-w, dx-c) {
+    font-kerning: none !important;
+    font-variant-ligatures: none !important;
+  }
+}
+dx-check,
+:host(dx-check) {
+  --dx-check-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='currentColor'%3E%3Cpath fill-rule='evenodd' d='M16.704 4.153a.75.75 0 0 1 .143 1.052l-8 10.5a.75.75 0 0 1-1.127.075l-4.5-4.5a.75.75 0 0 1 1.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 0 1 1.05-.143Z' clip-rule='evenodd'/%3E%3C/svg%3E");
+  display: inline-block !important;
+  vertical-align: -0.12em !important;
+  width: 0.95rem !important;
+  height: 0.95rem !important;
+  flex-shrink: 0 !important;
+  background-color: var(--color-brand-neon, #65c037) !important;
+  -webkit-mask: var(--dx-check-mask) no-repeat center / contain !important;
+  mask: var(--dx-check-mask) no-repeat center / contain !important;
+}
+li > :is(dx-type, dx-type-sda) dx-check {
+  position: absolute !important;
+  left: -1.25rem !important;
+  top: 0.22em !important;
+}
+:is(html:not(.dark-mode), .light-mode) dx-check {
+  background-color: var(--brand-green-primary, #199534) !important;
+}
 dx-type,
 dx-type-sda {
   display: block !important;
@@ -45,6 +74,7 @@ dx-type-sda {
   min-height: fit-content !important;
   text-align: inherit !important;
   font-kerning: none !important;
+  font-variant-ligatures: none !important;
   & > dx-s {
     position: relative !important;
     z-index: 1 !important;
@@ -58,13 +88,16 @@ dx-type-sda {
     pointer-events: auto !important;
   }
   &:not(.dx-typed) > dx-s {
+    opacity: 0 !important;
     color: transparent !important;
     -webkit-text-fill-color: transparent !important;
     text-shadow: none !important;
     filter: none !important;
     -webkit-filter: none !important;
     box-shadow: none !important;
-    & * {
+    & :is(dx-w, dx-c, dx-odometer, ui-odometer, b, strong, span, a, i, em, mark, i.c-ui-num),
+    & :is(dx-w, dx-c, dx-odometer, ui-odometer, b, strong, span, a, i, em, mark, i.c-ui-num)::before,
+    & :is(dx-w, dx-c, dx-odometer, ui-odometer, b, strong, span, a, i, em, mark, i.c-ui-num)::after {
       color: transparent !important;
       -webkit-text-fill-color: transparent !important;
       text-shadow: none !important;
@@ -82,6 +115,8 @@ dx-type-sda {
     width: inherit !important;
     height: inherit !important;
     display: block !important;
+    padding: inherit !important;
+    box-sizing: border-box !important;
     pointer-events: auto !important;
   }
   &.inline {
@@ -89,6 +124,7 @@ dx-type-sda {
     vertical-align: baseline !important;
     width: auto !important;
     height: auto !important;
+    white-space: nowrap !important;
     & > dx-s {
       position: relative !important;
       z-index: 1 !important;
@@ -96,16 +132,20 @@ dx-type-sda {
       vertical-align: baseline !important;
       width: auto !important;
       height: auto !important;
+      white-space: nowrap !important;
     }
     & > dx-t {
       position: absolute !important;
       z-index: 0 !important;
       display: inline-block !important;
-      width: 100% !important;
+      width: max-content !important;
+      min-width: 100% !important;
+      white-space: nowrap !important;
     }
   }
   &.dx-typed {
     & > dx-s {
+      opacity: 1 !important;
       pointer-events: auto !important;
       user-select: text !important;
     }
@@ -126,7 +166,7 @@ dx-reveal-sda {
   display: block !important;
   contain: layout style !important;
   width: 100% !important;
-  opacity: 0.001;
+  opacity: 0;
   transform: translateY(15px);
   &.inline,
   :is(span, p, a, button, h1, h2, h3, h4, h5, h6) > & {
@@ -140,12 +180,13 @@ dx-reveal-sda {
     visibility: visible !important;
     transform: none !important;
     will-change: auto !important;
+    contain: style !important;
   }
 }
 dx-odometer,
 ui-odometer {
   & dx-s,
-  & dx-s * {
+  & dx-s :is(dx-w, dx-c, b, strong, span, a, i, em, mark, i.c-ui-num) {
     color: inherit !important;
     -webkit-text-fill-color: currentColor !important;
     opacity: 1 !important;
@@ -263,7 +304,8 @@ dx-d:nth-last-of-type(6) {
 dx-d::before {
   content: attr(data-seq);
   position: absolute !important;
-  inset: 0 !important;
+  top: 0 !important;
+  left: 0 !important;
   width: 100% !important;
   display: block !important;
   white-space: pre !important;
@@ -277,13 +319,12 @@ dx-d::before {
   -webkit-text-fill-color: currentColor !important;
   transform: translateY(0);
 }
-:is(dx-odometer.dx-typing, dx-odometer.dx-typed) dx-d::before {
-  animation: run-odometer calc((var(--odo-dur, 1400ms) - (var(--r, 0) * var(--odo-stag, 60ms))) * var(--A, 1)) cubic-bezier(0.37, 0, 0.63, 1) calc((var(--d, 0) * 1ms + var(--r, 0) * 60ms) * var(--A, 1)) both !important;
+:is(dx-odometer.dx-typing, dx-odometer.dx-typed) :is(dx-d, d)::before {
+  animation: run-odometer calc((var(--odo-dur, 1400ms) - (var(--r, 0) * var(--odo-stag, 60ms))) * var(--A, 1)) cubic-bezier(0.37, 0, 0.63, 1) calc(((var(--d, 0) * 1ms) + (var(--r, 0) * var(--odo-stag, 60ms))) * var(--A, 1)) both !important;
   animation-play-state: running !important;
 }
-:is(dx-type-sda.dx-typing, dx-type-sda.dx-typed, dx-type.dx-typing, dx-type.dx-typed, .dx-type-ready) dx-odometer dx-d::before,
-dx-odometer.tw-embed dx-d::before {
-  animation: run-odometer calc(var(--odo-dur, 600ms) * var(--A, 1)) cubic-bezier(0.37, 0, 0.63, 1) calc(var(--d, 0) * 1ms * var(--A, 1)) both !important;
+:is(dx-type-sda.dx-typing, dx-type-sda.dx-typed, dx-type.dx-typing, dx-type.dx-typed, .dx-type-ready) dx-odometer :is(dx-d, d)::before {
+  animation: run-odometer calc((var(--odo-dur, 1400ms) - (var(--r, 0) * var(--odo-stag, 60ms))) * var(--A, 1)) cubic-bezier(0.37, 0, 0.63, 1) calc(((var(--d, 0) * 1ms) + (var(--r, 0) * var(--odo-stag, 60ms))) * var(--A, 1)) both !important;
   animation-play-state: running !important;
 }
 @keyframes run-odometer {
@@ -296,7 +337,7 @@ dx-odometer.tw-embed dx-d::before {
 }
 dx-number {
   display: inline-block !important;
-  contain: layout style !important;
+  contain: style !important;
   vertical-align: baseline !important;
   position: relative !important;
   & .ui-num-wrap {
@@ -336,58 +377,72 @@ dx-number {
 :is(dx-type.dx-typing, dx-type-sda.dx-typing) > dx-t {
   will-change: transform, opacity;
 }
-:is(dx-t, dx-type > dx-t, dx-type-sda > dx-t) :is(dx-w, s) > dx-c,
-:is(dx-t, dx-type > dx-t, dx-type-sda > dx-t) :is(dx-w, s) > * {
-  display: inline-block !important;
-  vertical-align: baseline !important;
-  line-height: inherit !important;
-  letter-spacing: inherit !important;
-  word-spacing: inherit !important;
-  opacity: 0;
-  transition: none !important;
-  animation-duration: calc(var(--u, 40) * 3.5ms) !important;
-  &.c-ui-num {
-    display: inline-flex !important;
-    align-items: baseline !important;
+:is(dx-t, dx-type > dx-t, dx-type-sda > dx-t) {
+  & :is(dx-w, s) {
+    display: inline-block !important;
     vertical-align: baseline !important;
+    white-space: nowrap !important;
+    word-break: keep-all !important;
+    overflow-wrap: normal !important;
+    & > dx-c {
+      display: inline-block !important;
+      vertical-align: baseline !important;
+      line-height: inherit !important;
+      letter-spacing: inherit !important;
+      word-spacing: inherit !important;
+      opacity: 0;
+      transition: none !important;
+      animation-duration: calc(var(--u, 40) * 3.5ms) !important;
+      &.c-ui-num {
+        display: inline-flex !important;
+        align-items: baseline !important;
+        vertical-align: baseline !important;
+      }
+    }
+  }
+  & :is(li, a, h1, h2, h3, h4, h5, h6, blockquote, p)::before,
+  & :is(li, a, h1, h2, h3, h4, h5, h6, blockquote, p)::after,
+  & dx-check {
+    opacity: 0;
+    transition: none !important;
+    animation-duration: calc(var(--u, 40) * 3.5ms) !important;
+    transform: translateY(6px);
+    will-change: transform, opacity;
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
   }
 }
-:is(dx-s, s-t, dx-type > dx-s, dx-type-sda > dx-s),
-:is(dx-s, s-t, dx-type > dx-s, dx-type-sda > dx-s) :is(dx-w, w, s, dx-c, i, c, span, dx-odometer, ui-odometer, dx-number, dx-counter, [class*=ui-]),
-:is(dx-s, s-t, dx-type > dx-s, dx-type-sda > dx-s) * {
-  will-change: auto !important;
-  backface-visibility: visible !important;
-  -webkit-backface-visibility: visible !important;
-  animation: none !important;
-  transform: none !important;
+:is(dx-s, s-t, dx-type > dx-s, dx-type-sda > dx-s) {
+  &,
+  & :is(dx-w, dx-c, dx-odometer, ui-odometer, b, strong, span, a, i, em, mark, i.c-ui-num) {
+    will-change: auto !important;
+    backface-visibility: visible !important;
+    -webkit-backface-visibility: visible !important;
+    animation: none !important;
+    transform: none !important;
+  }
+  & :is(dx-w, s) {
+    text-decoration: none !important;
+    display: inline !important;
+    white-space: nowrap !important;
+    line-height: inherit !important;
+    letter-spacing: inherit !important;
+    word-spacing: inherit !important;
+    & > :is(dx-c, span, b, strong, a, i, em, mark) {
+      display: inline !important;
+      vertical-align: baseline !important;
+      line-height: inherit !important;
+      letter-spacing: inherit !important;
+      word-spacing: inherit !important;
+    }
+    & > :is(dx-odometer, ui-odometer, .c-ui-num) {
+      display: inline-flex !important;
+      align-items: baseline !important;
+      vertical-align: baseline !important;
+    }
+  }
 }
-:is(dx-s, s-t, dx-type > dx-s, dx-type-sda > dx-s) :is(dx-w, s) {
-  text-decoration: none !important;
-  display: inline !important;
-  white-space: nowrap !important;
-  line-height: inherit !important;
-  letter-spacing: inherit !important;
-  word-spacing: inherit !important;
-}
-:is(dx-s, s-t, dx-type > dx-s, dx-type-sda > dx-s) :is(dx-w, s) > dx-c,
-:is(dx-s, s-t, dx-type > dx-s, dx-type-sda > dx-s) :is(dx-w, s) > *:not(dx-odometer):not(ui-odometer):not(.c-ui-num) {
-  display: inline !important;
-  vertical-align: baseline !important;
-  line-height: inherit !important;
-  letter-spacing: inherit !important;
-  word-spacing: inherit !important;
-}
-:is(dx-s, s-t, dx-type > dx-s, dx-type-sda > dx-s) :is(dx-w, s) > :is(dx-odometer, ui-odometer, .c-ui-num) {
-  display: inline-flex !important;
-  align-items: baseline !important;
-  vertical-align: baseline !important;
-}
-dx-w,
-s,
-dx-type dx-w,
-dx-type s,
-dx-type-sda dx-w,
-dx-type-sda s {
+:is(dx-w, s, dx-type dx-w, dx-type s, dx-type-sda dx-w, dx-type-sda s) {
   text-decoration: none !important;
   display: inline !important;
   white-space: nowrap !important;
@@ -398,27 +453,27 @@ dx-type-sda s {
 }
 @keyframes type-in {
   0% {
-    opacity: 0.001;
-    transform: translate3d(0, 6px, 0);
+    opacity: 0;
+    transform: translateY(6px);
   }
   100% {
     opacity: 1;
-    transform: translate3d(0, 0, 0);
+    transform: translateY(0);
   }
 }
 @keyframes reveal-in {
   0% {
-    opacity: 0.001;
-    transform: translate3d(0, 15px, 0);
+    opacity: 0;
+    transform: translateY(15px);
   }
   100% {
     opacity: 1;
-    transform: translate3d(0, 0, 0);
+    transform: translateY(0);
   }
 }
 @keyframes dx-reveal-sda {
   0% {
-    opacity: 0.001;
+    opacity: 0;
     transform: translateY(15px);
   }
   100% {
@@ -432,8 +487,20 @@ dx-type-sda s {
   animation-timing-function: linear !important;
   animation-fill-mode: both !important;
 }
-:is(.dx-type-ready, .type-ready, dx-type-ready.dx-type-ready, dx-type-ready.type-ready) dx-reveal:not(.dx-revealed):not(.REVEALED),
-:is(dx-reveal.dx-type-ready, dx-reveal.type-ready, dx-reveal.dx-revealing):not(.dx-revealed):not(.REVEALED) {
+:is(.dx-type-ready, .type-ready, dx-type-ready.dx-type-ready, dx-type-ready.type-ready, dx-type.dx-typing) :is(dx-t, t, dx-type > dx-t) :is(li, a, h1, h2, h3, h4, h5, h6, blockquote, p)::before,
+:is(.dx-type-ready, .type-ready, dx-type-ready.dx-type-ready, dx-type-ready.type-ready, dx-type.dx-typing) :is(dx-t, t, dx-type > dx-t) :is(li, a, h1, h2, h3, h4, h5, h6, blockquote, p)::after,
+:is(.dx-type-ready, .type-ready, dx-type-ready.dx-type-ready, dx-type-ready.type-ready, dx-type.dx-typing) :is(dx-t, t, dx-type > dx-t) dx-check {
+  visibility: visible !important;
+  animation-name: type-in !important;
+  animation-timing-function: linear !important;
+  animation-fill-mode: both !important;
+  animation-delay: var(--dx-delay, 0ms) !important;
+  will-change: transform, opacity;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+:is(.dx-type-ready, .type-ready, dx-type-ready.dx-type-ready, dx-type-ready.type-ready) dx-reveal:not(.dx-revealed),
+:is(dx-reveal.dx-type-ready, dx-reveal.type-ready, dx-reveal.dx-revealing):not(.dx-revealed) {
   visibility: visible !important;
   animation: reveal-in calc(var(--t, 600) * var(--A, 1) * 1ms) ease-out calc(var(--d, 0) * var(--A, 1) * 1ms) both !important;
 }
@@ -443,8 +510,21 @@ dx-type-sda s {
   animation-timing-function: linear !important;
   animation-fill-mode: both !important;
 }
-:is(dx-reveal-sda.dx-revealing, dx-reveal-sda[data-static]):not(.dx-revealed):not(.REVEALED) {
-  animation: dx-reveal-sda calc(var(--t, 500) * var(--A, 1) * 1ms) cubic-bezier(0.16, 1, 0.3, 1) calc(var(--d, 0) * var(--A, 1) * 1ms) both !important;
+:is(dx-type-sda.dx-typing, dx-type-sda[data-static], :is(dx-reveal-sda.dx-revealing, dx-reveal-sda.dx-revealed, .dx-revealed, .dx-revealing) dx-type-sda) :is(dx-t, t, dx-type-sda > dx-t) :is(li, a, h1, h2, h3, h4, h5, h6, blockquote, p)::before,
+:is(dx-type-sda.dx-typing, dx-type-sda[data-static], :is(dx-reveal-sda.dx-revealing, dx-reveal-sda.dx-revealed, .dx-revealed, .dx-revealing) dx-type-sda) :is(dx-t, t, dx-type-sda > dx-t) :is(li, a, h1, h2, h3, h4, h5, h6, blockquote, p)::after,
+:is(dx-type-sda.dx-typing, dx-type-sda[data-static], :is(dx-reveal-sda.dx-revealing, dx-reveal-sda.dx-revealed, .dx-revealed, .dx-revealing) dx-type-sda) :is(dx-t, t, dx-type-sda > dx-t) dx-check {
+  visibility: visible !important;
+  animation-name: type-in !important;
+  animation-timing-function: linear !important;
+  animation-fill-mode: both !important;
+  animation-delay: var(--dx-delay, 0ms) !important;
+  will-change: transform, opacity;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+:is(dx-reveal-sda.dx-revealing, dx-reveal-sda[data-static]):not(.dx-revealed) {
+  will-change: transform, opacity;
+  animation: dx-reveal-sda calc(var(--t, 500) * var(--A, 1) * 1ms) cubic-bezier(0.22, 1, 0.36, 1) calc(var(--d, 0) * var(--A, 1) * 1ms) both !important;
 }
 dx-odometer.data-static,
 .dx-typed dx-odometer {
@@ -478,7 +558,7 @@ dx-odometer.data-static dx-s,
 .dx-typed > dx-t {
   display: none !important;
 }
-:is(dx-type-sda, dx-type, .dx-typed, .TYPED).dx-typed :is(dx-w, w, s, dx-type-sda dx-w, dx-type-sda s, dx-type dx-w, dx-type s) > *:not(dx-odometer):not(ui-odometer):not(.c-ui-num) {
+:is(dx-type-sda, dx-type, .dx-typed).dx-typed :is(dx-w, w, s, dx-type-sda dx-w, dx-type-sda s, dx-type dx-w, dx-type s) > :is(dx-c, span, b, strong, a, i, em, mark) {
   animation: none !important;
   animation-timeline: none !important;
   opacity: 1 !important;
@@ -487,7 +567,7 @@ dx-odometer.data-static dx-s,
   display: inline-block !important;
   will-change: auto !important;
 }
-:is(dx-type-sda, dx-type, .dx-typed, .TYPED).dx-typed :is(dx-w, w, s, dx-type-sda dx-w, dx-type-sda s, dx-type dx-w, dx-type s) > :is(dx-odometer, ui-odometer, .c-ui-num) {
+:is(dx-type-sda, dx-type, .dx-typed).dx-typed :is(dx-w, w, s, dx-type-sda dx-w, dx-type-sda s, dx-type dx-w, dx-type s) > :is(dx-odometer, ui-odometer, .c-ui-num) {
   animation: none !important;
   animation-timeline: none !important;
   opacity: 1 !important;
@@ -498,10 +578,18 @@ dx-odometer.data-static dx-s,
   vertical-align: baseline !important;
   will-change: auto !important;
 }
+:is(dx-type-sda, dx-type, .dx-typed).dx-typed dx-check {
+  animation: none !important;
+  animation-timeline: none !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  transform: none !important;
+  will-change: auto !important;
+  backface-visibility: visible !important;
+  -webkit-backface-visibility: visible !important;
+}
 :is(dx-reveal-sda, dx-reveal).dx-revealed,
-:is(dx-reveal-sda, dx-reveal).REVEALED,
-.dx-revealed,
-.REVEALED {
+.dx-revealed {
   animation: none !important;
   animation-name: none !important;
   animation-timeline: none !important;
@@ -509,11 +597,12 @@ dx-odometer.data-static dx-s,
   visibility: visible !important;
   transform: none !important;
   will-change: auto !important;
+  contain: style !important;
 }
 @media (prefers-reduced-motion: reduce) {
   :is(dx-type, dx-type-sda) > dx-s,
   :is(dx-type, dx-type-sda):not(.dx-typed) > dx-s,
-  :is(dx-type, dx-type-sda):not(.dx-typed) > dx-s * {
+  :is(dx-type, dx-type-sda):not(.dx-typed) > dx-s :is(dx-w, dx-c, dx-odometer, ui-odometer, b, strong, span, a, i, em, mark, i.c-ui-num) {
     color: inherit !important;
     -webkit-text-fill-color: currentColor !important;
     opacity: 1 !important;

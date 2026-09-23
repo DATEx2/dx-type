@@ -237,22 +237,22 @@ export function formatNumber(val, type = 'int', comma = ',', prefix = '', suffix
     const num = parseFloat(val) || 0;
     let formatted = '';
 
-    if (type === 'int' || type.startsWith('int-') || type === 'number' || type.startsWith('number-')) {
-        const isFloat = type === 'float';
-        if (isFloat) {
-            formatted = num.toFixed(1).replace('.', comma);
-        } else {
-            const intVal = Math.round(num);
-            const str = intVal.toString();
-            // Thousands separator
-            formatted = str.replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
-        }
+    if (type.includes('number-1dec') || type === 'float' || type.startsWith('float')) {
+        formatted = num.toFixed(1).replace('.', comma);
+    } else if (type.includes('number-2dec') || type === 'number') {
+        formatted = num.toFixed(2).replace('.', comma);
+    } else if (type === 'int' || type.startsWith('int-') || type.startsWith('number-')) {
+        const intVal = Math.round(num);
+        const str = intVal.toString();
+        // Thousands separator
+        formatted = str.replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
     } else {
         formatted = num.toString().replace('.', comma);
     }
 
-    const pfx = prefix || '';
-    const sfx = suffix || '';
+    const pfx = prefix ? `${prefix}${prefix.endsWith(' ') ? '' : ' '}` : '';
+    const noLeadingSpace = /^[%°"”″’'VvAaWw€$£]|\//.test(suffix);
+    const sfx = suffix ? `${(suffix.startsWith(' ') || noLeadingSpace) ? '' : ' '}${suffix}` : '';
     return `${pfx}${formatted}${sfx}`;
 }
 
@@ -299,6 +299,13 @@ export function generateRibbonHtml(numericValue, type = 'int', comma = ',', pref
     const isYearWithStart = isYear && startDigitsStr && startDigitsStr.length === targetDigitsStr.length;
 
     // Determine leading-zero positions at animation start
+    // MUST NEVER blank the units digit (immediately before radix) or any decimal digits!
+    let intDigitsCount = 0;
+    for (let i = 0; i < mainDigits.length; i++) {
+        if (mainDigits[i] >= '0' && mainDigits[i] <= '9') intDigitsCount++;
+    }
+    const maxLeadingZeroIdx = Math.max(-1, intDigitsCount - 2);
+
     const startDigitsForLeading = [];
     for (let i = 0; i < targetDigitsStr.length; i++) {
         startDigitsForLeading.push(
@@ -314,7 +321,7 @@ export function generateRibbonHtml(numericValue, type = 'int', comma = ',', pref
     if (firstSignificant >= startDigitsForLeading.length) {
         firstSignificant = startDigitsForLeading.length - 1;
     }
-    const lastLeadingZeroIdx = firstSignificant - 1;
+    const lastLeadingZeroIdx = Math.min(firstSignificant - 1, maxLeadingZeroIdx);
 
     let digitIndex = 0;
     let digitsHtml = '';
@@ -365,7 +372,7 @@ export function generateRibbonHtml(numericValue, type = 'int', comma = ',', pref
 
             const totalItems = drumValues.length;
             const finalIndex = totalItems - 1;
-            const finalPosPercent = totalItems > 1 ? -(finalIndex * 100) : 0;
+            const finalPosPercent = totalItems > 1 ? -((finalIndex / totalItems) * 100).toFixed(4) : 0;
 
             // Build data-seq: compact digit string on wire (stripout, zero &#10;)
             const seqStr = drumValues.map(v => v === ' ' ? ' ' : v).join('');
@@ -376,12 +383,10 @@ export function generateRibbonHtml(numericValue, type = 'int', comma = ',', pref
         }
     }
 
-    const prefixHasSpace = (numberPartMatch?.[1] || '').endsWith(' ');
-    const prefixSpace = prefixHasSpace ? ' ' : '';
-    const suffixHasSpace = (numberPartMatch?.[5] || '').startsWith(' ');
-    const suffixSpace = suffixHasSpace ? ' ' : '';
-
-    const pfxHtml = prefixText ? `<span class="ui-pfx">${prefixText}${prefixSpace}</span>` : '';
+    const pfxHtml = prefixText ? `<span class="ui-pfx">${prefixText}${prefix.endsWith(' ') ? '' : ' '}</span>` : '';
+    const hasExplicitSpace = suffix.startsWith(' ');
+    const noSfxSpace = /^[%°"”″’'VvAaWw€$£]|\//.test(suffixText);
+    const suffixSpace = (hasExplicitSpace || !noSfxSpace) ? (suffixText ? ' ' : '') : '';
     const sfxHtml = suffixText ? `<span class="ui-sfx">${suffixSpace}${suffixText}</span>` : '';
 
     return `${pfxHtml}<b>${digitsHtml}</b>${sfxHtml}`;
@@ -419,7 +424,7 @@ export function expandOdometerDrums(root) {
         }
         if (seq && d.style && typeof d.style.getPropertyValue === 'function' && !d.style.getPropertyValue('--p')) {
             const totalItems = seq.includes('\n') ? seq.split('\n').length : seq.length;
-            const finalPosPercent = totalItems > 1 ? -((totalItems - 1) * 100) : 0;
+            const finalPosPercent = totalItems > 1 ? -(((totalItems - 1) / totalItems) * 100).toFixed(4) : 0;
             d.style.setProperty('--p', `${finalPosPercent}%`);
         }
     }

@@ -3,20 +3,20 @@ var VERSION = "0.1.0";
 function formatNumber(val, type = "int", comma = ",", prefix = "", suffix = "") {
   const num = parseFloat(val) || 0;
   let formatted = "";
-  if (type === "int" || type.startsWith("int-") || type === "number" || type.startsWith("number-")) {
-    const isFloat = type === "float";
-    if (isFloat) {
-      formatted = num.toFixed(1).replace(".", comma);
-    } else {
-      const intVal = Math.round(num);
-      const str = intVal.toString();
-      formatted = str.replace(/\B(?=(\d{3})+(?!\d))/g, " ");
-    }
+  if (type.includes("number-1dec") || type === "float" || type.startsWith("float")) {
+    formatted = num.toFixed(1).replace(".", comma);
+  } else if (type.includes("number-2dec") || type === "number") {
+    formatted = num.toFixed(2).replace(".", comma);
+  } else if (type === "int" || type.startsWith("int-") || type.startsWith("number-")) {
+    const intVal = Math.round(num);
+    const str = intVal.toString();
+    formatted = str.replace(/\B(?=(\d{3})+(?!\d))/g, " ");
   } else {
     formatted = num.toString().replace(".", comma);
   }
   const pfx = prefix ? `${prefix}${prefix.endsWith(" ") ? "" : " "}` : "";
-  const sfx = suffix ? `${suffix.startsWith(" ") ? "" : " "}${suffix}` : "";
+  const noLeadingSpace = /^[%°"”″’'VvAaWw€$£]|\//.test(suffix);
+  const sfx = suffix ? `${suffix.startsWith(" ") || noLeadingSpace ? "" : " "}${suffix}` : "";
   return `${pfx}${formatted}${sfx}`;
 }
 function generateRibbonHtml(numericValue, type = "int", comma = ",", prefix = "", suffix = "", startValue = null) {
@@ -96,7 +96,12 @@ function generateRibbonHtml(numericValue, type = "int", comma = ",", prefix = ""
             }
           }
         }
-        const isLeadingZero = !isYear && curDigitIdx < totalDigits - 1 && drumValues[0] === 0;
+        let intDigitsCount = 0;
+        for (let j = 0; j < mainDigits.length; j++) {
+          if (mainDigits[j] >= "0" && mainDigits[j] <= "9") intDigitsCount++;
+        }
+        const maxLeadingZeroIdx = Math.max(-1, intDigitsCount - 2);
+        const isLeadingZero = !isYear && curDigitIdx <= maxLeadingZeroIdx && drumValues[0] === 0;
         if (isLeadingZero) {
           let allZero = true;
           for (let z = 0; z <= curDigitIdx; z++) {
@@ -119,7 +124,10 @@ function generateRibbonHtml(numericValue, type = "int", comma = ",", prefix = ""
     }
   }
   const pfxHtml = prefixText ? `<span class="ui-pfx">${prefixText}${prefix.endsWith(" ") ? "" : " "}</span>` : "";
-  const sfxHtml = suffixText ? `<span class="ui-sfx">${suffix.startsWith(" ") ? "" : " "}${suffixText}</span>` : "";
+  const hasExplicitSpace = suffix.startsWith(" ");
+  const noSfxSpace = /^[%°"”″’'VvAaWw€$£]|\//.test(suffixText);
+  const sfxSpace = hasExplicitSpace || !noSfxSpace ? suffixText ? " " : "" : "";
+  const sfxHtml = suffixText ? `<span class="ui-sfx">${sfxSpace}${suffixText}</span>` : "";
   return `${pfxHtml}<b>${digitsHtml}</b>${sfxHtml}`;
 }
 function generateDataO(numericValue, type = "int", comma = ",", prefix = "", suffix = "", startValue = null) {
@@ -154,11 +162,18 @@ function ssrDxOdometer(numericValue, options = {}) {
   const typeAttr = ` type="${type}"`;
   const classStr = twContext ? `tw-embed ${className}`.trim() : className;
   const classAttr = classStr ? ` class="${classStr}"` : "";
-  const cleanNumber = String(numericValue);
+  let cleanPercent = String(numericValue);
+  if (type.includes("number-1dec")) {
+    const parsed = parseFloat(numericValue);
+    if (!isNaN(parsed)) cleanPercent = parsed.toFixed(1);
+  } else if (type.includes("number-2dec")) {
+    const parsed = parseFloat(numericValue);
+    if (!isNaN(parsed)) cleanPercent = parsed.toFixed(2);
+  }
   const formattedText = formatNumber(numericValue, type, comma, safePrefix, safeSuffix);
   const ariaLabel = formattedText.replace(/·/g, "").replace(/\s+/g, " ").trim().replace(/"/g, "&quot;");
   const ribbonHtml = generateRibbonHtml(numericValue, type, comma, safePrefix, safeSuffix, options.start);
-  return `<dx-odometer${classAttr}${typeAttr} percent="${numericValue}"${prefixAttr}${suffixAttr}${commaAttr} aria-label="${ariaLabel}" aria-hidden="true"><dx-s>${formattedText}</dx-s>${ribbonHtml}</dx-odometer>`;
+  return `<dx-odometer${classAttr}${typeAttr} percent="${cleanPercent}"${prefixAttr}${suffixAttr}${commaAttr} aria-label="${ariaLabel}" aria-hidden="true"><dx-s>${formattedText}</dx-s>${ribbonHtml}</dx-odometer>`;
 }
 function splitChars(str) {
   return [...str];
@@ -303,8 +318,8 @@ function tokenize(html, options = {}) {
         currentWEntries().push({ meter: true });
         compactParts.push(compHTML);
       } else {
-        result += token.value;
         if (/^<\//.test(token.value)) {
+          result += token.value;
           if (wStack.length > 1) {
             const level = wStack.pop();
             const wVal = encodeW(level.entries);
@@ -315,10 +330,29 @@ function tokenize(html, options = {}) {
           }
           compactParts.push(token.value);
         } else {
-          const tagIdx = compactParts.length;
-          compactParts.push(token.value);
-          currentWEntries().push({ element: true });
-          wStack.push({ entries: [], tagIdx });
+          const isVoid = /^<(?:area|base|br|col|embed|hr|img|input|link|meta|param|source|track|wbr)\b/i.test(token.value) || /\/>$/.test(token.value);
+          if (isVoid) {
+            result += token.value;
+            compactParts.push(token.value);
+            currentWEntries().push({ element: true });
+          } else {
+            const exactDelay = Math.round(delay + (offset + charIdx) * speed);
+            let styledTag = token.value;
+            if (/\bstyle=["']([^"']*)["']/i.test(styledTag)) {
+              styledTag = styledTag.replace(/\bstyle=(["'])([^"']*)\1/i, (m, quote, val) => {
+                const trimmed = val.trim();
+                const sep = trimmed && !trimmed.endsWith(";") ? ";" : "";
+                return `style=${quote}${trimmed}${sep}--dx-delay:${exactDelay}ms;${quote}`;
+              });
+            } else {
+              styledTag = styledTag.replace(/>$/, ` style="--dx-delay:${exactDelay}ms;">`);
+            }
+            result += styledTag;
+            const tagIdx = compactParts.length;
+            compactParts.push(token.value);
+            currentWEntries().push({ element: true });
+            wStack.push({ entries: [], tagIdx });
+          }
         }
       }
     } else if (token.type === "entity") {
@@ -395,22 +429,28 @@ function ssrDxType(content, options = {}) {
   const safeAria = (options.ariaLabel || res.cleanText || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
   const ariaAttr = safeAria ? ` aria-label="${safeAria}"` : "";
   const classAttr = options.className ? ` class="${options.className}"` : "";
-  const stContent = typeof content === "string" ? content.replace(/<(?:dx|ui)-odometer\b([^>]*)>[\s\S]*?<\/(?:dx|ui)-odometer>/gi, (match, attrs) => {
+  const stContent = typeof content === "string" ? content.replace(/<(?:dx|ui)-odometer\b([^>]*)>([\s\S]*?)<\/(?:dx|ui)-odometer>/gi, (match, attrs, inner) => {
     const cleanAttrs = attrs.replace(/\bdata-static(?:="[^"]*")?/gi, "").trim();
-    const valMatch = attrs.match(/\bpercent=["']([^"']+)["']/i) || attrs.match(/\bvalue=["']([^"']+)["']/i);
-    const sfxMatch = attrs.match(/\bsuffix=["']([^"']+)["']/i);
-    const pfxMatch = attrs.match(/\bprefix=["']([^"']+)["']/i);
-    const val = valMatch ? valMatch[1] : "";
-    const pfx = pfxMatch ? pfxMatch[1] : "";
-    const sfx = sfxMatch ? sfxMatch[1] : "";
-    const cleanText = `${pfx}${val}${sfx}`.trim();
+    const existingDxS = inner ? inner.match(/<dx-s>([\s\S]*?)<\/dx-s>/i) : null;
+    let cleanText;
+    if (existingDxS) {
+      cleanText = existingDxS[1];
+    } else {
+      const valMatch = attrs.match(/\bpercent=["']([^"']+)["']/i) || attrs.match(/\bvalue=["']([^"']+)["']/i);
+      const sfxMatch = attrs.match(/\bsuffix=["']([^"']+)["']/i);
+      const pfxMatch = attrs.match(/\bprefix=["']([^"']+)["']/i);
+      const val = valMatch ? valMatch[1] : "";
+      const pfx = pfxMatch ? pfxMatch[1] : "";
+      const sfx = sfxMatch ? sfxMatch[1] : "";
+      cleanText = `${pfx}${val}${sfx}`.trim();
+    }
     let mergedAttrs = cleanAttrs;
     if (/\bclass=["']([^"']*)["']/i.test(mergedAttrs)) {
       mergedAttrs = mergedAttrs.replace(/\bclass=["']([^"']*)["']/i, (m, cls) => `class="${cls.trim()} data-static"`);
     } else {
       mergedAttrs = `${mergedAttrs} class="data-static"`.trim();
     }
-    return `<dx-odometer ${mergedAttrs}>${cleanText}</dx-odometer>`;
+    return `<dx-odometer ${mergedAttrs}><dx-s>${cleanText}</dx-s></dx-odometer>`;
   }) : content;
   const charDur = Math.round(res.speed * 3.5);
   const tStyle = ` style="animation-duration:${charDur}ms"`;
@@ -418,7 +458,7 @@ function ssrDxType(content, options = {}) {
   const sdaStContent = stTokens.compactHtml || stContent;
   const wAttr = stTokens.wAttr ? ` w="${stTokens.wAttr}"` : "";
   if (isSda) {
-    return `<${tagName}${classAttr} style="${res.style}"${ariaAttr}><dx-s${wAttr}>${sdaStContent}</dx-s></${tagName}>`;
+    return `<${tagName}${classAttr} style="${res.style}"${ariaAttr}><dx-s${wAttr}>${sdaStContent}</dx-s><template><dx-t aria-hidden="true"${tStyle}>${res.html}</dx-t></template></${tagName}>`;
   }
   return `<${tagName}${classAttr} style="${res.style}"${ariaAttr}><dx-s${wAttr}>${sdaStContent}</dx-s><dx-t aria-hidden="true"${tStyle}>${res.html}</dx-t></${tagName}>`;
 }
