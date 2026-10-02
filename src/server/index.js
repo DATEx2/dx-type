@@ -1,6 +1,7 @@
 // src/server/index.js — Server-side (SSR) utilities for @datex2/dx-type.
 
 export const VERSION = '0.1.0';
+export const DX_CHAR_DURATION = 225; // Fixed Character Duration Baseline: 225ms (H1 Hero) or 170ms (H3 Hero)
 
 /**
  * Format a number according to format parameters.
@@ -580,8 +581,8 @@ export function ssrDxType(content, options = {}) {
         })
         : content;
 
-    const charDur = Math.round(res.speed * 3.5);
-    const tStyle = ` style="animation-duration:${charDur}ms"`;
+    const charDur = Number(options.charDuration ?? DX_CHAR_DURATION);
+    const tStyle = ` style="animation-duration:var(--dxt-char-dur, ${charDur}ms)"`;
 
     const stTokens = tokenize(stContent, options);
     const sdaStContent = stTokens.compactHtml || stContent;

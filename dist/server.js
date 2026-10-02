@@ -1,5 +1,6 @@
 // src/server/index.js
 var VERSION = "0.1.0";
+var DX_CHAR_DURATION = 225;
 function formatNumber(val, type = "int", comma = ",", prefix = "", suffix = "") {
   const num = parseFloat(val) || 0;
   let formatted = "";
@@ -461,8 +462,8 @@ function ssrDxType(content, options = {}) {
     const cleanClasses = clsList.filter(Boolean).join(" ");
     return `<dx-odometer class="${cleanClasses}">${cleanText}</dx-odometer>`;
   }) : content;
-  const charDur = Math.round(res.speed * 3.5);
-  const tStyle = ` style="animation-duration:${charDur}ms"`;
+  const charDur = Number(options.charDuration ?? DX_CHAR_DURATION);
+  const tStyle = ` style="animation-duration:var(--dxt-char-dur, ${charDur}ms)"`;
   const stTokens = tokenize(stContent, options);
   const sdaStContent = stTokens.compactHtml || stContent;
   const wAttr = stTokens.wAttr ? ` w="${stTokens.wAttr}"` : "";
@@ -517,6 +518,7 @@ function ssrDxCounter(numericValue, formattedText, cls, type = "number") {
   return "<dx-counter" + classAttr + ' type="' + type + '" percent="' + percent + '" prefix="' + pfx + '" suffix="' + sfx + '" comma="' + radix + '" style="--percent: ' + percent + ';" aria-label="' + ariaLabel + '" aria-hidden="true"><dx-s>' + formattedText + "</dx-s></dx-counter>";
 }
 export {
+  DX_CHAR_DURATION,
   VERSION,
   formatNumber,
   generateDataO,

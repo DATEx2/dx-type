@@ -237,7 +237,7 @@ function unobserveIO(el2) {
 }
 var idleQueue = [];
 var isIdleScheduled = false;
-var scheduleIdle = typeof window !== "undefined" && window.requestIdleCallback ? (cb) => window.requestIdleCallback(cb, { timeout: 50 }) : ((cb) => setTimeout(() => cb({ timeRemaining: () => 15, didTimeout: false }), 20));
+var scheduleIdle = typeof window !== "undefined" && window.requestIdleCallback ? window.requestIdleCallback.bind(window) : ((cb) => setTimeout(() => cb({ timeRemaining: () => 15, didTimeout: false }), 50));
 function processNextIdle() {
   if (idleQueue.length === 0) {
     isIdleScheduled = false;
@@ -732,6 +732,7 @@ if (rootWin2) {
 }
 
 // src/client/base/dx-typing.js
+var DX_CHAR_DURATION = 225;
 var HEX_LUT = new Uint8Array(128);
 for (let i = 0; i < 10; i++) HEX_LUT[48 + i] = i;
 for (let i = 0; i < 6; i++) HEX_LUT[65 + i] = 10 + i;
@@ -847,14 +848,14 @@ function prepareTemplateContent(el2) {
       const delay = dMatch ? parseFloat(dMatch[1]) : 0;
       const offset = bMatch ? parseFloat(bMatch[1]) : 0;
       const speed = uMatch ? parseFloat(uMatch[1]) : 40;
-      const charDur = Math.round(speed * 3.5);
+      const charDur = DX_CHAR_DURATION;
       const { tHtml, totalChars } = buildTypingLayer(ts, delay, offset, speed);
       if (tHtml) {
         const doc = el2.ownerDocument || (typeof document !== "undefined" ? document : null);
         if (doc) {
           const tLayer2 = doc.createElement("dx-t");
           tLayer2.setAttribute("aria-hidden", "true");
-          tLayer2.setAttribute("style", `animation-duration:${charDur}ms`);
+          tLayer2.setAttribute("style", `animation-duration:var(--dxt-char-dur, ${charDur}ms)`);
           tLayer2.innerHTML = tHtml;
           const allTC = tLayer2.querySelectorAll("dx-c");
           if (allTC.length > 0) {
@@ -897,8 +898,8 @@ function prepareTemplateContent(el2) {
         const style = el2.getAttribute("style") || "";
         const uMatch = style.match(/--u:([\d.]+)/);
         const speed = uMatch ? parseFloat(uMatch[1]) : 40;
-        const charDur = Math.round(speed * 3.5);
-        tLayer.setAttribute("style", `animation-duration:${charDur}ms`);
+        const charDur = DX_CHAR_DURATION;
+        tLayer.setAttribute("style", `animation-duration:var(--dxt-char-dur, ${charDur}ms)`);
         tLayer.innerHTML = stLegacy.innerHTML;
         tpl.content.appendChild(tLayer);
       }
@@ -1084,7 +1085,7 @@ function syncSectionHeaderTyping(el2) {
     const baseDur = dur ? parseFloat(dur) : 680;
     const delayMs = del ? parseFloat(del) : 0;
     const speed = u ? parseFloat(u) : 40;
-    const charDur = Math.round(speed * 3.5);
+    const charDur = DX_CHAR_DURATION;
     const totalDur = Math.round(baseDur + charDur);
     secHeader.style.setProperty("--header-line-dur", `${totalDur}ms`);
     if (delayMs > 0) {
@@ -1304,11 +1305,6 @@ var DxTyping = class extends DxBase {
     queueIdleCleanup(this, (target) => {
       cleanupTypedDOM(target);
     });
-    if (typeof requestAnimationFrame !== "undefined") {
-      requestAnimationFrame(() => {
-        flushIdleCleanup(this);
-      });
-    }
   }
 };
 var checkAndObserve = (el2) => {
@@ -2888,6 +2884,7 @@ var DxCheck = class extends DxBase {
 defCustomElement("dx-check", DxCheck);
 
 // src/server/index.js
+var DX_CHAR_DURATION2 = 225;
 function formatNumber2(val, type = "int", comma = ",", prefix = "", suffix = "") {
   const num = parseFloat(val) || 0;
   let formatted = "";
@@ -3336,8 +3333,8 @@ function ssrDxType(content, options = {}) {
     const cleanClasses = clsList.filter(Boolean).join(" ");
     return `<dx-odometer class="${cleanClasses}">${cleanText}</dx-odometer>`;
   }) : content;
-  const charDur = Math.round(res.speed * 3.5);
-  const tStyle = ` style="animation-duration:${charDur}ms"`;
+  const charDur = Number(options.charDuration ?? DX_CHAR_DURATION2);
+  const tStyle = ` style="animation-duration:var(--dxt-char-dur, ${charDur}ms)"`;
   const stTokens = tokenize(stContent, options);
   const sdaStContent = stTokens.compactHtml || stContent;
   const wAttr = stTokens.wAttr ? ` w="${stTokens.wAttr}"` : "";
@@ -3356,6 +3353,7 @@ function ssrDxReveal(content, options = {}) {
 }
 export {
   DX_ANIM,
+  DX_CHAR_DURATION,
   DxBase,
   DxCheck,
   DxCounter,

@@ -5,6 +5,10 @@
  */
 
 /* ─── 0. Universal Library Preflight & Reset ─────────────────────────────── */
+:root {
+    --dxt-char-dur: 225ms;
+}
+
 dx-type,
 dx-type-sda,
 dx-number,
@@ -446,7 +450,7 @@ dx-number {
             padding: 0 !important;
             opacity: 0;
             transition: none !important;
-            animation-duration: calc(var(--u, 40) * 3.5ms) !important;
+            animation-duration: var(--dxt-char-dur, 225ms) !important;
 
             &.c-ui-num {
                 display: inline-flex !important;
@@ -464,7 +468,7 @@ dx-number {
     & dx-check {
         opacity: 0;
         transition: none !important;
-        animation-duration: calc(var(--u, 40) * 3.5ms) !important;
+        animation-duration: var(--dxt-char-dur, 225ms) !important;
         transform: translateY(6px);
         will-change: transform, opacity;
         backface-visibility: hidden;

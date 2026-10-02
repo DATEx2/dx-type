@@ -1,11 +1,14 @@
 // dx-typing.js — DATEx2 Base Class & Lifecycle for Typewriter Components.
 //
-// exports: DxTyping, unpackTemplate, onTypewriterEnd, cleanupTypedDOM, ensureElementsUpToTarget, bootstrapTypewriterObserver, syncSectionHeaderTyping, SECTION_HEADER_SEL
+// exports: DxTyping, unpackTemplate, onTypewriterEnd, cleanupTypedDOM, ensureElementsUpToTarget, bootstrapTypewriterObserver, syncSectionHeaderTyping, SECTION_HEADER_SEL, DX_CHAR_DURATION
 // used_by: src/client/components/dx-type.js, src/client/components/dx-type-sda.js
 
 import { DxBase, rootWin } from './dx-base.js';
 import { observeIO, unobserveIO, getLookaheadIO, observeLookaheadIO, unobserveLookaheadIO, queueIdleUnpack, removeFromIdleQueue, queueIdleCleanup, flushIdleCleanup, getIO, DX_ANIM } from './dx-scheduler.js';
 import { generateRibbonHtml, expandOdometerDrums } from './dx-meter.js';
+
+// Fixed Character Duration Baseline: 225ms (H1 Hero) or 170ms (H3 Hero)
+export const DX_CHAR_DURATION = 225;
 
 // ─── HEX_LUT — Zero-parseInt hex nibble lookup ─────────────────────────────
 export const HEX_LUT = new Uint8Array(128);
@@ -139,7 +142,7 @@ export function prepareTemplateContent(el) {
         const delay = dMatch ? parseFloat(dMatch[1]) : 0;
         const offset = bMatch ? parseFloat(bMatch[1]) : 0;
         const speed = uMatch ? parseFloat(uMatch[1]) : 40;
-        const charDur = Math.round(speed * 3.5);
+        const charDur = DX_CHAR_DURATION;
 
         const { tHtml, totalChars } = buildTypingLayer(ts, delay, offset, speed);
         if (tHtml) {
@@ -147,7 +150,7 @@ export function prepareTemplateContent(el) {
             if (doc) {
                 const tLayer = doc.createElement('dx-t');
                 tLayer.setAttribute('aria-hidden', 'true');
-                tLayer.setAttribute('style', `animation-duration:${charDur}ms`);
+                tLayer.setAttribute('style', `animation-duration:var(--dxt-char-dur, ${charDur}ms)`);
                 tLayer.innerHTML = tHtml;
 
                 // Mark data-last on final <dx-c>
@@ -198,8 +201,8 @@ export function prepareTemplateContent(el) {
                 const style = el.getAttribute('style') || '';
                 const uMatch = style.match(/--u:([\d.]+)/);
                 const speed = uMatch ? parseFloat(uMatch[1]) : 40;
-                const charDur = Math.round(speed * 3.5);
-                tLayer.setAttribute('style', `animation-duration:${charDur}ms`);
+                const charDur = DX_CHAR_DURATION;
+                tLayer.setAttribute('style', `animation-duration:var(--dxt-char-dur, ${charDur}ms)`);
                 tLayer.innerHTML = stLegacy.innerHTML;
                 tpl.content.appendChild(tLayer);
             }
@@ -402,7 +405,7 @@ export function syncSectionHeaderTyping(el) {
         const baseDur = dur ? parseFloat(dur) : 680;
         const delayMs = del ? parseFloat(del) : 0;
         const speed = u ? parseFloat(u) : 40;
-        const charDur = Math.round(speed * 3.5);
+        const charDur = DX_CHAR_DURATION;
         const totalDur = Math.round(baseDur + charDur);
 
         secHeader.style.setProperty('--header-line-dur', `${totalDur}ms`);
@@ -676,11 +679,6 @@ export class DxTyping extends DxBase {
         queueIdleCleanup(this, (target) => {
             cleanupTypedDOM(target);
         });
-        if (typeof requestAnimationFrame !== 'undefined') {
-            requestAnimationFrame(() => {
-                flushIdleCleanup(this);
-            });
-        }
     }
 }
 
