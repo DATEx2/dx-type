@@ -15,6 +15,7 @@ const REVEAL_PARENT_SEL = 'dx-reveal-sda, dx-reveal, .reveal-sda, .reveal, ui-re
 
 export class DxTypeSda extends DxTyping {
     connectedCallback() {
+        this._isSdaConnected = true;
         if (this.isTyped) {
             cleanupTypedDOM(this);
             const secHeader = this.closest?.(SECTION_HEADER_SEL);
@@ -37,7 +38,7 @@ export class DxTypeSda extends DxTyping {
         // 2. Trigger Typing Animation (When crossing -110px threshold past actionbar/footer)
         observeIO(this, (el) => {
             if (el.isTyped || el.classList.contains(DX_ANIM.TYPED)) return;
-            if (isElementHidden(el)) return;
+            if (isElementHidden(el)) return false;
             el._inViewport = true;
 
             const triggerTyping = () => {

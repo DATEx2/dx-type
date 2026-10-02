@@ -262,13 +262,18 @@ var DxType = (() => {
       if (entry.isIntersecting) {
         const el2 = entry.target;
         const cb = activeIoElements.get(el2) || ioCallbacks.get(el2);
-        unobserveIO(el2);
         if (cb) {
           try {
-            cb(el2);
+            const res = cb(el2);
+            if (res !== false) {
+              unobserveIO(el2);
+            }
           } catch (err) {
             console.error("[dx-type] IO callback error:", err);
+            unobserveIO(el2);
           }
+        } else {
+          unobserveIO(el2);
         }
       }
     }
@@ -319,7 +324,7 @@ var DxType = (() => {
   }
   var idleQueue = [];
   var isIdleScheduled = false;
-  var scheduleIdle = typeof window !== "undefined" && window.requestIdleCallback ? window.requestIdleCallback.bind(window) : ((cb) => setTimeout(() => cb({ timeRemaining: () => 15, didTimeout: false }), 50));
+  var scheduleIdle = typeof window !== "undefined" && window.requestIdleCallback ? ((cb) => window.requestIdleCallback(cb, { timeout: 1e3 })) : ((cb) => setTimeout(() => cb({ timeRemaining: () => 15, didTimeout: false }), 50));
   function processNextIdle() {
     if (idleQueue.length === 0) {
       isIdleScheduled = false;
@@ -363,17 +368,19 @@ var DxType = (() => {
   }
   var idleCleanupQueue = [];
   var isCleanupIdleScheduled = false;
-  function processNextIdleCleanup() {
+  function processNextIdleCleanup(deadline) {
     if (idleCleanupQueue.length === 0) {
       isCleanupIdleScheduled = false;
       return;
     }
-    const item = idleCleanupQueue.shift();
-    if (item && item.el) {
-      try {
-        item.callback(item.el);
-      } catch (e) {
-        console.error("[dx-type] Idle cleanup failed:", e);
+    while (idleCleanupQueue.length > 0 && (!deadline || deadline.timeRemaining() > 2 || deadline.didTimeout)) {
+      const item = idleCleanupQueue.shift();
+      if (item && item.el) {
+        try {
+          item.callback(item.el);
+        } catch (e) {
+          console.error("[dx-type] Idle cleanup failed:", e);
+        }
       }
     }
     if (idleCleanupQueue.length > 0) {
@@ -1204,7 +1211,7 @@ var DxType = (() => {
       });
     });
     observeIO(el2, (targetEl) => {
-      if (isElementHidden(targetEl)) return;
+      if (isElementHidden(targetEl)) return false;
       removeFromIdleQueue(targetEl);
       unobserveLookaheadIO(targetEl);
       unpackTemplate(targetEl);
@@ -1415,6 +1422,7 @@ var DxType = (() => {
       if (secHeader) secHeader.classList.add(DX_ANIM.TYPED);
       return;
     }
+    if (el2._isSdaConnected) return;
     const closedDetails = !el2.closest("summary") && el2.closest("details:not([open])");
     if (closedDetails) return;
     if (el2.querySelector(":scope > template") || el2.querySelector(":scope > :is(dx-s, t-s)[w]")) {
@@ -1654,6 +1662,7 @@ var DxType = (() => {
   var REVEAL_PARENT_SEL2 = "dx-reveal-sda, dx-reveal, .reveal-sda, .reveal, ui-reveal-sda, ui-reveal";
   var DxTypeSda = class extends DxTyping {
     connectedCallback() {
+      this._isSdaConnected = true;
       if (this.isTyped) {
         cleanupTypedDOM(this);
         const secHeader = this.closest?.(SECTION_HEADER_SEL);
@@ -1672,7 +1681,7 @@ var DxType = (() => {
       }
       observeIO(this, (el2) => {
         if (el2.isTyped || el2.classList.contains(DX_ANIM.TYPED)) return;
-        if (isElementHidden(el2)) return;
+        if (isElementHidden(el2)) return false;
         el2._inViewport = true;
         const triggerTyping = () => {
           if (el2.isTyped || el2.classList.contains(DX_ANIM.TYPED)) return;

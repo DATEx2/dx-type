@@ -451,7 +451,7 @@ export function observeTypewriter(el) {
 
     // Stage 2: Trigger Typing Animation at -110px
     observeIO(el, (targetEl) => {
-        if (isElementHidden(targetEl)) return;
+        if (isElementHidden(targetEl)) return false;
         removeFromIdleQueue(targetEl);
         unobserveLookaheadIO(targetEl);
         unpackTemplate(targetEl); // Instant fallback if fast scroll reached -110px before idle slice
@@ -710,6 +710,7 @@ const checkAndObserve = (el) => {
         if (secHeader) secHeader.classList.add(DX_ANIM.TYPED);
         return;
     }
+    if (el._isSdaConnected) return;
     // If inside a closed <details> (and NOT in <summary>), do not observe for viewport intersection until opened!
     const closedDetails = !el.closest('summary') && el.closest('details:not([open])');
     if (closedDetails) return;

@@ -213,13 +213,18 @@ function ioHandler(entries) {
         if (entry.isIntersecting) {
             const el = entry.target;
             const cb = activeIoElements.get(el) || ioCallbacks.get(el);
-            unobserveIO(el);
             if (cb) {
                 try {
-                    cb(el);
+                    const res = cb(el);
+                    if (res !== false) {
+                        unobserveIO(el);
+                    }
                 } catch (err) {
                     console.error('[dx-type] IO callback error:', err);
+                    unobserveIO(el);
                 }
+            } else {
+                unobserveIO(el);
             }
         }
     }
@@ -280,7 +285,7 @@ const idleQueue = [];
 let isIdleScheduled = false;
 
 const scheduleIdle = (typeof window !== 'undefined' && window.requestIdleCallback)
-    ? window.requestIdleCallback.bind(window)
+    ? (cb => window.requestIdleCallback(cb, { timeout: 1000 }))
     : (cb => setTimeout(() => cb({ timeRemaining: () => 15, didTimeout: false }), 50));
 
 function processNextIdle() {
@@ -332,17 +337,19 @@ export function removeFromIdleQueue(el) {
 const idleCleanupQueue = [];
 let isCleanupIdleScheduled = false;
 
-function processNextIdleCleanup() {
+function processNextIdleCleanup(deadline) {
     if (idleCleanupQueue.length === 0) {
         isCleanupIdleScheduled = false;
         return;
     }
-    const item = idleCleanupQueue.shift();
-    if (item && item.el) {
-        try {
-            item.callback(item.el);
-        } catch (e) {
-            console.error('[dx-type] Idle cleanup failed:', e);
+    while (idleCleanupQueue.length > 0 && (!deadline || deadline.timeRemaining() > 2 || deadline.didTimeout)) {
+        const item = idleCleanupQueue.shift();
+        if (item && item.el) {
+            try {
+                item.callback(item.el);
+            } catch (e) {
+                console.error('[dx-type] Idle cleanup failed:', e);
+            }
         }
     }
     if (idleCleanupQueue.length > 0) {
