@@ -81,7 +81,9 @@ li > :is(dx-type, dx-type-sda) dx-check {
 /* ─── 1. Core Custom Elements & Nested Structure ─────────────────────────── */
 dx-type,
 dx-type-sda {
-    display: block !important;
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+    grid-template-rows: 1fr !important;
     position: relative !important;
     contain: layout style !important;
     width: 100% !important;
@@ -92,10 +94,12 @@ dx-type-sda {
     font-variant-ligatures: none !important;
 
     & > dx-s {
+        grid-column: 1 !important;
+        grid-row: 1 !important;
         position: relative !important;
         z-index: 1 !important;
         display: block !important;
-        width: inherit !important;
+        width: 100% !important;
         height: auto !important;
         min-height: fit-content !important;
         visibility: visible !important;
@@ -127,12 +131,13 @@ dx-type-sda {
     }
 
     & > dx-t {
-        position: absolute !important;
+        grid-column: 1 !important;
+        grid-row: 1 !important;
+        position: relative !important;
         z-index: 0 !important;
-        inset: 0 !important;
         contain: layout style !important;
-        width: inherit !important;
-        height: inherit !important;
+        width: 100% !important;
+        height: auto !important;
         display: block !important;
         padding: inherit !important;
         box-sizing: border-box !important;
@@ -140,25 +145,26 @@ dx-type-sda {
     }
 
     &.inline {
-        display: inline-block !important;
+        display: inline-grid !important;
         vertical-align: baseline !important;
+        grid-template-columns: 1fr !important;
+        grid-template-rows: 1fr !important;
         width: auto !important;
         height: auto !important;
         white-space: nowrap !important;
 
         & > dx-s {
-            position: relative !important;
-            z-index: 1 !important;
-            display: inline-block !important;
-            vertical-align: baseline !important;
+            grid-column: 1 !important;
+            grid-row: 1 !important;
+            display: block !important;
             width: auto !important;
             height: auto !important;
             white-space: nowrap !important;
         }
         & > dx-t {
-            position: absolute !important;
-            z-index: 0 !important;
-            display: inline-block !important;
+            grid-column: 1 !important;
+            grid-row: 1 !important;
+            display: block !important;
             width: max-content !important;
             min-width: 100% !important;
             white-space: nowrap !important;
@@ -182,6 +188,7 @@ dx-type-sda {
         }
     }
 }
+
 
 dx-type-ready {
     display: contents;
