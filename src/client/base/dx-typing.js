@@ -371,7 +371,7 @@ export function isElementHidden(el) {
     if (!el.closest('summary') && el.closest('details:not([open])')) return true;
     const drawer = el.closest('.spec-drawer, [role="dialog"].spec-drawer');
     if (drawer && !drawer.classList.contains('dx-type-ready')) return true;
-    const isMobile = typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(max-width: 719.5px), (max-width: 1024px) and (orientation: portrait)').matches;
+    const isMobile = typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(width < 768px), (width < 1025px) and (orientation: portrait)').matches;
     const hiddenParent = el.closest(isMobile ? '.hidden, [hidden], .wait-stuck:not(.is-stuck), .favorite-product__button--saved' : '.hidden, [hidden], .favorite-product__button--saved');
     if (hiddenParent && !hiddenParent.closest('.favorite-product--saved, .is-stuck')) return true;
     return false;
@@ -491,8 +491,7 @@ export function cleanupTypedDOM(typeEl) {
     const directTpl = typeEl.querySelector(':scope > template');
     if (directTpl) directTpl.remove();
 
-    // 2. Transfer drum structures from <dx-t> odometers to <dx-s> odometers
-    //    before removing tLayer, so fullscreen carousel can re-animate them.
+    // 2. Transfer metadata attributes from animated meters to static meters before removing tLayer
     const tLayer = typeEl.querySelector(':scope > :is(dx-t, t-t), :is(dx-t, t-t)');
     if (tLayer) {
         const sLayer = typeEl.querySelector(':scope > :is(dx-s, t-s)');
@@ -500,38 +499,50 @@ export function cleanupTypedDOM(typeEl) {
             const tOdos = tLayer.querySelectorAll ? tLayer.querySelectorAll('dx-odometer, ui-odometer') : [];
             const sOdos = sLayer.querySelectorAll ? sLayer.querySelectorAll('dx-odometer, ui-odometer') : [];
             const len = Math.min(tOdos.length, sOdos.length);
+            const META_ATTRS = ['percent', 'value', 'type', 'suffix', 'prefix', 'comma', 'aria-label', 'start', 'data-o'];
             for (let i = 0; i < len; i++) {
                 const tOdo = tOdos[i];
                 const sOdo = sOdos[i];
-                const drumB = tOdo.querySelector ? tOdo.querySelector('b') : null;
-                if (drumB) {
-                    // Wrap existing static text in a <dx-s> inner tag if not already wrapped
-                    // CSS rule: :not(.data-static) dx-s { display: none } hides it when active
-                    if (!sOdo.querySelector(':scope > :is(dx-s, t-s, s-t)')) {
-                        const staticWrap = doc.createElement('dx-s');
-                        while (sOdo.firstChild) staticWrap.appendChild(sOdo.firstChild);
-                        sOdo.appendChild(staticWrap);
+                for (let j = 0; j < META_ATTRS.length; j++) {
+                    const attr = META_ATTRS[j];
+                    if (tOdo.hasAttribute(attr) && !sOdo.hasAttribute(attr)) {
+                        sOdo.setAttribute(attr, tOdo.getAttribute(attr));
                     }
-                    // Copy drum <b> and prefix/suffix spans into static odometer
-                    const pfx = tOdo.querySelector ? tOdo.querySelector('.ui-pfx') : null;
-                    const sfx = tOdo.querySelector ? tOdo.querySelector('.ui-sfx') : null;
-                    if (pfx) sOdo.insertBefore(pfx.cloneNode(true), sOdo.firstChild);
-                    sOdo.appendChild(drumB.cloneNode(true));
-                    if (sfx) sOdo.appendChild(sfx.cloneNode(true));
-                    // Copy data-o attribute (compact drum data) if present
-                    const dataO = tOdo.getAttribute ? tOdo.getAttribute('data-o') : null;
-                    if (dataO) sOdo.setAttribute('data-o', dataO);
+                }
+                // Preserve exact mechanical strips in compact data-o attribute (zero DOM bloat)
+                if (!sOdo.hasAttribute('data-o')) {
+                    const dEls = tOdo.querySelectorAll ? tOdo.querySelectorAll('dx-d[data-seq]') : [];
+                    if (dEls.length > 0) {
+                        const seqs = Array.from(dEls).map(d => (d.getAttribute('data-seq') || '').replace(/\r?\n/g, ''));
+                        sOdo.setAttribute('data-o', seqs.join(','));
+                    }
                 }
             }
         }
         tLayer.remove();
     }
 
-    // 3. Guarantee that all child meters inside static layer are marked static
+    // 3. Guarantee that all child meters inside static layer are marked static and clean
     const stMeters = typeEl.querySelectorAll ? typeEl.querySelectorAll(':is(dx-s, t-s) :is(dx-odometer, ui-odometer, dx-number, ui-number)') : [];
     for (let i = 0; i < stMeters.length; i++) {
         const m = stMeters[i];
         if (typeof m.makeStatic === 'function') m.makeStatic();
+        else {
+            m.classList?.add('data-static');
+            m.setAttribute?.('data-static', 'true');
+        }
+        // Ensure clean static text without inner <dx-s>, <b>, or ui-sfx
+        const innerDxS = m.querySelector ? m.querySelector(':scope > :is(dx-s, t-s, s-t)') : null;
+        if (innerDxS) {
+            m.textContent = innerDxS.textContent || '';
+        } else if (m.querySelector && (m.querySelector('b') || m.querySelector('.ui-sfx'))) {
+            const drumB = m.querySelector('b');
+            if (drumB) drumB.remove();
+            const sfx = m.querySelector('.ui-sfx');
+            if (sfx) sfx.remove();
+            const pfx = m.querySelector('.ui-pfx');
+            if (pfx) pfx.remove();
+        }
         if (typeof m.getStaticHTML === 'function' && !m.textContent.trim()) {
             m.innerHTML = m.getStaticHTML();
         }

@@ -15,6 +15,7 @@ export default function testExports() {
     const clientIndex = readFileSync(join(root, 'src/client/index.js'), 'utf8');
     const expectedExports = [
         'DxBase', 'DX_ANIM', 'getIO', 'observeIO', 'registerRAF', 'unregisterRAF',
+        'gateIOUntil', 'flushScrollGate', 'isScrollRestored',
         'DxTyping', 'unpackTemplate', 'observeTypewriter', 'mountTypewriter',
         'ensureElementsUpToTarget', 'onTypewriterEnd', 'cleanupTypedDOM', 'bootstrapTypewriterObserver', 'buildTypingLayer', 'HEX_LUT',
         'DxRevealing', 'finishReveal', 'startReveal',

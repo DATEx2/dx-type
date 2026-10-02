@@ -189,9 +189,9 @@ dx-type-ready {
 
 dx-reveal,
 dx-reveal-sda {
-    display: block !important;
+    display: block;
     contain: layout style !important;
-    width: 100% !important;
+    width: 100%;
     opacity: 0;
     transform: translateY(15px);
 
@@ -256,6 +256,8 @@ dx-odometer, ui-odometer {
         font-style: normal !important;
         overflow: clip !important;
         overflow-clip-margin: 0px !important;
+        margin: 0 !important;
+        padding: 0 !important;
     }
 
     & .ui-radix {
@@ -433,6 +435,8 @@ dx-number {
             line-height: inherit !important;
             letter-spacing: inherit !important;
             word-spacing: inherit !important;
+            margin: 0 !important;
+            padding: 0 !important;
             opacity: 0;
             transition: none !important;
             animation-duration: calc(var(--u, 40) * 3.5ms) !important;
@@ -441,6 +445,9 @@ dx-number {
                 display: inline-flex !important;
                 align-items: baseline !important;
                 vertical-align: baseline !important;
+                letter-spacing: inherit !important;
+                margin: 0 !important;
+                padding: 0 !important;
             }
         }
     }

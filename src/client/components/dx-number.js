@@ -70,8 +70,12 @@ export class DxNumber extends DxMeter {
 
         const inST = typeof this.closest === 'function' ? !!this.closest('dx-s') : false;
         if (inST) {
-            this.makeStatic();
-            this.innerHTML = this.getStaticHTML();
+            if (!this.classList.contains('data-static')) {
+                this.makeStatic();
+            }
+            if (!this.hasChildNodes()) {
+                this.innerHTML = this.getStaticHTML();
+            }
             return;
         }
 
@@ -351,6 +355,7 @@ export class DxNumber extends DxMeter {
 
     animateTo(targetValue, duration) {
         if (typeof this.removeAttribute === 'function') this.removeAttribute('data-static');
+        if (this.classList && typeof this.classList.remove === 'function') this.classList.remove('data-static');
         this._targetValue = targetValue;
         this._animStartValue = (this._value !== undefined && !isNaN(this._value)) ? this._value : 0;
         this._animDuration = duration;
@@ -608,6 +613,10 @@ export class DxNumber extends DxMeter {
         const d = parseFloat(this.style.getPropertyValue('--d')) || 0;
         setTimeout(() => this.val(targetVal, 800), Math.max(50, d));
         return true;
+    }
+
+    makeStatic() {
+        // No-op: DxNumber and DxCounter are reactive living UI counters and should never become data-static
     }
 }
 

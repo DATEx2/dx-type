@@ -27,6 +27,14 @@ export default function testServerTokenizer() {
     assert(sdaTw.includes('Smart') && sdaTw.includes('Chargers') && sdaTw.includes('<dx-s'), 'Should generate search-text tag');
     assert(sdaTw.includes('<template>'), 'SDA should pack in <template>');
 
+    // 2b. ssrDxType with embedded <dx-odometer>
+    const odoTw = ssrDxType('<dx-odometer class="auto-n tw-embed" percent="90" suffix="%"><dx-s>90%</dx-s><b><dx-d data-seq="09">9</dx-d></b><span class="ui-sfx">%</span></dx-odometer> Longevity Mode', { isSda: true, delay: 0, duration: 320 });
+    assert(odoTw.includes('<dx-odometer class="auto-n tw-embed data-static">90%</dx-odometer>'), 'Static layer must contain debloated <dx-odometer class="auto-n tw-embed data-static">90%</dx-odometer>');
+    const staticLayerMatch = odoTw.match(/<dx-s[^>]*>([\s\S]*?)<\/dx-s>/);
+    assert(staticLayerMatch && !staticLayerMatch[1].includes('<dx-s>'), 'Static layer must NOT nest <dx-s> inside <dx-odometer>');
+    assert(staticLayerMatch && !staticLayerMatch[1].includes('<b>'), 'Static layer must NOT have <b> drums inside <dx-odometer>');
+    assert(odoTw.includes('aria-label="90% Longevity Mode"'), 'Aria label must be clean without duplicated characters');
+
     // 3. Tokenize with embedded <dx-number>
     const mixed = tokenize('Battery <dx-number percent="48">48</dx-number>V power');
     assert(mixed.html.includes('<dx-c class="c-ui-num"'), 'Should wrap <dx-number> in virtual typewriter slot');

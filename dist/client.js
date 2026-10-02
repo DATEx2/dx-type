@@ -23,11 +23,83 @@ var DX_ANIM = Object.freeze({
   TYPE_DURATION: 40
 });
 var ioInstance = null;
+var activeIoElements = /* @__PURE__ */ new Map();
 var ioCallbacks = /* @__PURE__ */ new WeakMap();
 var ioLookaheadInstance = null;
 var ioLookaheadCallbacks = /* @__PURE__ */ new WeakMap();
 var _sdaTopGap = "0%";
 var _sdaBottomGap = "-110px";
+var isScrollGated = false;
+var pendingIoQueue = /* @__PURE__ */ new Set();
+var pendingLookaheadQueue = /* @__PURE__ */ new Set();
+var isProductPage = typeof location !== "undefined" && /^\/(?:[a-z]{2}\/)?products?\//i.test(location.pathname || "");
+if (isProductPage && rootWin && !rootWin.__dxScrollRestored && !rootWin.__sdaReadyPerformanceTime) {
+  isScrollGated = true;
+}
+function isScrollRestored() {
+  return !isScrollGated;
+}
+function flushScrollGate() {
+  if (!isScrollGated && pendingIoQueue.size === 0 && pendingLookaheadQueue.size === 0) return;
+  isScrollGated = false;
+  if (rootWin) rootWin.__dxScrollRestored = true;
+  if (pendingLookaheadQueue.size > 0) {
+    const lookaheadObs = getLookaheadIO();
+    for (const el2 of pendingLookaheadQueue) {
+      if (el2 && el2.isConnected) {
+        if (lookaheadObs) {
+          lookaheadObs.observe(el2);
+        } else {
+          const cb = ioLookaheadCallbacks.get(el2);
+          if (cb) {
+            ioLookaheadCallbacks.delete(el2);
+            cb(el2);
+          }
+        }
+      }
+    }
+    pendingLookaheadQueue.clear();
+  }
+  if (pendingIoQueue.size > 0) {
+    const obs = getIO();
+    for (const el2 of pendingIoQueue) {
+      if (el2 && el2.isConnected) {
+        if (obs) {
+          obs.observe(el2);
+        } else {
+          const cb = activeIoElements.get(el2) || ioCallbacks.get(el2);
+          activeIoElements.delete(el2);
+          ioCallbacks.delete(el2);
+          if (cb) {
+            try {
+              cb(el2);
+            } catch (err) {
+              console.error("[dx-type] IO callback error:", err);
+            }
+          }
+        }
+      }
+    }
+    pendingIoQueue.clear();
+  }
+}
+function gateIOUntil(promise) {
+  if (!promise || typeof promise.then !== "function") return;
+  isScrollGated = true;
+  promise.then(() => {
+    flushScrollGate();
+  }).catch((err) => {
+    console.error("[dx-type] gateIOUntil promise rejected:", err);
+    flushScrollGate();
+  });
+}
+if (rootWin && typeof rootWin.addEventListener === "function") {
+  const onReady = () => {
+    flushScrollGate();
+  };
+  rootWin.addEventListener("sda-ready", onReady, { once: true });
+  rootWin.addEventListener("type-ready", onReady, { once: true });
+}
 function formatMarginValue(v) {
   if (!v || v === "0" || v === "0%" || v === "0px" || v === 0) return "0px";
   if (typeof v === "number") return `${v}px`;
@@ -40,6 +112,12 @@ function setSdaGaps(top = "0%", bottom = "0%") {
   if (ioInstance) {
     ioInstance.disconnect();
     ioInstance = null;
+    const obs = getIO();
+    if (obs && activeIoElements.size > 0) {
+      for (const [el2] of activeIoElements.entries()) {
+        if (el2 && el2.isConnected) obs.observe(el2);
+      }
+    }
   }
 }
 function getSdaGaps() {
@@ -78,9 +156,13 @@ function getLookaheadIO() {
 }
 function observeLookaheadIO(el2, callback) {
   if (!el2) return;
+  ioLookaheadCallbacks.set(el2, callback);
+  if (isScrollGated) {
+    pendingLookaheadQueue.add(el2);
+    return;
+  }
   const obs = getLookaheadIO();
   if (obs) {
-    ioLookaheadCallbacks.set(el2, callback);
     obs.observe(el2);
   } else {
     callback(el2);
@@ -88,6 +170,7 @@ function observeLookaheadIO(el2, callback) {
 }
 function unobserveLookaheadIO(el2) {
   if (!el2) return;
+  pendingLookaheadQueue.delete(el2);
   ioLookaheadCallbacks.delete(el2);
   if (ioLookaheadInstance) ioLookaheadInstance.unobserve(el2);
 }
@@ -96,11 +179,14 @@ function ioHandler(entries) {
     const entry = entries[i];
     if (entry.isIntersecting) {
       const el2 = entry.target;
-      if (ioInstance) ioInstance.unobserve(el2);
-      const cb = ioCallbacks.get(el2);
+      const cb = activeIoElements.get(el2) || ioCallbacks.get(el2);
+      unobserveIO(el2);
       if (cb) {
-        ioCallbacks.delete(el2);
-        cb(el2);
+        try {
+          cb(el2);
+        } catch (err) {
+          console.error("[dx-type] IO callback error:", err);
+        }
       }
     }
   }
@@ -123,16 +209,29 @@ function getIO() {
 }
 function observeIO(el2, callback) {
   if (!el2) return;
+  activeIoElements.set(el2, callback);
+  ioCallbacks.set(el2, callback);
+  if (isScrollGated) {
+    pendingIoQueue.add(el2);
+    return;
+  }
   const obs = getIO();
   if (obs) {
-    ioCallbacks.set(el2, callback);
     obs.observe(el2);
   } else {
-    callback(el2);
+    activeIoElements.delete(el2);
+    ioCallbacks.delete(el2);
+    try {
+      callback(el2);
+    } catch (err) {
+      console.error("[dx-type] IO callback error:", err);
+    }
   }
 }
 function unobserveIO(el2) {
   if (!el2) return;
+  pendingIoQueue.delete(el2);
+  activeIoElements.delete(el2);
   ioCallbacks.delete(el2);
   if (ioInstance) ioInstance.unobserve(el2);
 }
@@ -293,7 +392,11 @@ if (rootWin) {
       registerRAF,
       unregisterRAF,
       onAllAnimationsEnd,
-      getActiveAnimationsCount: () => activeAnimations.size
+      getActiveAnimationsCount: () => activeAnimations.size,
+      gateIOUntil,
+      flushScrollGate,
+      isScrollRestored,
+      isScrollGated: () => isScrollGated
     }
   });
 }
@@ -953,7 +1056,7 @@ function isElementHidden(el2) {
   if (!el2.closest("summary") && el2.closest("details:not([open])")) return true;
   const drawer = el2.closest('.spec-drawer, [role="dialog"].spec-drawer');
   if (drawer && !drawer.classList.contains("dx-type-ready")) return true;
-  const isMobile = typeof window !== "undefined" && window.matchMedia && window.matchMedia("(max-width: 719.5px), (max-width: 1024px) and (orientation: portrait)").matches;
+  const isMobile = typeof window !== "undefined" && window.matchMedia && window.matchMedia("(width < 768px), (width < 1025px) and (orientation: portrait)").matches;
   const hiddenParent = el2.closest(isMobile ? ".hidden, [hidden], .wait-stuck:not(.is-stuck), .favorite-product__button--saved" : ".hidden, [hidden], .favorite-product__button--saved");
   if (hiddenParent && !hiddenParent.closest(".favorite-product--saved, .is-stuck")) return true;
   return false;
@@ -1051,23 +1154,22 @@ function cleanupTypedDOM(typeEl) {
       const tOdos = tLayer.querySelectorAll ? tLayer.querySelectorAll("dx-odometer, ui-odometer") : [];
       const sOdos = sLayer.querySelectorAll ? sLayer.querySelectorAll("dx-odometer, ui-odometer") : [];
       const len = Math.min(tOdos.length, sOdos.length);
+      const META_ATTRS = ["percent", "value", "type", "suffix", "prefix", "comma", "aria-label", "start", "data-o"];
       for (let i = 0; i < len; i++) {
         const tOdo = tOdos[i];
         const sOdo = sOdos[i];
-        const drumB = tOdo.querySelector ? tOdo.querySelector("b") : null;
-        if (drumB) {
-          if (!sOdo.querySelector(":scope > :is(dx-s, t-s, s-t)")) {
-            const staticWrap = doc.createElement("dx-s");
-            while (sOdo.firstChild) staticWrap.appendChild(sOdo.firstChild);
-            sOdo.appendChild(staticWrap);
+        for (let j = 0; j < META_ATTRS.length; j++) {
+          const attr = META_ATTRS[j];
+          if (tOdo.hasAttribute(attr) && !sOdo.hasAttribute(attr)) {
+            sOdo.setAttribute(attr, tOdo.getAttribute(attr));
           }
-          const pfx = tOdo.querySelector ? tOdo.querySelector(".ui-pfx") : null;
-          const sfx = tOdo.querySelector ? tOdo.querySelector(".ui-sfx") : null;
-          if (pfx) sOdo.insertBefore(pfx.cloneNode(true), sOdo.firstChild);
-          sOdo.appendChild(drumB.cloneNode(true));
-          if (sfx) sOdo.appendChild(sfx.cloneNode(true));
-          const dataO = tOdo.getAttribute ? tOdo.getAttribute("data-o") : null;
-          if (dataO) sOdo.setAttribute("data-o", dataO);
+        }
+        if (!sOdo.hasAttribute("data-o")) {
+          const dEls = tOdo.querySelectorAll ? tOdo.querySelectorAll("dx-d[data-seq]") : [];
+          if (dEls.length > 0) {
+            const seqs = Array.from(dEls).map((d) => (d.getAttribute("data-seq") || "").replace(/\r?\n/g, ""));
+            sOdo.setAttribute("data-o", seqs.join(","));
+          }
         }
       }
     }
@@ -1077,6 +1179,21 @@ function cleanupTypedDOM(typeEl) {
   for (let i = 0; i < stMeters.length; i++) {
     const m = stMeters[i];
     if (typeof m.makeStatic === "function") m.makeStatic();
+    else {
+      m.classList?.add("data-static");
+      m.setAttribute?.("data-static", "true");
+    }
+    const innerDxS = m.querySelector ? m.querySelector(":scope > :is(dx-s, t-s, s-t)") : null;
+    if (innerDxS) {
+      m.textContent = innerDxS.textContent || "";
+    } else if (m.querySelector && (m.querySelector("b") || m.querySelector(".ui-sfx"))) {
+      const drumB = m.querySelector("b");
+      if (drumB) drumB.remove();
+      const sfx = m.querySelector(".ui-sfx");
+      if (sfx) sfx.remove();
+      const pfx = m.querySelector(".ui-pfx");
+      if (pfx) pfx.remove();
+    }
     if (typeof m.getStaticHTML === "function" && !m.textContent.trim()) {
       m.innerHTML = m.getStaticHTML();
     }
@@ -1570,6 +1687,7 @@ var DxTypeReady = class extends DxBase {
     if (!this._pristineHTML && typeof document !== "undefined" && document.body?.classList?.contains("dx-type-record")) {
       this._pristineHTML = this.innerHTML;
     }
+    if (this.id === "gallery") return;
     if (!this.classList.contains("dx-type-ready")) {
       const fontsReady = typeof document !== "undefined" && document.fonts && document.fonts.ready ? Promise.race([document.fonts.ready, new Promise((r) => setTimeout(r, 800))]) : Promise.resolve();
       fontsReady.then(() => {
@@ -1637,8 +1755,12 @@ var DxNumber = class extends DxMeter {
     if (this._initialized) return;
     const inST = typeof this.closest === "function" ? !!this.closest("dx-s") : false;
     if (inST) {
-      this.makeStatic();
-      this.innerHTML = this.getStaticHTML();
+      if (!this.classList.contains("data-static")) {
+        this.makeStatic();
+      }
+      if (!this.hasChildNodes()) {
+        this.innerHTML = this.getStaticHTML();
+      }
       return;
     }
     const isSsr = typeof this.querySelector === "function" && Boolean(this.querySelector(".ui-num, .dx-num-wrap"));
@@ -1884,6 +2006,7 @@ var DxNumber = class extends DxMeter {
   }
   animateTo(targetValue, duration) {
     if (typeof this.removeAttribute === "function") this.removeAttribute("data-static");
+    if (this.classList && typeof this.classList.remove === "function") this.classList.remove("data-static");
     this._targetValue = targetValue;
     this._animStartValue = this._value !== void 0 && !isNaN(this._value) ? this._value : 0;
     this._animDuration = duration;
@@ -2114,6 +2237,8 @@ var DxNumber = class extends DxMeter {
     const d = parseFloat(this.style.getPropertyValue("--d")) || 0;
     setTimeout(() => this.val(targetVal, 800), Math.max(50, d));
     return true;
+  }
+  makeStatic() {
   }
 };
 if (rootWin2) {
@@ -2559,7 +2684,9 @@ var DxCounter = class _DxCounter extends DxNumber {
       if (this._elU.textContent !== uStr) this._elU.textContent = uStr;
     }
     if (this._elDec) {
-      const decStr = hasDec ? `${radix}${String(c.dec).padStart(2, "0")}` : "";
+      const is1Dec = cfg.type && (cfg.type.includes("number-1dec") || cfg.type.includes("float-1dec"));
+      const decVal = is1Dec ? Math.round(c.dec / 10) : String(c.dec).padStart(2, "0");
+      const decStr = hasDec ? `${radix}${decVal}` : "";
       if (this._elDec.textContent !== decStr) this._elDec.textContent = decStr;
     }
     if (hasB !== this._lastHasB) {
@@ -2910,7 +3037,7 @@ function tokenize(html, options = {}) {
   const duration = Number(options.duration ?? options.t ?? options.time ?? 580);
   const delay = Number(options.delay ?? options.d ?? 0);
   const offset = Number(options.offset ?? options.b ?? 0);
-  const cleanText = html.replace(/<(?:ui|dx)-odometer[^>]*aria-label="([^"]*)"[^>]*>[\s\S]*?<\/(?:ui|dx)-odometer>/gi, "$1").replace(/<(?:ui|dx)-number[^>]*aria-label="([^"]*)"[^>]*>[\s\S]*?<\/(?:ui|dx)-number>/gi, "$1").replace(/<(?:ui|dx)-number[^>]*>([\s\S]*?)<\/(?:ui|dx)-number>/gi, "$1").replace(/<[^>]+>/g, "").replace(/&amp;/gi, "&").replace(/&lt;/gi, "<").replace(/&gt;/gi, ">").replace(/&quot;/gi, '"').trim().replace(/\s+/g, " ");
+  const cleanText = html.replace(/<(?:ui|dx)-odometer[^>]*aria-label="([^"]*)"[^>]*>[\s\S]*?<\/(?:ui|dx)-odometer>/gi, "$1").replace(/<(?:ui|dx)-odometer[^>]*>[\s\S]*?<dx-s>([\s\S]*?)<\/dx-s>[\s\S]*?<\/(?:ui|dx)-odometer>/gi, "$1").replace(/<(?:ui|dx)-odometer[^>]*>([\s\S]*?)<\/(?:ui|dx)-odometer>/gi, "$1").replace(/<(?:ui|dx)-number[^>]*aria-label="([^"]*)"[^>]*>[\s\S]*?<\/(?:ui|dx)-number>/gi, "$1").replace(/<(?:ui|dx)-number[^>]*>([\s\S]*?)<\/(?:ui|dx)-number>/gi, "$1").replace(/<[^>]+>/g, "").replace(/&amp;/gi, "&").replace(/&lt;/gi, "<").replace(/&gt;/gi, ">").replace(/&quot;/gi, '"').trim().replace(/\s+/g, " ");
   const tokens = [];
   const tokenRegex = /(<[^>]+>)|(&(?:[a-z0-9]+|#[0-9]+|#x[0-9a-f]+);)|([^<&]+|&)/gi;
   let tokenMatch;
@@ -3003,20 +3130,22 @@ function tokenize(html, options = {}) {
               newAttrs = ` class="tw-embed"${newAttrs}`;
             }
           }
-          if (/style="([^"]*)"/i.test(newAttrs)) {
-            newAttrs = newAttrs.replace(/style="([^"]*)"/i, (sm, sContent) => {
-              let cleanS = sContent.replace(/--d:\s*\d+(?:ms)?\s*;?/g, "").trim();
-              if (cleanS && !cleanS.endsWith(";")) cleanS += ";";
-              return `style="${cleanS} --d: ${exactDelay};"`;
-            });
-          } else if (/style='([^']*)'/i.test(newAttrs)) {
-            newAttrs = newAttrs.replace(/style='([^']*)'/i, (sm, sContent) => {
-              let cleanS = sContent.replace(/--d:\s*\d+(?:ms)?\s*;?/g, "").trim();
-              if (cleanS && !cleanS.endsWith(";")) cleanS += ";";
-              return `style='${cleanS} --d: ${exactDelay};'`;
-            });
-          } else {
-            newAttrs = `${newAttrs} style="--d: ${exactDelay};"`;
+          if (!/\bdata-static\b/.test(newAttrs)) {
+            if (/style="([^"]*)"/i.test(newAttrs)) {
+              newAttrs = newAttrs.replace(/style="([^"]*)"/i, (sm, sContent) => {
+                let cleanS = sContent.replace(/--d:\s*\d+(?:ms)?\s*;?/g, "").trim();
+                if (cleanS && !cleanS.endsWith(";")) cleanS += ";";
+                return `style="${cleanS} --d: ${exactDelay};"`;
+              });
+            } else if (/style='([^']*)'/i.test(newAttrs)) {
+              newAttrs = newAttrs.replace(/style='([^']*)'/i, (sm, sContent) => {
+                let cleanS = sContent.replace(/--d:\s*\d+(?:ms)?\s*;?/g, "").trim();
+                if (cleanS && !cleanS.endsWith(";")) cleanS += ";";
+                return `style='${cleanS} --d: ${exactDelay};'`;
+              });
+            } else {
+              newAttrs = `${newAttrs} style="--d: ${exactDelay};"`;
+            }
           }
           return `<${compTagName}${newAttrs}>`;
         });
@@ -3085,16 +3214,22 @@ function tokenize(html, options = {}) {
               tokens[i + 1].value = nextText.substring(punct.length);
             }
           }
-          const wordChars = splitChars(part);
-          const punctChars = splitChars(punct);
-          const cTags = wordChars.map((ch) => makeCharTag(ch, charIdx++)).join("");
-          const pTags = punctChars.map((ch) => makeCharTag(ch, charIdx++)).join("");
-          const wClass = part.includes("-") || punct.includes("-") ? ' class="word"' : "";
-          result += `<dx-w${wClass}>${cTags}${pTags}</dx-w>`;
-          const totalLen = [...part + punct].length;
-          const isHyphen = part.includes("-") || punct.includes("-");
-          currentWEntries().push({ len: totalLen, hyphen: isHyphen });
-          compactParts.push(part + punct);
+          const subWords = part.includes("-") && part.length > 1 && !/^-+$/.test(part) ? part.match(/[^-]+-?/g) || [part] : [part];
+          for (let sIdx = 0; sIdx < subWords.length; sIdx++) {
+            const subWord = subWords[sIdx];
+            const isLastSubWord = sIdx === subWords.length - 1;
+            const subPunct = isLastSubWord ? punct : "";
+            const wordChars = splitChars(subWord);
+            const punctChars = splitChars(subPunct);
+            const cTags = wordChars.map((ch) => makeCharTag(ch, charIdx++)).join("");
+            const pTags = punctChars.map((ch) => makeCharTag(ch, charIdx++)).join("");
+            const wClass = subWord.includes("-") || subPunct.includes("-") ? ' class="word"' : "";
+            result += `<dx-w${wClass}>${cTags}${pTags}</dx-w>`;
+            const totalLen = [...subWord + subPunct].length;
+            const isHyphen = subWord.includes("-") || subPunct.includes("-");
+            currentWEntries().push({ len: totalLen, hyphen: isHyphen });
+            compactParts.push(subWord + subPunct);
+          }
         }
       }
     }
@@ -3151,13 +3286,14 @@ function ssrDxType(content, options = {}) {
       const sfx = sfxMatch ? sfxMatch[1] : "";
       cleanText = `${pfx}${val}${sfx}`.trim();
     }
-    let mergedAttrs = cleanAttrs;
-    if (/\bclass=["']([^"']*)["']/i.test(mergedAttrs)) {
-      mergedAttrs = mergedAttrs.replace(/\bclass=["']([^"']*)["']/i, (m, cls) => `class="${cls.trim()} data-static"`);
-    } else {
-      mergedAttrs = `${mergedAttrs} class="data-static"`.trim();
+    if (!cleanText) {
+      cleanText = inner.replace(/<[^>]+>/g, "").trim();
     }
-    return `<dx-odometer ${mergedAttrs}><dx-s>${cleanText}</dx-s></dx-odometer>`;
+    const classMatch = attrs.match(/\bclass=["']([^"']*)["']/i);
+    let clsList = classMatch ? classMatch[1].trim().split(/\s+/) : ["auto-n"];
+    if (!clsList.includes("data-static")) clsList.push("data-static");
+    const cleanClasses = clsList.filter(Boolean).join(" ");
+    return `<dx-odometer class="${cleanClasses}">${cleanText}</dx-odometer>`;
   }) : content;
   const charDur = Math.round(res.speed * 3.5);
   const tStyle = ` style="animation-duration:${charDur}ms"`;
@@ -3201,13 +3337,16 @@ export {
   expandOdometerDrums,
   finishReveal,
   flushIdleCleanup,
+  flushScrollGate,
   formatNumber,
+  gateIOUntil,
   generateDataO,
   generateRibbonHtml,
   getIO,
   getLookaheadIO,
   getSdaGaps,
   getTypewriterObserver,
+  isScrollRestored,
   mountTypewriter,
   observeIO,
   observeLookaheadIO,

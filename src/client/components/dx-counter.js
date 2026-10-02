@@ -334,7 +334,9 @@ export class DxCounter extends DxNumber {
             if (this._elU.textContent !== uStr) this._elU.textContent = uStr;
         }
         if (this._elDec) {
-            const decStr = hasDec ? `${radix}${String(c.dec).padStart(2, '0')}` : '';
+            const is1Dec = cfg.type && (cfg.type.includes('number-1dec') || cfg.type.includes('float-1dec'));
+            const decVal = is1Dec ? Math.round(c.dec / 10) : String(c.dec).padStart(2, '0');
+            const decStr = hasDec ? `${radix}${decVal}` : '';
             if (this._elDec.textContent !== decStr) this._elDec.textContent = decStr;
         }
 

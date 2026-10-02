@@ -51,14 +51,17 @@ dx-counter,
 }
 @keyframes dxc-trigger {
   from {
-    --dxc-started: 0;
+    opacity: 0.9999;
   }
   to {
-    --dxc-started: 1;
+    opacity: 1;
   }
 }
 :is(.showing-action-bar, .show-action-bar) dx-counter {
   animation: dxc-trigger 1ms linear var(--d, 467ms) both;
+}
+.show-action-bar dx-counter {
+  animation: none !important;
 }
 dx-counter > dx-s,
 dx-counter > dx-s * {

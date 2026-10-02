@@ -71,12 +71,16 @@ dx-counter,
 /* Animație trigger declarativă din CSS la 1/3 din cursa Action Bar-ului.
  * animationstart se declanșează DUPĂ expirarea animation-delay-ului (--d). */
 @keyframes dxc-trigger {
-    from { --dxc-started: 0; }
-    to { --dxc-started: 1; }
+    from { opacity: 0.9999; }
+    to { opacity: 1; }
 }
 
 :is(.showing-action-bar, .show-action-bar) dx-counter {
     animation: dxc-trigger 1ms linear var(--d, 467ms) both;
+}
+
+.show-action-bar dx-counter {
+    animation: none !important;
 }
 
 /* <dx-s> is ALWAYS invisible visually, but preserved in DOM for SEO, screen readers and Ctrl+F */

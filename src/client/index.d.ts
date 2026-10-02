@@ -52,6 +52,9 @@ export function observeIO(el: Element | null, callback: (el: Element) => void): 
 export function unobserveIO(el: Element | null): void;
 export function registerRAF(el: { _stepAnimation(now: number): void }): void;
 export function unregisterRAF(el: { _stepAnimation(now: number): void }): void;
+export function gateIOUntil(promise: Promise<any>): void;
+export function flushScrollGate(): void;
+export function isScrollRestored(): boolean;
 
 export function unpackTemplate(el: Element | null): boolean;
 export function observeTypewriter(el: Element | null): void;

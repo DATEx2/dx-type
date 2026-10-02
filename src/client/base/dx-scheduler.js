@@ -33,6 +33,7 @@ export const DX_ANIM = Object.freeze({
 
 // ─── Singleton IntersectionObserver (Zero-Reflow JIT Template Unpack & SDA) ──
 let ioInstance = null;
+const activeIoElements = new Map();
 const ioCallbacks = new WeakMap();
 
 let ioLookaheadInstance = null;
@@ -40,6 +41,89 @@ const ioLookaheadCallbacks = new WeakMap();
 
 let _sdaTopGap = '0%';
 let _sdaBottomGap = '-110px';
+
+// ─── Scroll-Restoration IO Gating ───────────────────────────────────────────
+// Pe paginile unde scroll-ul se restaurează asincron (pagini de produs DATEx2),
+// reținem elementele în coadă și nu le atașăm la IntersectionObserver înainte ca
+// restaurarea scroll-ului să fie finalizată, evitând evaluări IO premature la scrollY = 0
+// și crearea de straturi GPU off-screen.
+let isScrollGated = false;
+const pendingIoQueue = new Set();
+const pendingLookaheadQueue = new Set();
+
+const isProductPage = (typeof location !== 'undefined') && /^\/(?:[a-z]{2}\/)?products?\//i.test(location.pathname || '');
+if (isProductPage && rootWin && !rootWin.__dxScrollRestored && !rootWin.__sdaReadyPerformanceTime) {
+    isScrollGated = true;
+}
+
+export function isScrollRestored() {
+    return !isScrollGated;
+}
+
+export function flushScrollGate() {
+    if (!isScrollGated && pendingIoQueue.size === 0 && pendingLookaheadQueue.size === 0) return;
+    isScrollGated = false;
+    if (rootWin) rootWin.__dxScrollRestored = true;
+
+    // 1. Flush lookahead queue
+    if (pendingLookaheadQueue.size > 0) {
+        const lookaheadObs = getLookaheadIO();
+        for (const el of pendingLookaheadQueue) {
+            if (el && el.isConnected) {
+                if (lookaheadObs) {
+                    lookaheadObs.observe(el);
+                } else {
+                    const cb = ioLookaheadCallbacks.get(el);
+                    if (cb) {
+                        ioLookaheadCallbacks.delete(el);
+                        cb(el);
+                    }
+                }
+            }
+        }
+        pendingLookaheadQueue.clear();
+    }
+
+    // 2. Flush active IO queue
+    if (pendingIoQueue.size > 0) {
+        const obs = getIO();
+        for (const el of pendingIoQueue) {
+            if (el && el.isConnected) {
+                if (obs) {
+                    obs.observe(el);
+                } else {
+                    const cb = activeIoElements.get(el) || ioCallbacks.get(el);
+                    activeIoElements.delete(el);
+                    ioCallbacks.delete(el);
+                    if (cb) {
+                        try { cb(el); } catch (err) { console.error('[dx-type] IO callback error:', err); }
+                    }
+                }
+            }
+        }
+        pendingIoQueue.clear();
+    }
+}
+
+export function gateIOUntil(promise) {
+    if (!promise || typeof promise.then !== 'function') return;
+    isScrollGated = true;
+    promise.then(() => {
+        flushScrollGate();
+    }).catch(err => {
+        console.error('[dx-type] gateIOUntil promise rejected:', err);
+        flushScrollGate();
+    });
+}
+
+// Ascultăm automat evenimentele native emise la finalizarea restaurării scroll-ului
+if (rootWin && typeof rootWin.addEventListener === 'function') {
+    const onReady = () => {
+        flushScrollGate();
+    };
+    rootWin.addEventListener('sda-ready', onReady, { once: true });
+    rootWin.addEventListener('type-ready', onReady, { once: true });
+}
 
 export function formatMarginValue(v) {
     if (!v || v === '0' || v === '0%' || v === '0px' || v === 0) return '0px';
@@ -54,12 +138,19 @@ export function setSdaGaps(top = '0%', bottom = '0%') {
     if (ioInstance) {
         ioInstance.disconnect();
         ioInstance = null;
+        const obs = getIO();
+        if (obs && activeIoElements.size > 0) {
+            for (const [el] of activeIoElements.entries()) {
+                if (el && el.isConnected) obs.observe(el);
+            }
+        }
     }
 }
 
 export function getSdaGaps() {
     const winTop = rootWin?.sdaTopGap ?? rootWin?.__dxTypeConfig?.sdaTopGap;
     const winBottom = rootWin?.sdaBottomGap ?? rootWin?.__dxTypeConfig?.sdaBottomGap;
+
     return {
         sdaTopGap: winTop !== undefined ? winTop : _sdaTopGap,
         sdaBottomGap: winBottom !== undefined ? winBottom : _sdaBottomGap
@@ -96,9 +187,13 @@ export function getLookaheadIO() {
 
 export function observeLookaheadIO(el, callback) {
     if (!el) return;
+    ioLookaheadCallbacks.set(el, callback);
+    if (isScrollGated) {
+        pendingLookaheadQueue.add(el);
+        return;
+    }
     const obs = getLookaheadIO();
     if (obs) {
-        ioLookaheadCallbacks.set(el, callback);
         obs.observe(el);
     } else {
         callback(el);
@@ -107,6 +202,7 @@ export function observeLookaheadIO(el, callback) {
 
 export function unobserveLookaheadIO(el) {
     if (!el) return;
+    pendingLookaheadQueue.delete(el);
     ioLookaheadCallbacks.delete(el);
     if (ioLookaheadInstance) ioLookaheadInstance.unobserve(el);
 }
@@ -116,11 +212,14 @@ function ioHandler(entries) {
         const entry = entries[i];
         if (entry.isIntersecting) {
             const el = entry.target;
-            if (ioInstance) ioInstance.unobserve(el);
-            const cb = ioCallbacks.get(el);
+            const cb = activeIoElements.get(el) || ioCallbacks.get(el);
+            unobserveIO(el);
             if (cb) {
-                ioCallbacks.delete(el);
-                cb(el);
+                try {
+                    cb(el);
+                } catch (err) {
+                    console.error('[dx-type] IO callback error:', err);
+                }
             }
         }
     }
@@ -148,17 +247,30 @@ export function getIO() {
  */
 export function observeIO(el, callback) {
     if (!el) return;
+    activeIoElements.set(el, callback);
+    ioCallbacks.set(el, callback);
+    if (isScrollGated) {
+        pendingIoQueue.add(el);
+        return;
+    }
     const obs = getIO();
     if (obs) {
-        ioCallbacks.set(el, callback);
         obs.observe(el);
     } else {
-        callback(el);
+        activeIoElements.delete(el);
+        ioCallbacks.delete(el);
+        try {
+            callback(el);
+        } catch (err) {
+            console.error('[dx-type] IO callback error:', err);
+        }
     }
 }
 
 export function unobserveIO(el) {
     if (!el) return;
+    pendingIoQueue.delete(el);
+    activeIoElements.delete(el);
     ioCallbacks.delete(el);
     if (ioInstance) ioInstance.unobserve(el);
 }
@@ -358,7 +470,11 @@ if (rootWin) {
             registerRAF,
             unregisterRAF,
             onAllAnimationsEnd,
-            getActiveAnimationsCount: () => activeAnimations.size
+            getActiveAnimationsCount: () => activeAnimations.size,
+            gateIOUntil,
+            flushScrollGate,
+            isScrollRestored,
+            isScrollGated: () => isScrollGated
         }
     });
 }

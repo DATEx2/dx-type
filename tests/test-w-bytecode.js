@@ -20,10 +20,14 @@ export default function testWBytecode() {
     const r2 = tokenize('Hello', { duration: 500, delay: 0 });
     assert(r2.wAttr === '5', `Single word "Hello" should encode as "5", got "${r2.wAttr}"`);
 
-    // 3. Hyphenated word: "Triple-Voltage" → "-E" (14 chars, with hyphen prefix)
+    // 3. Hyphenated word: "Triple-Voltage" → "-77" ("Triple-" with hyphen = -7, "Voltage" = 7)
     const r3 = tokenize('Triple-Voltage', { duration: 500, delay: 0 });
     assert(r3.wAttr.includes('-'), `Hyphenated word should have "-" prefix, got "${r3.wAttr}"`);
-    assert(r3.wAttr.includes('E'), `14-char word should encode as E (hex), got "${r3.wAttr}"`);
+    assert(r3.wAttr === '-77', `Hyphenated "Triple-Voltage" should split into -7 and 7, got "${r3.wAttr}"`);
+
+    // 3b. 14-char single word: "Characteristic" = 14 chars → "E" (hex)
+    const r3b = tokenize('Characteristic', { duration: 500, delay: 0 });
+    assert(r3b.wAttr === 'E', `14-char word should encode as E (hex), got "${r3b.wAttr}"`);
 
     // 4. Extended: word > 15 chars → "+XX"
     const r4 = tokenize('Supercalifragilistic', { duration: 500, delay: 0 });

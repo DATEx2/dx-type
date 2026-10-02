@@ -279,6 +279,8 @@ export function tokenize(html, options = {}) {
 
     const cleanText = html
         .replace(/<(?:ui|dx)-odometer[^>]*aria-label="([^"]*)"[^>]*>[\s\S]*?<\/(?:ui|dx)-odometer>/gi, '$1')
+        .replace(/<(?:ui|dx)-odometer[^>]*>[\s\S]*?<dx-s>([\s\S]*?)<\/dx-s>[\s\S]*?<\/(?:ui|dx)-odometer>/gi, '$1')
+        .replace(/<(?:ui|dx)-odometer[^>]*>([\s\S]*?)<\/(?:ui|dx)-odometer>/gi, '$1')
         .replace(/<(?:ui|dx)-number[^>]*aria-label="([^"]*)"[^>]*>[\s\S]*?<\/(?:ui|dx)-number>/gi, '$1')
         .replace(/<(?:ui|dx)-number[^>]*>([\s\S]*?)<\/(?:ui|dx)-number>/gi, '$1')
         .replace(/<[^>]+>/g, '')
@@ -383,20 +385,22 @@ export function tokenize(html, options = {}) {
                             newAttrs = ` class="tw-embed"${newAttrs}`;
                         }
                     }
-                    if (/style="([^"]*)"/i.test(newAttrs)) {
-                        newAttrs = newAttrs.replace(/style="([^"]*)"/i, (sm, sContent) => {
-                            let cleanS = sContent.replace(/--d:\s*\d+(?:ms)?\s*;?/g, '').trim();
-                            if (cleanS && !cleanS.endsWith(';')) cleanS += ';';
-                            return `style="${cleanS} --d: ${exactDelay};"`;
-                        });
-                    } else if (/style='([^']*)'/i.test(newAttrs)) {
-                        newAttrs = newAttrs.replace(/style='([^']*)'/i, (sm, sContent) => {
-                            let cleanS = sContent.replace(/--d:\s*\d+(?:ms)?\s*;?/g, '').trim();
-                            if (cleanS && !cleanS.endsWith(';')) cleanS += ';';
-                            return `style='${cleanS} --d: ${exactDelay};'`;
-                        });
-                    } else {
-                        newAttrs = `${newAttrs} style="--d: ${exactDelay};"`;
+                    if (!/\bdata-static\b/.test(newAttrs)) {
+                        if (/style="([^"]*)"/i.test(newAttrs)) {
+                            newAttrs = newAttrs.replace(/style="([^"]*)"/i, (sm, sContent) => {
+                                let cleanS = sContent.replace(/--d:\s*\d+(?:ms)?\s*;?/g, '').trim();
+                                if (cleanS && !cleanS.endsWith(';')) cleanS += ';';
+                                return `style="${cleanS} --d: ${exactDelay};"`;
+                            });
+                        } else if (/style='([^']*)'/i.test(newAttrs)) {
+                            newAttrs = newAttrs.replace(/style='([^']*)'/i, (sm, sContent) => {
+                                let cleanS = sContent.replace(/--d:\s*\d+(?:ms)?\s*;?/g, '').trim();
+                                if (cleanS && !cleanS.endsWith(';')) cleanS += ';';
+                                return `style='${cleanS} --d: ${exactDelay};'`;
+                            });
+                        } else {
+                            newAttrs = `${newAttrs} style="--d: ${exactDelay};"`;
+                        }
                     }
                     return `<${compTagName}${newAttrs}>`;
                 });
@@ -469,19 +473,29 @@ export function tokenize(html, options = {}) {
                         }
                     }
 
-                    const wordChars = splitChars(part);
-                    const punctChars = splitChars(punct);
+                    const subWords = (part.includes('-') && part.length > 1 && !/^-+$/.test(part))
+                        ? (part.match(/[^-]+-?/g) || [part])
+                        : [part];
 
-                    const cTags = wordChars.map((ch) => makeCharTag(ch, charIdx++)).join('');
-                    const pTags = punctChars.map((ch) => makeCharTag(ch, charIdx++)).join('');
+                    for (let sIdx = 0; sIdx < subWords.length; sIdx++) {
+                        const subWord = subWords[sIdx];
+                        const isLastSubWord = (sIdx === subWords.length - 1);
+                        const subPunct = isLastSubWord ? punct : '';
 
-                    const wClass = (part.includes('-') || punct.includes('-')) ? ' class="word"' : '';
-                    result += `<dx-w${wClass}>${cTags}${pTags}</dx-w>`;
-                    
-                    const totalLen = [...(part + punct)].length;
-                    const isHyphen = part.includes('-') || punct.includes('-');
-                    currentWEntries().push({ len: totalLen, hyphen: isHyphen });
-                    compactParts.push(part + punct);
+                        const wordChars = splitChars(subWord);
+                        const punctChars = splitChars(subPunct);
+
+                        const cTags = wordChars.map((ch) => makeCharTag(ch, charIdx++)).join('');
+                        const pTags = punctChars.map((ch) => makeCharTag(ch, charIdx++)).join('');
+
+                        const wClass = (subWord.includes('-') || subPunct.includes('-')) ? ' class="word"' : '';
+                        result += `<dx-w${wClass}>${cTags}${pTags}</dx-w>`;
+
+                        const totalLen = [...(subWord + subPunct)].length;
+                        const isHyphen = subWord.includes('-') || subPunct.includes('-');
+                        currentWEntries().push({ len: totalLen, hyphen: isHyphen });
+                        compactParts.push(subWord + subPunct);
+                    }
                 }
             }
         }
@@ -555,13 +569,14 @@ export function ssrDxType(content, options = {}) {
                 const sfx = sfxMatch ? sfxMatch[1] : '';
                 cleanText = `${pfx}${val}${sfx}`.trim();
             }
-            let mergedAttrs = cleanAttrs;
-            if (/\bclass=["']([^"']*)["']/i.test(mergedAttrs)) {
-                mergedAttrs = mergedAttrs.replace(/\bclass=["']([^"']*)["']/i, (m, cls) => `class="${cls.trim()} data-static"`);
-            } else {
-                mergedAttrs = `${mergedAttrs} class="data-static"`.trim();
+            if (!cleanText) {
+                cleanText = inner.replace(/<[^>]+>/g, '').trim();
             }
-            return `<dx-odometer ${mergedAttrs}><dx-s>${cleanText}</dx-s></dx-odometer>`;
+            const classMatch = attrs.match(/\bclass=["']([^"']*)["']/i);
+            let clsList = classMatch ? classMatch[1].trim().split(/\s+/) : ['auto-n'];
+            if (!clsList.includes('data-static')) clsList.push('data-static');
+            const cleanClasses = clsList.filter(Boolean).join(' ');
+            return `<dx-odometer class="${cleanClasses}">${cleanText}</dx-odometer>`;
         })
         : content;
 
