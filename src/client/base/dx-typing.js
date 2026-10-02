@@ -523,7 +523,7 @@ export function cleanupTypedDOM(typeEl) {
     }
 
     // 3. Guarantee that all child meters inside static layer are marked static and clean
-    const stMeters = typeEl.querySelectorAll ? typeEl.querySelectorAll(':is(dx-s, t-s) :is(dx-odometer, ui-odometer, dx-number, ui-number)') : [];
+    const stMeters = typeEl.querySelectorAll ? typeEl.querySelectorAll(':is(dx-s, t-s) :is(dx-odometer, ui-odometer, dx-number, ui-number, dx-counter, ui-counter)') : [];
     for (let i = 0; i < stMeters.length; i++) {
         const m = stMeters[i];
         if (typeof m.makeStatic === 'function') m.makeStatic();
@@ -531,20 +531,23 @@ export function cleanupTypedDOM(typeEl) {
             m.classList?.add('data-static');
             m.setAttribute?.('data-static', 'true');
         }
-        // Ensure clean static text without inner <dx-s>, <b>, or ui-sfx
-        const innerDxS = m.querySelector ? m.querySelector(':scope > :is(dx-s, t-s, s-t)') : null;
-        if (innerDxS) {
-            m.textContent = innerDxS.textContent || '';
-        } else if (m.querySelector && (m.querySelector('b') || m.querySelector('.ui-sfx'))) {
-            const drumB = m.querySelector('b');
-            if (drumB) drumB.remove();
-            const sfx = m.querySelector('.ui-sfx');
-            if (sfx) sfx.remove();
-            const pfx = m.querySelector('.ui-pfx');
-            if (pfx) pfx.remove();
-        }
-        if (typeof m.getStaticHTML === 'function' && !m.textContent.trim()) {
-            m.innerHTML = m.getStaticHTML();
+        // Specific odometer drum cleanup: DO NOT strip .ui-sfx from live DxNumber / DxCounter
+        const isOdo = m.tagName === 'DX-ODOMETER' || m.tagName === 'UI-ODOMETER';
+        if (isOdo) {
+            const innerDxS = m.querySelector ? m.querySelector(':scope > :is(dx-s, t-s, s-t)') : null;
+            if (innerDxS) {
+                m.textContent = innerDxS.textContent || '';
+            } else if (m.querySelector && (m.querySelector('b') || m.querySelector('.ui-sfx'))) {
+                const drumB = m.querySelector('b');
+                if (drumB) drumB.remove();
+                const sfx = m.querySelector('.ui-sfx');
+                if (sfx) sfx.remove();
+                const pfx = m.querySelector('.ui-pfx');
+                if (pfx) pfx.remove();
+            }
+            if (typeof m.getStaticHTML === 'function' && !m.textContent.trim()) {
+                m.innerHTML = m.getStaticHTML();
+            }
         }
     }
 
@@ -570,7 +573,8 @@ export function onTypewriterEnd(cEl, event) {
         if (parent.querySelector(':scope > template')) return false;
 
         const isEmbed = cEl.tagName === 'DX-ODOMETER' || cEl.tagName === 'UI-ODOMETER' ||
-                        cEl.tagName === 'DX-NUMBER' || cEl.tagName === 'UI-NUMBER';
+                        cEl.tagName === 'DX-NUMBER' || cEl.tagName === 'UI-NUMBER' ||
+                        cEl.tagName === 'DX-COUNTER' || cEl.tagName === 'UI-COUNTER';
 
         let lastC = parent._lastC;
         if (!lastC) {
@@ -597,7 +601,7 @@ export function onTypewriterEnd(cEl, event) {
 
         // Query all embedded meters in parent active <dx-t> layer
         const tLayer = parent.querySelector(':scope > dx-t, dx-t') || parent;
-        const embeds = Array.from(tLayer.querySelectorAll('dx-odometer, ui-odometer, dx-number, ui-number'));
+        const embeds = Array.from(tLayer.querySelectorAll('dx-odometer, ui-odometer, dx-number, ui-number, dx-counter, ui-counter'));
         const allEmbedsDone = embeds.length === 0 || embeds.every(e => e._animDone || e.isStatic || e.classList.contains('data-static'));
         const hasRegularChars = !!tLayer.querySelector(':is(dx-c, t-c):not(.c-ui-num)');
         const charDone = !hasRegularChars || !lastC || !!parent._charDone;
@@ -672,12 +676,18 @@ export class DxTyping extends DxBase {
         queueIdleCleanup(this, (target) => {
             cleanupTypedDOM(target);
         });
+        if (typeof requestAnimationFrame !== 'undefined') {
+            requestAnimationFrame(() => {
+                flushIdleCleanup(this);
+            });
+        }
     }
 }
 
 const checkAndObserve = (el) => {
     if (!el?.querySelector) return;
     if (el.classList.contains(DX_ANIM.TYPED)) {
+        cleanupTypedDOM(el);
         const secHeader = el.closest?.(SECTION_HEADER_SEL);
         if (secHeader) secHeader.classList.add(DX_ANIM.TYPED);
         return;

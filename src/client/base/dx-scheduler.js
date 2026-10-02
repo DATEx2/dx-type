@@ -280,8 +280,8 @@ const idleQueue = [];
 let isIdleScheduled = false;
 
 const scheduleIdle = (typeof window !== 'undefined' && window.requestIdleCallback)
-    ? window.requestIdleCallback.bind(window)
-    : (cb => setTimeout(() => cb({ timeRemaining: () => 15, didTimeout: false }), 50));
+    ? (cb) => window.requestIdleCallback(cb, { timeout: 50 })
+    : (cb => setTimeout(() => cb({ timeRemaining: () => 15, didTimeout: false }), 20));
 
 function processNextIdle() {
     if (idleQueue.length === 0) {

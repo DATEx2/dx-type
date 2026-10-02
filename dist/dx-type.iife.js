@@ -318,7 +318,7 @@ var DxType = (() => {
   }
   var idleQueue = [];
   var isIdleScheduled = false;
-  var scheduleIdle = typeof window !== "undefined" && window.requestIdleCallback ? window.requestIdleCallback.bind(window) : ((cb) => setTimeout(() => cb({ timeRemaining: () => 15, didTimeout: false }), 50));
+  var scheduleIdle = typeof window !== "undefined" && window.requestIdleCallback ? (cb) => window.requestIdleCallback(cb, { timeout: 50 }) : ((cb) => setTimeout(() => cb({ timeRemaining: () => 15, didTimeout: false }), 20));
   function processNextIdle() {
     if (idleQueue.length === 0) {
       isIdleScheduled = false;
@@ -1256,7 +1256,7 @@ var DxType = (() => {
       }
       tLayer.remove();
     }
-    const stMeters = typeEl.querySelectorAll ? typeEl.querySelectorAll(":is(dx-s, t-s) :is(dx-odometer, ui-odometer, dx-number, ui-number)") : [];
+    const stMeters = typeEl.querySelectorAll ? typeEl.querySelectorAll(":is(dx-s, t-s) :is(dx-odometer, ui-odometer, dx-number, ui-number, dx-counter, ui-counter)") : [];
     for (let i = 0; i < stMeters.length; i++) {
       const m = stMeters[i];
       if (typeof m.makeStatic === "function") m.makeStatic();
@@ -1264,19 +1264,22 @@ var DxType = (() => {
         m.classList?.add("data-static");
         m.setAttribute?.("data-static", "true");
       }
-      const innerDxS = m.querySelector ? m.querySelector(":scope > :is(dx-s, t-s, s-t)") : null;
-      if (innerDxS) {
-        m.textContent = innerDxS.textContent || "";
-      } else if (m.querySelector && (m.querySelector("b") || m.querySelector(".ui-sfx"))) {
-        const drumB = m.querySelector("b");
-        if (drumB) drumB.remove();
-        const sfx = m.querySelector(".ui-sfx");
-        if (sfx) sfx.remove();
-        const pfx = m.querySelector(".ui-pfx");
-        if (pfx) pfx.remove();
-      }
-      if (typeof m.getStaticHTML === "function" && !m.textContent.trim()) {
-        m.innerHTML = m.getStaticHTML();
+      const isOdo = m.tagName === "DX-ODOMETER" || m.tagName === "UI-ODOMETER";
+      if (isOdo) {
+        const innerDxS = m.querySelector ? m.querySelector(":scope > :is(dx-s, t-s, s-t)") : null;
+        if (innerDxS) {
+          m.textContent = innerDxS.textContent || "";
+        } else if (m.querySelector && (m.querySelector("b") || m.querySelector(".ui-sfx"))) {
+          const drumB = m.querySelector("b");
+          if (drumB) drumB.remove();
+          const sfx = m.querySelector(".ui-sfx");
+          if (sfx) sfx.remove();
+          const pfx = m.querySelector(".ui-pfx");
+          if (pfx) pfx.remove();
+        }
+        if (typeof m.getStaticHTML === "function" && !m.textContent.trim()) {
+          m.innerHTML = m.getStaticHTML();
+        }
       }
     }
     typeEl.removeAttribute("aria-label");
@@ -1295,7 +1298,7 @@ var DxType = (() => {
         return false;
       }
       if (parent.querySelector(":scope > template")) return false;
-      const isEmbed = cEl.tagName === "DX-ODOMETER" || cEl.tagName === "UI-ODOMETER" || cEl.tagName === "DX-NUMBER" || cEl.tagName === "UI-NUMBER";
+      const isEmbed = cEl.tagName === "DX-ODOMETER" || cEl.tagName === "UI-ODOMETER" || cEl.tagName === "DX-NUMBER" || cEl.tagName === "UI-NUMBER" || cEl.tagName === "DX-COUNTER" || cEl.tagName === "UI-COUNTER";
       let lastC = parent._lastC;
       if (!lastC) {
         lastC = parent.querySelector(':is(dx-t, t-t) [data-last="true"], :is(dx-t, t-t) .last-char, [data-last="true"], .last-char');
@@ -1316,7 +1319,7 @@ var DxType = (() => {
         cEl._animDone = true;
       }
       const tLayer = parent.querySelector(":scope > dx-t, dx-t") || parent;
-      const embeds = Array.from(tLayer.querySelectorAll("dx-odometer, ui-odometer, dx-number, ui-number"));
+      const embeds = Array.from(tLayer.querySelectorAll("dx-odometer, ui-odometer, dx-number, ui-number, dx-counter, ui-counter"));
       const allEmbedsDone = embeds.length === 0 || embeds.every((e) => e._animDone || e.isStatic || e.classList.contains("data-static"));
       const hasRegularChars = !!tLayer.querySelector(":is(dx-c, t-c):not(.c-ui-num)");
       const charDone = !hasRegularChars || !lastC || !!parent._charDone;
@@ -1382,11 +1385,17 @@ var DxType = (() => {
       queueIdleCleanup(this, (target) => {
         cleanupTypedDOM(target);
       });
+      if (typeof requestAnimationFrame !== "undefined") {
+        requestAnimationFrame(() => {
+          flushIdleCleanup(this);
+        });
+      }
     }
   };
   var checkAndObserve = (el2) => {
     if (!el2?.querySelector) return;
     if (el2.classList.contains(DX_ANIM.TYPED)) {
+      cleanupTypedDOM(el2);
       const secHeader = el2.closest?.(SECTION_HEADER_SEL);
       if (secHeader) secHeader.classList.add(DX_ANIM.TYPED);
       return;
@@ -1576,17 +1585,19 @@ var DxType = (() => {
   var DxType = class extends DxTyping {
     connectedCallback() {
       this._syncTimingAttributes();
-      if (!this.isTyped) {
-        if (this.querySelector(":scope > template")) {
-          this.unpackTemplate();
-        }
-        const lastChar = this.querySelector('dx-t [data-last="true"], dx-t .last-char, [data-last="true"], .last-char');
-        if (lastChar && !lastChar._hasTwEnd) {
-          lastChar._hasTwEnd = true;
-          lastChar.addEventListener("animationend", (ev) => {
-            onTypewriterEnd(lastChar, ev);
-          }, { once: true });
-        }
+      if (this.isTyped) {
+        cleanupTypedDOM(this);
+        return;
+      }
+      if (this.querySelector(":scope > template")) {
+        this.unpackTemplate();
+      }
+      const lastChar = this.querySelector('dx-t [data-last="true"], dx-t .last-char, [data-last="true"], .last-char');
+      if (lastChar && !lastChar._hasTwEnd) {
+        lastChar._hasTwEnd = true;
+        lastChar.addEventListener("animationend", (ev) => {
+          onTypewriterEnd(lastChar, ev);
+        }, { once: true });
       }
     }
   };
@@ -1598,6 +1609,7 @@ var DxType = (() => {
   var DxTypeSda = class extends DxTyping {
     connectedCallback() {
       if (this.isTyped) {
+        cleanupTypedDOM(this);
         const secHeader = this.closest?.(SECTION_HEADER_SEL);
         if (secHeader) secHeader.classList.add(DX_ANIM.TYPED);
         return;
@@ -1810,6 +1822,7 @@ var DxType = (() => {
     constructor() {
       super();
       this._animationStarted = false;
+      this._animDone = false;
       this._inViewport = false;
       this._parentReady = false;
       this._pendingVal = null;
@@ -1836,6 +1849,7 @@ var DxType = (() => {
       if (this._initialized) return;
       const inST = typeof this.closest === "function" ? !!this.closest("dx-s") : false;
       if (inST) {
+        this._animDone = true;
         if (!this.classList.contains("data-static")) {
           this.makeStatic();
         }
@@ -1930,6 +1944,11 @@ var DxType = (() => {
           }
         } else {
           this._animationStarted = true;
+          this._animDone = true;
+          const twEmbed = this.classList.contains("tw-embed") || !!(typeof this.closest === "function" && this.closest(TYPE_PARENT_SEL));
+          if (twEmbed) {
+            onTypewriterEnd(this);
+          }
         }
       }
     }
@@ -1953,6 +1972,7 @@ var DxType = (() => {
       if (isStatic) {
         this._value = targetVal;
         this._animationStarted = true;
+        this._animDone = true;
       } else if (this.hasAttribute && this.hasAttribute("start") && this.getAttribute("start") !== "") {
         this._value = parseFloat(this.getAttribute("start")) || 0;
       } else if (hasParent) {
@@ -2082,6 +2102,11 @@ var DxType = (() => {
         this.setAttribute("percent", this._value);
         this.render();
         this.setAccessibility(parsedValue);
+        this._animDone = true;
+        const twEmbed = this.classList.contains("tw-embed") || !!(typeof this.closest === "function" && this.closest(TYPE_PARENT_SEL));
+        if (twEmbed) {
+          onTypewriterEnd(this);
+        }
       }
       return this;
     }
@@ -2112,6 +2137,11 @@ var DxType = (() => {
         this.render();
         this.setAccessibility(targetValue);
         unregisterRAF(this);
+        this._animDone = true;
+        const twEmbed = this.classList.contains("tw-embed") || !!(typeof this.closest === "function" && this.closest(TYPE_PARENT_SEL));
+        if (twEmbed) {
+          onTypewriterEnd(this);
+        }
       } else {
         const progress = elapsed / duration;
         const easeProgress = progress * (2 - progress);
@@ -2475,6 +2505,7 @@ var DxType = (() => {
   defCustomElement("ui-odometer", DxOdometer);
 
   // src/client/components/dx-counter.js
+  var TYPE_PARENT_SEL3 = "dx-type-sda, dx-type, .type-sda, .type, ui-type, ui-type-sda";
   var SUPPORTS_HOUDINI = false;
   if (SUPPORTS_HOUDINI) {
     const props = [
@@ -2832,6 +2863,11 @@ var DxType = (() => {
         this._updateCounterVars(targetValue, true);
         this.setAccessibility(targetValue);
         unregisterRAF(this);
+        this._animDone = true;
+        const twEmbed = this.classList.contains("tw-embed") || !!(typeof this.closest === "function" && this.closest(TYPE_PARENT_SEL3));
+        if (twEmbed) {
+          onTypewriterEnd(this);
+        }
       } else {
         const progress = elapsed / duration;
         const easeProgress = progress * (2 - progress);
@@ -2868,6 +2904,11 @@ var DxType = (() => {
       if (num) {
         num.removeEventListener("animationend", this._onAnimEndBound);
         num.removeEventListener("transitionend", this._onAnimEndBound);
+      }
+      this._animDone = true;
+      const twEmbed = this.classList.contains("tw-embed") || !!(typeof this.closest === "function" && this.closest(TYPE_PARENT_SEL3));
+      if (twEmbed) {
+        onTypewriterEnd(this);
       }
     }
     val(newValue, duration) {

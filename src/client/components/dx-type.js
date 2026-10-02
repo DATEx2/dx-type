@@ -1,14 +1,17 @@
-import { DxTyping, onTypewriterEnd } from '../base/dx-typing.js';
+import { DxTyping, onTypewriterEnd, cleanupTypedDOM } from '../base/dx-typing.js';
 import { defCustomElement } from '../base/dx-base.js';
 import { DX_ANIM } from '../base/dx-scheduler.js';
 
 export class DxType extends DxTyping {
     connectedCallback() {
         this._syncTimingAttributes();
-        if (!this.isTyped) {
-            if (this.querySelector(':scope > template')) {
-                this.unpackTemplate();
-            }
+        if (this.isTyped) {
+            cleanupTypedDOM(this);
+            return;
+        }
+        if (this.querySelector(':scope > template')) {
+            this.unpackTemplate();
+        }
 
             const lastChar = this.querySelector('dx-t [data-last="true"], dx-t .last-char, [data-last="true"], .last-char');
             if (lastChar && !lastChar._hasTwEnd) {
@@ -17,8 +20,6 @@ export class DxType extends DxTyping {
                     onTypewriterEnd(lastChar, ev);
                 }, { once: true });
             }
-
-        }
     }
 }
 

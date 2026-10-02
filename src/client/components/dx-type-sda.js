@@ -7,7 +7,7 @@
 // exports: DxTypeSda
 // used_by: src/client/index.js
 
-import { DxTyping, unpackTemplate, prepareTemplateContent, isElementHidden, syncSectionHeaderTyping, SECTION_HEADER_SEL } from '../base/dx-typing.js';
+import { DxTyping, unpackTemplate, prepareTemplateContent, cleanupTypedDOM, isElementHidden, syncSectionHeaderTyping, SECTION_HEADER_SEL } from '../base/dx-typing.js';
 import { defCustomElement } from '../base/dx-base.js';
 import { DX_ANIM, observeIO, unobserveIO, observeLookaheadIO, unobserveLookaheadIO, queueIdleUnpack, removeFromIdleQueue } from '../base/dx-scheduler.js';
 
@@ -16,6 +16,7 @@ const REVEAL_PARENT_SEL = 'dx-reveal-sda, dx-reveal, .reveal-sda, .reveal, ui-re
 export class DxTypeSda extends DxTyping {
     connectedCallback() {
         if (this.isTyped) {
+            cleanupTypedDOM(this);
             const secHeader = this.closest?.(SECTION_HEADER_SEL);
             if (secHeader) secHeader.classList.add(DX_ANIM.TYPED);
             return;

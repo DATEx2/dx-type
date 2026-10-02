@@ -10,6 +10,7 @@
 import { DxNumber } from './dx-number.js';
 import { rootWin, defCustomElement } from '../base/dx-base.js';
 import { DX_ANIM, observeIO, registerRAF, unregisterRAF } from '../base/dx-scheduler.js';
+import { onTypewriterEnd } from '../base/dx-typing.js';
 
 const TYPE_PARENT_SEL = 'dx-type-sda, dx-type, .type-sda, .type, ui-type, ui-type-sda';
 const REVEAL_PARENT_SEL = 'dx-reveal-sda, dx-reveal, .reveal-sda, .reveal, ui-reveal-sda, ui-reveal';
@@ -396,6 +397,11 @@ export class DxCounter extends DxNumber {
             this._updateCounterVars(targetValue, true);
             this.setAccessibility(targetValue);
             unregisterRAF(this);
+            this._animDone = true;
+            const twEmbed = this.classList.contains('tw-embed') || !!(typeof this.closest === 'function' && this.closest(TYPE_PARENT_SEL));
+            if (twEmbed) {
+                onTypewriterEnd(this);
+            }
         } else {
             const progress = elapsed / duration;
             const easeProgress = progress * (2 - progress);
@@ -436,6 +442,12 @@ export class DxCounter extends DxNumber {
         if (num) {
             num.removeEventListener('animationend', this._onAnimEndBound);
             num.removeEventListener('transitionend', this._onAnimEndBound);
+        }
+
+        this._animDone = true;
+        const twEmbed = this.classList.contains('tw-embed') || !!(typeof this.closest === 'function' && this.closest(TYPE_PARENT_SEL));
+        if (twEmbed) {
+            onTypewriterEnd(this);
         }
     }
 

@@ -10,6 +10,7 @@
 import { DxMeter, parseNumParts } from '../base/dx-meter.js';
 import { rootWin, span, defCustomElement } from '../base/dx-base.js';
 import { registerRAF, unregisterRAF, DX_ANIM, observeIO } from '../base/dx-scheduler.js';
+import { onTypewriterEnd } from '../base/dx-typing.js';
 
 // ─── Viewport Detection & Logging Helpers ─────────────────────────────────────
 function getElDesc(el) {
@@ -41,6 +42,7 @@ export class DxNumber extends DxMeter {
     constructor() {
         super();
         this._animationStarted = false;
+        this._animDone = false;
         this._inViewport = false;
         this._parentReady = false;
         this._pendingVal = null;
@@ -70,6 +72,7 @@ export class DxNumber extends DxMeter {
 
         const inST = typeof this.closest === 'function' ? !!this.closest('dx-s') : false;
         if (inST) {
+            this._animDone = true;
             if (!this.classList.contains('data-static')) {
                 this.makeStatic();
             }
@@ -179,6 +182,11 @@ export class DxNumber extends DxMeter {
                 }
             } else {
                 this._animationStarted = true;
+                this._animDone = true;
+                const twEmbed = this.classList.contains('tw-embed') || !!(typeof this.closest === 'function' && this.closest(TYPE_PARENT_SEL));
+                if (twEmbed) {
+                    onTypewriterEnd(this);
+                }
             }
         }
     }
@@ -208,6 +216,7 @@ export class DxNumber extends DxMeter {
         if (isStatic) {
             this._value = targetVal;
             this._animationStarted = true;
+            this._animDone = true;
         } else if (this.hasAttribute && this.hasAttribute('start') && this.getAttribute('start') !== '') {
             this._value = parseFloat(this.getAttribute('start')) || 0;
         } else if (hasParent) {
@@ -349,6 +358,11 @@ export class DxNumber extends DxMeter {
             this.setAttribute('percent', this._value);
             this.render();
             this.setAccessibility(parsedValue);
+            this._animDone = true;
+            const twEmbed = this.classList.contains('tw-embed') || !!(typeof this.closest === 'function' && this.closest(TYPE_PARENT_SEL));
+            if (twEmbed) {
+                onTypewriterEnd(this);
+            }
         }
         return this;
     }
@@ -383,6 +397,11 @@ export class DxNumber extends DxMeter {
             this.render();
             this.setAccessibility(targetValue);
             unregisterRAF(this);
+            this._animDone = true;
+            const twEmbed = this.classList.contains('tw-embed') || !!(typeof this.closest === 'function' && this.closest(TYPE_PARENT_SEL));
+            if (twEmbed) {
+                onTypewriterEnd(this);
+            }
         } else {
             const progress = elapsed / duration;
             const easeProgress = progress * (2 - progress);
