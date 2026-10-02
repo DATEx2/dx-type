@@ -150,7 +150,6 @@ export function prepareTemplateContent(el) {
             if (doc) {
                 const tLayer = doc.createElement('dx-t');
                 tLayer.setAttribute('aria-hidden', 'true');
-                tLayer.setAttribute('style', `animation-duration:var(--dxt-char-dur, ${charDur}ms)`);
                 tLayer.innerHTML = tHtml;
 
                 // Mark data-last on final <dx-c>
@@ -198,11 +197,6 @@ export function prepareTemplateContent(el) {
             if (doc) {
                 tLayer = doc.createElement('dx-t');
                 tLayer.setAttribute('aria-hidden', 'true');
-                const style = el.getAttribute('style') || '';
-                const uMatch = style.match(/--u:([\d.]+)/);
-                const speed = uMatch ? parseFloat(uMatch[1]) : 40;
-                const charDur = DX_CHAR_DURATION;
-                tLayer.setAttribute('style', `animation-duration:var(--dxt-char-dur, ${charDur}ms)`);
                 tLayer.innerHTML = stLegacy.innerHTML;
                 tpl.content.appendChild(tLayer);
             }

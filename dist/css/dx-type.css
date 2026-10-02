@@ -465,7 +465,6 @@ dx-number {
   line-height: inherit !important;
   letter-spacing: inherit !important;
   word-spacing: inherit !important;
-  animation-duration: inherit !important;
 }
 @keyframes type-in {
   0% {

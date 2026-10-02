@@ -937,7 +937,6 @@ var DxType = (() => {
           if (doc) {
             const tLayer2 = doc.createElement("dx-t");
             tLayer2.setAttribute("aria-hidden", "true");
-            tLayer2.setAttribute("style", `animation-duration:var(--dxt-char-dur, ${charDur}ms)`);
             tLayer2.innerHTML = tHtml;
             const allTC = tLayer2.querySelectorAll("dx-c");
             if (allTC.length > 0) {
@@ -977,11 +976,6 @@ var DxType = (() => {
         if (doc) {
           tLayer = doc.createElement("dx-t");
           tLayer.setAttribute("aria-hidden", "true");
-          const style = el2.getAttribute("style") || "";
-          const uMatch = style.match(/--u:([\d.]+)/);
-          const speed = uMatch ? parseFloat(uMatch[1]) : 40;
-          const charDur = DX_CHAR_DURATION;
-          tLayer.setAttribute("style", `animation-duration:var(--dxt-char-dur, ${charDur}ms)`);
           tLayer.innerHTML = stLegacy.innerHTML;
           tpl.content.appendChild(tLayer);
         }
@@ -2966,7 +2960,6 @@ var DxType = (() => {
   defCustomElement("dx-check", DxCheck);
 
   // src/server/index.js
-  var DX_CHAR_DURATION2 = 225;
   function formatNumber2(val, type = "int", comma = ",", prefix = "", suffix = "") {
     const num = parseFloat(val) || 0;
     let formatted = "";
@@ -3415,15 +3408,13 @@ var DxType = (() => {
       const cleanClasses = clsList.filter(Boolean).join(" ");
       return `<dx-odometer class="${cleanClasses}">${cleanText}</dx-odometer>`;
     }) : content;
-    const charDur = Number(options.charDuration ?? DX_CHAR_DURATION2);
-    const tStyle = ` style="animation-duration:var(--dxt-char-dur, ${charDur}ms)"`;
     const stTokens = tokenize(stContent, options);
     const sdaStContent = stTokens.compactHtml || stContent;
     const wAttr = stTokens.wAttr ? ` w="${stTokens.wAttr}"` : "";
     if (isSda) {
-      return `<${tagName}${classAttr} style="${res.style}"${ariaAttr}><dx-s${wAttr}>${sdaStContent}</dx-s><template><dx-t aria-hidden="true"${tStyle}>${res.html}</dx-t></template></${tagName}>`;
+      return `<${tagName}${classAttr} style="${res.style}"${ariaAttr}><dx-s${wAttr}>${sdaStContent}</dx-s><template><dx-t aria-hidden="true">${res.html}</dx-t></template></${tagName}>`;
     }
-    return `<${tagName}${classAttr} style="${res.style}"${ariaAttr}><dx-s${wAttr}>${sdaStContent}</dx-s><dx-t aria-hidden="true"${tStyle}>${res.html}</dx-t></${tagName}>`;
+    return `<${tagName}${classAttr} style="${res.style}"${ariaAttr}><dx-s${wAttr}>${sdaStContent}</dx-s><dx-t aria-hidden="true">${res.html}</dx-t></${tagName}>`;
   }
   function ssrDxReveal(content, options = {}) {
     const tagName = options.tagName || (options.isSda ? "dx-reveal-sda" : "dx-reveal");

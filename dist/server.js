@@ -462,15 +462,13 @@ function ssrDxType(content, options = {}) {
     const cleanClasses = clsList.filter(Boolean).join(" ");
     return `<dx-odometer class="${cleanClasses}">${cleanText}</dx-odometer>`;
   }) : content;
-  const charDur = Number(options.charDuration ?? DX_CHAR_DURATION);
-  const tStyle = ` style="animation-duration:var(--dxt-char-dur, ${charDur}ms)"`;
   const stTokens = tokenize(stContent, options);
   const sdaStContent = stTokens.compactHtml || stContent;
   const wAttr = stTokens.wAttr ? ` w="${stTokens.wAttr}"` : "";
   if (isSda) {
-    return `<${tagName}${classAttr} style="${res.style}"${ariaAttr}><dx-s${wAttr}>${sdaStContent}</dx-s><template><dx-t aria-hidden="true"${tStyle}>${res.html}</dx-t></template></${tagName}>`;
+    return `<${tagName}${classAttr} style="${res.style}"${ariaAttr}><dx-s${wAttr}>${sdaStContent}</dx-s><template><dx-t aria-hidden="true">${res.html}</dx-t></template></${tagName}>`;
   }
-  return `<${tagName}${classAttr} style="${res.style}"${ariaAttr}><dx-s${wAttr}>${sdaStContent}</dx-s><dx-t aria-hidden="true"${tStyle}>${res.html}</dx-t></${tagName}>`;
+  return `<${tagName}${classAttr} style="${res.style}"${ariaAttr}><dx-s${wAttr}>${sdaStContent}</dx-s><dx-t aria-hidden="true">${res.html}</dx-t></${tagName}>`;
 }
 function ssrDxReveal(content, options = {}) {
   const tagName = options.tagName || (options.isSda ? "dx-reveal-sda" : "dx-reveal");
