@@ -360,6 +360,32 @@ export function unpackTemplate(el) {
         }
         return true;
     }
+
+    // Direct dx-t path: layer already present in DOM without <template>
+    const directTt = el.querySelector(':scope > :is(dx-t, t-t, t)');
+    if (directTt) {
+        if (!el.getAttribute('role')) el.setAttribute('role', 'text');
+        const ts = el.querySelector(':scope > :is(dx-s, t-s, s-t)');
+        if (ts && !el.getAttribute('aria-label')) {
+            const raw = (ts.textContent || '').replace(/\s+/g, ' ').trim();
+            if (raw) el.setAttribute('aria-label', raw);
+        }
+        directTt.setAttribute('aria-hidden', 'true');
+        if (!directTt._boundStopProp) {
+            directTt._boundStopProp = true;
+            directTt.addEventListener('animationend', (ev) => {
+                ev.stopPropagation();
+            });
+        }
+        const lastChar = directTt.querySelector('[data-last="true"], .last-char');
+        if (lastChar && !lastChar._hasTwEnd) {
+            lastChar._hasTwEnd = true;
+            lastChar.addEventListener('animationend', (ev) => {
+                onTypewriterEnd(lastChar, ev);
+            }, { once: true });
+        }
+        return true;
+    }
     return false;
 }
 
@@ -367,7 +393,7 @@ export function isElementHidden(el) {
     if (!el) return true;
     if (!el.closest('summary') && el.closest('details:not([open])')) return true;
     const drawer = el.closest('.spec-drawer, [role="dialog"].spec-drawer');
-    if (drawer && !drawer.classList.contains('dx-type-ready')) return true;
+    if (drawer && !drawer.open && !drawer.classList.contains('open') && !drawer.classList.contains('spec-drawer-open')) return true;
     const isMobile = typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(width < 768px), (width < 1025px) and (orientation: portrait)').matches;
     const hiddenParent = el.closest(isMobile ? '.hidden, [hidden], .wait-stuck:not(.is-stuck), .favorite-product__button--saved' : '.hidden, [hidden], .favorite-product__button--saved');
     if (hiddenParent && !hiddenParent.closest('.favorite-product--saved, .is-stuck')) return true;

@@ -1,15 +1,16 @@
-// dx-reveal.js — DATEx2 <dx-reveal> Web Component (Direct / Hero Reveal).
+// dx-reveal.js — DATEx2 <dx-reveal> Web Component (IO-Driven Reveal).
 //
-// Hero-domain reveal, triggered by .type-ready ancestor, or standalone on scroll.
+// Unified with <dx-reveal-sda>: IntersectionObserver (IO) triggers reveal animation.
+// Zero dependency on .dx-type-ready ancestor — fully IO-driven.
 // Zero inline handlers.
 //
 // exports: DxReveal
 // used_by: src/client/index.js
 
 import { DxRevealing, finishReveal, REVEAL_CONTAINER_SEL } from '../base/dx-revealing.js';
-import { unpackTemplate } from '../base/dx-typing.js';
+import { unpackTemplate, prepareTemplateContent } from '../base/dx-typing.js';
 import { defCustomElement } from '../base/dx-base.js';
-import { observeIO, DX_ANIM } from '../base/dx-scheduler.js';
+import { DX_ANIM, observeIO, unobserveLookaheadIO, queueIdleUnpack, removeFromIdleQueue } from '../base/dx-scheduler.js';
 
 export class DxReveal extends DxRevealing {
     connectedCallback() {
@@ -41,18 +42,18 @@ export class DxReveal extends DxRevealing {
             });
         };
 
-        const typeReady = this.closest('dx-type-ready, .dx-type-ready');
-        if (typeReady) {
-            this.addEventListener('animationend', this._onAnimEnd);
-            this.addEventListener('animationcancel', this._onAnimEnd);
-        } else {
-            // Standalone <dx-reveal>: trigger on scroll via singleton IO with Parent Gate
-            observeIO(this, () => {
-                unpackTemplate(this);
-                this._inViewport = true;
-                this._checkAndTrigger();
-            });
-        }
+        // Always IO-driven (unified with dx-reveal-sda)
+        observeIO(this, () => {
+            removeFromIdleQueue(this);
+            unpackTemplate(this);
+            this._inViewport = true;
+            this._checkAndTrigger();
+        });
+
+        // Background Pre-warm on Idle
+        queueIdleUnpack(this, (el) => {
+            prepareTemplateContent(el);
+        });
     }
 
     _startRevealing() {

@@ -334,7 +334,7 @@ dx-d::before {
   animation: run-odometer calc((var(--odo-dur, 1400ms) - (var(--r, 0) * var(--odo-stag, 60ms))) * var(--A, 1)) cubic-bezier(0.37, 0, 0.63, 1) calc(((var(--d, 0) * 1ms) + (var(--r, 0) * var(--odo-stag, 60ms))) * var(--A, 1)) both !important;
   animation-play-state: running !important;
 }
-:is(dx-type-sda.dx-typing, dx-type-sda.dx-typed, dx-type.dx-typing, dx-type.dx-typed, .dx-type-ready) dx-odometer :is(dx-d, d)::before {
+:is(dx-type-sda.dx-typing, dx-type-sda.dx-typed, dx-type.dx-typing, dx-type.dx-typed) dx-odometer :is(dx-d, d)::before {
   animation: run-odometer calc((var(--odo-dur, 1400ms) - (var(--r, 0) * var(--odo-stag, 60ms))) * var(--A, 1)) cubic-bezier(0.37, 0, 0.63, 1) calc(((var(--d, 0) * 1ms) + (var(--r, 0) * var(--odo-stag, 60ms))) * var(--A, 1)) both !important;
   animation-play-state: running !important;
 }
@@ -496,15 +496,15 @@ dx-number {
     transform: translateY(0);
   }
 }
-:is(.dx-type-ready, .type-ready, dx-type-ready.dx-type-ready, dx-type-ready.type-ready, dx-type.dx-typing) :is(dx-t, t, dx-type > dx-t) :is(dx-w, s) > dx-c {
+:is(dx-type.dx-typing, dx-type-sda.dx-typing, dx-type[data-static], dx-type-sda[data-static]) :is(dx-t, t, dx-type > dx-t, dx-type-sda > dx-t) :is(dx-w, s) > dx-c {
   visibility: visible !important;
   animation-name: type-in !important;
   animation-timing-function: linear !important;
   animation-fill-mode: both !important;
 }
-:is(.dx-type-ready, .type-ready, dx-type-ready.dx-type-ready, dx-type-ready.type-ready, dx-type.dx-typing) :is(dx-t, t, dx-type > dx-t) :is(li, a, h1, h2, h3, h4, h5, h6, blockquote, p)::before,
-:is(.dx-type-ready, .type-ready, dx-type-ready.dx-type-ready, dx-type-ready.type-ready, dx-type.dx-typing) :is(dx-t, t, dx-type > dx-t) :is(li, a, h1, h2, h3, h4, h5, h6, blockquote, p)::after,
-:is(.dx-type-ready, .type-ready, dx-type-ready.dx-type-ready, dx-type-ready.type-ready, dx-type.dx-typing) :is(dx-t, t, dx-type > dx-t) dx-check {
+:is(dx-type.dx-typing, dx-type-sda.dx-typing, dx-type[data-static], dx-type-sda[data-static]) :is(dx-t, t, dx-type > dx-t, dx-type-sda > dx-t) :is(li, a, h1, h2, h3, h4, h5, h6, blockquote, p)::before,
+:is(dx-type.dx-typing, dx-type-sda.dx-typing, dx-type[data-static], dx-type-sda[data-static]) :is(dx-t, t, dx-type > dx-t, dx-type-sda > dx-t) :is(li, a, h1, h2, h3, h4, h5, h6, blockquote, p)::after,
+:is(dx-type.dx-typing, dx-type-sda.dx-typing, dx-type[data-static], dx-type-sda[data-static]) :is(dx-t, t, dx-type > dx-t, dx-type-sda > dx-t) dx-check {
   visibility: visible !important;
   animation-name: type-in !important;
   animation-timing-function: linear !important;
@@ -514,28 +514,9 @@ dx-number {
   backface-visibility: hidden;
   -webkit-backface-visibility: hidden;
 }
-:is(.dx-type-ready, .type-ready, dx-type-ready.dx-type-ready, dx-type-ready.type-ready) dx-reveal:not(.dx-revealed),
-:is(dx-reveal.dx-type-ready, dx-reveal.type-ready, dx-reveal.dx-revealing):not(.dx-revealed) {
+:is(dx-reveal.dx-revealing, dx-reveal[data-static]):not(.dx-revealed) {
   visibility: visible !important;
   animation: reveal-in calc(var(--t, 600) * var(--A, 1) * 1ms) ease-out calc(var(--d, 0) * var(--A, 1) * 1ms) both !important;
-}
-:is(dx-type-sda.dx-typing, dx-type-sda[data-static], :is(dx-reveal-sda.dx-revealing, dx-reveal-sda.dx-revealed, .dx-revealed, .dx-revealing) dx-type-sda) :is(dx-t, t, dx-type-sda > dx-t) :is(dx-w, s) > dx-c {
-  visibility: visible !important;
-  animation-name: type-in !important;
-  animation-timing-function: linear !important;
-  animation-fill-mode: both !important;
-}
-:is(dx-type-sda.dx-typing, dx-type-sda[data-static], :is(dx-reveal-sda.dx-revealing, dx-reveal-sda.dx-revealed, .dx-revealed, .dx-revealing) dx-type-sda) :is(dx-t, t, dx-type-sda > dx-t) :is(li, a, h1, h2, h3, h4, h5, h6, blockquote, p)::before,
-:is(dx-type-sda.dx-typing, dx-type-sda[data-static], :is(dx-reveal-sda.dx-revealing, dx-reveal-sda.dx-revealed, .dx-revealed, .dx-revealing) dx-type-sda) :is(dx-t, t, dx-type-sda > dx-t) :is(li, a, h1, h2, h3, h4, h5, h6, blockquote, p)::after,
-:is(dx-type-sda.dx-typing, dx-type-sda[data-static], :is(dx-reveal-sda.dx-revealing, dx-reveal-sda.dx-revealed, .dx-revealed, .dx-revealing) dx-type-sda) :is(dx-t, t, dx-type-sda > dx-t) dx-check {
-  visibility: visible !important;
-  animation-name: type-in !important;
-  animation-timing-function: linear !important;
-  animation-fill-mode: both !important;
-  animation-delay: var(--dx-delay, 0ms) !important;
-  will-change: transform, opacity;
-  backface-visibility: hidden;
-  -webkit-backface-visibility: hidden;
 }
 :is(dx-reveal-sda.dx-revealing, dx-reveal-sda[data-static]):not(.dx-revealed) {
   will-change: transform, opacity;

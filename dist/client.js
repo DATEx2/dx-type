@@ -33,7 +33,7 @@ var isScrollGated = false;
 var pendingIoQueue = /* @__PURE__ */ new Set();
 var pendingLookaheadQueue = /* @__PURE__ */ new Set();
 var isProductPage = typeof location !== "undefined" && /^\/(?:[a-z]{2}\/)?products?\//i.test(location.pathname || "");
-if (isProductPage && rootWin && !rootWin.__dxScrollRestored && !rootWin.__sdaReadyPerformanceTime) {
+if (isProductPage && rootWin && !rootWin.__dxScrollRestored && !rootWin.__sdaReadyPerformanceTime && typeof rootWin.IntersectionObserver === "function") {
   isScrollGated = true;
 }
 function isScrollRestored() {
@@ -1044,13 +1044,37 @@ function unpackTemplate(el2) {
     }
     return true;
   }
+  const directTt = el2.querySelector(":scope > :is(dx-t, t-t, t)");
+  if (directTt) {
+    if (!el2.getAttribute("role")) el2.setAttribute("role", "text");
+    const ts = el2.querySelector(":scope > :is(dx-s, t-s, s-t)");
+    if (ts && !el2.getAttribute("aria-label")) {
+      const raw = (ts.textContent || "").replace(/\s+/g, " ").trim();
+      if (raw) el2.setAttribute("aria-label", raw);
+    }
+    directTt.setAttribute("aria-hidden", "true");
+    if (!directTt._boundStopProp) {
+      directTt._boundStopProp = true;
+      directTt.addEventListener("animationend", (ev) => {
+        ev.stopPropagation();
+      });
+    }
+    const lastChar = directTt.querySelector('[data-last="true"], .last-char');
+    if (lastChar && !lastChar._hasTwEnd) {
+      lastChar._hasTwEnd = true;
+      lastChar.addEventListener("animationend", (ev) => {
+        onTypewriterEnd(lastChar, ev);
+      }, { once: true });
+    }
+    return true;
+  }
   return false;
 }
 function isElementHidden(el2) {
   if (!el2) return true;
   if (!el2.closest("summary") && el2.closest("details:not([open])")) return true;
   const drawer = el2.closest('.spec-drawer, [role="dialog"].spec-drawer');
-  if (drawer && !drawer.classList.contains("dx-type-ready")) return true;
+  if (drawer && !drawer.open && !drawer.classList.contains("open") && !drawer.classList.contains("spec-drawer-open")) return true;
   const isMobile = typeof window !== "undefined" && window.matchMedia && window.matchMedia("(width < 768px), (width < 1025px) and (orientation: portrait)").matches;
   const hiddenParent = el2.closest(isMobile ? ".hidden, [hidden], .wait-stuck:not(.is-stuck), .favorite-product__button--saved" : ".hidden, [hidden], .favorite-product__button--saved");
   if (hiddenParent && !hiddenParent.closest(".favorite-product--saved, .is-stuck")) return true;
@@ -1491,31 +1515,8 @@ if (rootWin2) {
 }
 
 // src/client/components/dx-type.js
-var DxType = class extends DxTyping {
-  connectedCallback() {
-    this._syncTimingAttributes();
-    if (this.isTyped) {
-      cleanupTypedDOM(this);
-      return;
-    }
-    if (this.querySelector(":scope > template")) {
-      this.unpackTemplate();
-    }
-    const lastChar = this.querySelector('dx-t [data-last="true"], dx-t .last-char, [data-last="true"], .last-char');
-    if (lastChar && !lastChar._hasTwEnd) {
-      lastChar._hasTwEnd = true;
-      lastChar.addEventListener("animationend", (ev) => {
-        onTypewriterEnd(lastChar, ev);
-      }, { once: true });
-    }
-  }
-};
-defCustomElement("dx-type", DxType);
-defCustomElement("ui-type", DxType);
-
-// src/client/components/dx-type-sda.js
 var REVEAL_PARENT_SEL = "dx-reveal-sda, dx-reveal, .reveal-sda, .reveal, ui-reveal-sda, ui-reveal";
-var DxTypeSda = class extends DxTyping {
+var DxType = class extends DxTyping {
   connectedCallback() {
     if (this.isTyped) {
       cleanupTypedDOM(this);
@@ -1564,6 +1565,60 @@ var DxTypeSda = class extends DxTyping {
     removeFromIdleQueue(this);
   }
 };
+defCustomElement("dx-type", DxType);
+defCustomElement("ui-type", DxType);
+
+// src/client/components/dx-type-sda.js
+var REVEAL_PARENT_SEL2 = "dx-reveal-sda, dx-reveal, .reveal-sda, .reveal, ui-reveal-sda, ui-reveal";
+var DxTypeSda = class extends DxTyping {
+  connectedCallback() {
+    if (this.isTyped) {
+      cleanupTypedDOM(this);
+      const secHeader = this.closest?.(SECTION_HEADER_SEL);
+      if (secHeader) secHeader.classList.add(DX_ANIM.TYPED);
+      return;
+    }
+    this._syncTimingAttributes();
+    if (this.querySelector(":scope > template") || this.querySelector(":scope > dx-s[w]")) {
+      observeLookaheadIO(this, (el2) => {
+        removeFromIdleQueue(el2);
+        unpackTemplate(el2);
+      });
+      queueIdleUnpack(this, (el2) => {
+        prepareTemplateContent(el2);
+      });
+    }
+    observeIO(this, (el2) => {
+      if (el2.isTyped || el2.classList.contains(DX_ANIM.TYPED)) return;
+      if (isElementHidden(el2)) return;
+      el2._inViewport = true;
+      const triggerTyping = () => {
+        if (el2.isTyped || el2.classList.contains(DX_ANIM.TYPED)) return;
+        removeFromIdleQueue(el2);
+        unobserveLookaheadIO(el2);
+        unpackTemplate(el2);
+        el2.classList.add(DX_ANIM.TYPING);
+        syncSectionHeaderTyping(el2);
+      };
+      const isHeader = !!el2.closest?.(SECTION_HEADER_SEL);
+      const parentRev = el2.closest?.(REVEAL_PARENT_SEL2);
+      if (!isHeader && parentRev && !parentRev.classList.contains(DX_ANIM.REVEALED) && !parentRev.classList.contains(DX_ANIM.REVEALING)) {
+        const onParentStart = () => {
+          parentRev.removeEventListener("animationstart", onParentStart);
+          triggerTyping();
+        };
+        parentRev.addEventListener("animationstart", onParentStart, { once: true });
+        return;
+      }
+      triggerTyping();
+    });
+  }
+  disconnectedCallback() {
+    unobserveIO(this);
+    unobserveLookaheadIO(this);
+    removeFromIdleQueue(this);
+  }
+};
 defCustomElement("dx-type-sda", DxTypeSda);
 defCustomElement("ui-type-sda", DxTypeSda);
 
@@ -1593,17 +1648,15 @@ var DxReveal = class extends DxRevealing {
         }
       });
     };
-    const typeReady = this.closest("dx-type-ready, .dx-type-ready");
-    if (typeReady) {
-      this.addEventListener("animationend", this._onAnimEnd);
-      this.addEventListener("animationcancel", this._onAnimEnd);
-    } else {
-      observeIO(this, () => {
-        unpackTemplate(this);
-        this._inViewport = true;
-        this._checkAndTrigger();
-      });
-    }
+    observeIO(this, () => {
+      removeFromIdleQueue(this);
+      unpackTemplate(this);
+      this._inViewport = true;
+      this._checkAndTrigger();
+    });
+    queueIdleUnpack(this, (el2) => {
+      prepareTemplateContent(el2);
+    });
   }
   _startRevealing() {
     if (this._isRevealingStarted || this.isRevealed) return;
@@ -1689,17 +1742,6 @@ var DxTypeReady = class extends DxBase {
     if (!this._pristineHTML && typeof document !== "undefined" && document.body?.classList?.contains("dx-type-record")) {
       this._pristineHTML = this.innerHTML;
     }
-    if (this.id === "gallery") return;
-    if (!this.classList.contains("dx-type-ready")) {
-      const fontsReady = typeof document !== "undefined" && document.fonts && document.fonts.ready ? Promise.race([document.fonts.ready, new Promise((r) => setTimeout(r, 800))]) : Promise.resolve();
-      fontsReady.then(() => {
-        requestAnimationFrame(() => {
-          if (!this.classList.contains("dx-type-ready")) {
-            this.classList.add("dx-type-ready");
-          }
-        });
-      });
-    }
   }
   replay() {
     if (this._pristineHTML) {
@@ -1717,7 +1759,7 @@ defCustomElement("dx-type-ready", DxTypeReady);
 
 // src/client/components/dx-number.js
 var TYPE_PARENT_SEL = "dx-type-sda, dx-type, .type-sda, .type, ui-type, ui-type-sda";
-var REVEAL_PARENT_SEL2 = "dx-reveal-sda, dx-reveal, .reveal-sda, .reveal, ui-reveal-sda, ui-reveal";
+var REVEAL_PARENT_SEL3 = "dx-reveal-sda, dx-reveal, .reveal-sda, .reveal, ui-reveal-sda, ui-reveal";
 var DxNumber = class extends DxMeter {
   static get observedAttributes() {
     return ["prefix", "suffix", "comma", "type", "percent", "value", "duration", "start"];
@@ -1789,7 +1831,7 @@ var DxNumber = class extends DxMeter {
       return true;
     }
     const parentChar = this.closest("dx-c");
-    const parentReveal = this.closest(REVEAL_PARENT_SEL2);
+    const parentReveal = this.closest(REVEAL_PARENT_SEL3);
     const parentActionBar = this.closest(".action-bar, .action-bar-wrapper");
     if (parentActionBar) {
       const isAbShowing = !!this.closest(".show-action-bar, .showing-action-bar") || typeof document !== "undefined" && document.body && (document.body.classList.contains("show-action-bar") || document.body.classList.contains("showing-action-bar"));
@@ -1829,7 +1871,7 @@ var DxNumber = class extends DxMeter {
     if (!ready) return;
     const parentActionBar = typeof this.closest === "function" ? this.closest(".action-bar, .action-bar-wrapper") : null;
     const d = parseFloat(this.style?.getPropertyValue?.("--d") || "") || parseFloat(typeof this.closest === "function" ? this.closest('[style*="--d"]')?.style?.getPropertyValue?.("--d") : 0) || 0;
-    const delay = skipDelay || parentActionBar ? 0 : d > 0 ? d : typeof this.closest === "function" && this.closest(REVEAL_PARENT_SEL2) ? 100 : 0;
+    const delay = skipDelay || parentActionBar ? 0 : d > 0 ? d : typeof this.closest === "function" && this.closest(REVEAL_PARENT_SEL3) ? 100 : 0;
     if (this._pendingVal) {
       const { targetValue, duration } = this._pendingVal;
       this._pendingVal = null;
@@ -1875,7 +1917,7 @@ var DxNumber = class extends DxMeter {
     this._targetValue = targetVal;
     const hasSsr = typeof this.querySelector === "function" && Boolean(this.querySelector(".ui-num, .dx-num-wrap"));
     const parentChar = typeof this.closest === "function" ? this.closest("dx-c") : null;
-    const parentReveal = typeof this.closest === "function" ? this.closest(REVEAL_PARENT_SEL2) : null;
+    const parentReveal = typeof this.closest === "function" ? this.closest(REVEAL_PARENT_SEL3) : null;
     const parentActionBar = typeof this.closest === "function" ? this.closest(".action-bar, .action-bar-wrapper") : null;
     const hasParent = Boolean(parentChar || parentReveal || parentActionBar);
     if (isStatic) {
