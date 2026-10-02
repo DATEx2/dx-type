@@ -1824,6 +1824,17 @@ var DxType = (() => {
       if (!this._pristineHTML && typeof document !== "undefined" && document.body?.classList?.contains("dx-type-record")) {
         this._pristineHTML = this.innerHTML;
       }
+      if (this.id === "gallery") return;
+      if (!this.classList.contains("dx-type-ready")) {
+        const fontsReady = typeof document !== "undefined" && document.fonts && document.fonts.ready ? Promise.race([document.fonts.ready, new Promise((r) => setTimeout(r, 800))]) : Promise.resolve();
+        fontsReady.then(() => {
+          requestAnimationFrame(() => {
+            if (!this.classList.contains("dx-type-ready")) {
+              this.classList.add("dx-type-ready");
+            }
+          });
+        });
+      }
     }
     replay() {
       if (this._pristineHTML) {
