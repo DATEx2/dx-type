@@ -205,10 +205,37 @@ var DxType = (() => {
   function getSdaGaps() {
     const winTop = rootWin?.sdaTopGap ?? rootWin?.__dxTypeConfig?.sdaTopGap;
     const winBottom = rootWin?.sdaBottomGap ?? rootWin?.__dxTypeConfig?.sdaBottomGap;
+    let defaultBottom = _sdaBottomGap;
+    if (typeof rootWin !== "undefined" && rootWin?.innerHeight && rootWin.innerHeight < 500) {
+      defaultBottom = "-40px";
+    }
     return {
       sdaTopGap: winTop !== void 0 ? winTop : _sdaTopGap,
-      sdaBottomGap: winBottom !== void 0 ? winBottom : _sdaBottomGap
+      sdaBottomGap: winBottom !== void 0 ? winBottom : defaultBottom
     };
+  }
+  if (rootWin && typeof rootWin.matchMedia === "function") {
+    try {
+      const mq = rootWin.matchMedia("(orientation: landscape) and (height < 500px)");
+      const onLandscapeChange = () => {
+        if (ioInstance) {
+          ioInstance.disconnect();
+          ioInstance = null;
+          const obs = getIO();
+          if (obs && activeIoElements.size > 0) {
+            for (const [el2] of activeIoElements.entries()) {
+              if (el2 && el2.isConnected) obs.observe(el2);
+            }
+          }
+        }
+      };
+      if (typeof mq.addEventListener === "function") {
+        mq.addEventListener("change", onLandscapeChange);
+      } else if (typeof mq.addListener === "function") {
+        mq.addListener(onLandscapeChange);
+      }
+    } catch (_) {
+    }
   }
   function ioLookaheadHandler(entries) {
     for (let i = 0; i < entries.length; i++) {
@@ -1504,7 +1531,7 @@ var DxType = (() => {
   }
   var DxRevealing = class extends DxBase {
     static get observedAttributes() {
-      return ["delay", "d", "duration", "t"];
+      return ["delay", "d", "duration", "t", "paused"];
     }
     constructor() {
       super();
@@ -1513,6 +1540,12 @@ var DxType = (() => {
     }
     attributeChangedCallback(name, oldVal, newVal) {
       if (oldVal === newVal) return;
+      if (name === "paused") {
+        if (newVal === null) {
+          this.resume();
+        }
+        return;
+      }
       this._syncTimingAttributes();
     }
     _syncTimingAttributes() {
@@ -1528,12 +1561,28 @@ var DxType = (() => {
     get isRevealed() {
       return this.classList.contains(DX_ANIM.REVEALED);
     }
+    get isPaused() {
+      return !!(this.classList?.contains("dx-paused") || (typeof this.hasAttribute === "function" ? this.hasAttribute("paused") : this.getAttribute?.("paused") != null));
+    }
+    pause() {
+      this.classList?.add("dx-paused");
+    }
+    resume() {
+      this.classList?.remove("dx-paused");
+      if (typeof this.removeAttribute === "function") {
+        this.removeAttribute("paused");
+      }
+      if (this._inViewport && !this._isRevealingStarted && !this.isRevealed) {
+        this._checkAndTrigger();
+      }
+    }
     getParentReveal() {
       return this.parentElement?.closest(REVEAL_CONTAINER_SEL) || null;
     }
     _checkAndTrigger() {
       if (this._isRevealingStarted || this.isRevealed) return;
       if (!this._inViewport) return;
+      if (this.isPaused) return;
       const parentReveal = this.getParentReveal();
       if (parentReveal && !parentReveal.classList.contains(DX_ANIM.REVEALED) && !parentReveal.isRevealed) {
         return;
@@ -1713,63 +1762,6 @@ var DxType = (() => {
   defCustomElement("dx-type-sda", DxTypeSda);
   defCustomElement("ui-type-sda", DxTypeSda);
 
-  // src/client/components/dx-reveal.js
-  var DxReveal = class extends DxRevealing {
-    connectedCallback() {
-      if (this.isRevealed) return;
-      this._syncTimingAttributes();
-      this._triggerChildren = () => {
-        this.querySelectorAll("dx-counter, dx-number, dx-type").forEach((child) => {
-          const closedDetails = !child.closest("summary") && child.closest("details:not([open])");
-          if (closedDetails && this.contains(closedDetails)) return;
-          const hiddenParent = child.closest(".hidden, [hidden], .favorite-product__button--saved");
-          if (hiddenParent && this.contains(hiddenParent) && !hiddenParent.closest(".favorite-product--saved")) return;
-          if (child.closest(REVEAL_CONTAINER_SEL) !== this) return;
-          if (typeof child._checkAndTrigger === "function") {
-            child._inViewport = true;
-            child._parentReady = true;
-            child._checkAndTrigger();
-          }
-          const tag = (child.tagName || "").toUpperCase();
-          if (tag === "DX-TYPE") {
-            if (!child.classList.contains(DX_ANIM.TYPED)) {
-              unpackTemplate(child);
-              child.classList.add(DX_ANIM.TYPING);
-            }
-          }
-        });
-      };
-      observeIO(this, () => {
-        removeFromIdleQueue(this);
-        unpackTemplate(this);
-        this._inViewport = true;
-        this._checkAndTrigger();
-      });
-      queueIdleUnpack(this, (el2) => {
-        prepareTemplateContent(el2);
-      });
-    }
-    _startRevealing() {
-      if (this._isRevealingStarted || this.isRevealed) return;
-      this.addEventListener("animationend", this._onAnimEnd);
-      this.addEventListener("animationcancel", this._onAnimEnd);
-      super._startRevealing();
-    }
-    _onAnimEnd = (e) => {
-      if (e.target !== this) return;
-      finishReveal(this, e);
-      this.removeEventListener("animationend", this._onAnimEnd);
-      this.removeEventListener("animationcancel", this._onAnimEnd);
-    };
-    disconnectedCallback() {
-      super.disconnectedCallback?.();
-      this.removeEventListener("animationend", this._onAnimEnd);
-      this.removeEventListener("animationcancel", this._onAnimEnd);
-    }
-  };
-  defCustomElement("dx-reveal", DxReveal);
-  defCustomElement("ui-reveal", DxReveal);
-
   // src/client/components/dx-reveal-sda.js
   var DxRevealSda = class extends DxRevealing {
     connectedCallback() {
@@ -1827,6 +1819,12 @@ var DxType = (() => {
   defCustomElement("dx-reveal-sda", DxRevealSda);
   defCustomElement("ui-reveal-sda", DxRevealSda);
 
+  // src/client/components/dx-reveal.js
+  var DxReveal = class extends DxRevealSda {
+  };
+  defCustomElement("dx-reveal", DxReveal);
+  defCustomElement("ui-reveal", DxReveal);
+
   // src/client/components/dx-type-ready.js
   var DxTypeReady = class extends DxBase {
     connectedCallback() {
@@ -1862,6 +1860,9 @@ var DxType = (() => {
   // src/client/components/dx-number.js
   var TYPE_PARENT_SEL = "dx-type-sda, dx-type, .type-sda, .type, ui-type, ui-type-sda";
   var REVEAL_PARENT_SEL3 = "dx-reveal-sda, dx-reveal, .reveal-sda, .reveal, ui-reveal-sda, ui-reveal";
+  function isReducedMotionActive() {
+    return typeof window !== "undefined" && window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  }
   var DxNumber = class extends DxMeter {
     static get observedAttributes() {
       return ["prefix", "suffix", "comma", "type", "percent", "value", "duration", "start"];
@@ -1961,6 +1962,7 @@ var DxType = (() => {
       return Boolean(this._inViewport && this._parentReady);
     }
     getDuration() {
+      if (isReducedMotionActive()) return 0;
       if (this.hasAttribute && this.hasAttribute("duration")) {
         const parsed = parseFloat(this.getAttribute("duration"));
         if (!isNaN(parsed) && parsed > 0) return parsed;
@@ -2014,6 +2016,7 @@ var DxType = (() => {
         this._timeoutId = null;
       }
       const inST = typeof this.closest === "function" ? !!this.closest("dx-s") : false;
+      const isReduced = isReducedMotionActive();
       const isStatic = this.classList && this.classList.contains("data-static") || this.isStatic || inST;
       const targetVal = this._targetValue !== void 0 && !isNaN(this._targetValue) && this._targetValue !== 0 ? this._targetValue : parseFloat(this.getAttribute("percent")) || this.getNumericValue() || 0;
       this._targetValue = targetVal;
@@ -2022,7 +2025,7 @@ var DxType = (() => {
       const parentReveal = typeof this.closest === "function" ? this.closest(REVEAL_PARENT_SEL3) : null;
       const parentActionBar = typeof this.closest === "function" ? this.closest(".action-bar, .action-bar-wrapper") : null;
       const hasParent = Boolean(parentChar || parentReveal || parentActionBar);
-      if (isStatic) {
+      if (isStatic || isReduced) {
         this._value = targetVal;
         this._animationStarted = true;
         this._animDone = true;
@@ -2040,9 +2043,12 @@ var DxType = (() => {
         this._pfxSpan = this.querySelector(".ui-pfx:not(.ui-pfx-pad)");
         this._sfxSpan = this.querySelector(".ui-sfx");
         this._cacheTextNodes();
+        if (isReduced) {
+          this._updateFrameDisplay(targetVal);
+        }
       }
       this._inViewport = false;
-      if (isStatic) {
+      if (isStatic || isReduced) {
         this._inViewport = true;
         this._parentReady = true;
         this.makeStatic();
@@ -2134,7 +2140,9 @@ var DxType = (() => {
         this.setAccessibility(parsedValue);
         return this;
       }
-      const animDuration = duration !== void 0 && duration !== null ? duration : this.getDuration();
+      const isReduced = isReducedMotionActive();
+      const defaultDur = this.getDuration();
+      const animDuration = isReduced ? 0 : duration !== void 0 && duration !== null ? duration : defaultDur;
       const ready = this.isReadyToAnimate();
       if (!ready && animDuration > 0) {
         this._pendingVal = { targetValue: parsedValue, duration: animDuration };
@@ -2153,6 +2161,7 @@ var DxType = (() => {
         this.classList.remove("ui-number-running");
         this._value = parsedValue;
         this.setAttribute("percent", this._value);
+        this.makeStatic();
         this.render();
         this.setAccessibility(parsedValue);
         this._animDone = true;
@@ -2456,6 +2465,12 @@ var DxType = (() => {
         return;
       }
       if (this.classList.contains("data-static")) return;
+      if (typeof window !== "undefined" && window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+        this.classList.add("data-static");
+        this.makeStatic();
+        this._animDone = true;
+        return;
+      }
       this.addEventListener("animationend", this._onAnimEnd);
       this.addEventListener("animationstart", (e) => {
         if (e?.stopPropagation) e.stopPropagation();
@@ -2615,6 +2630,28 @@ var DxType = (() => {
     init() {
       if (this._initialized) return;
       this._cacheDOMElements();
+      const isReduced = isReducedMotionActive();
+      const targetVal = this._targetValue !== void 0 && !isNaN(this._targetValue) && this._targetValue !== 0 ? this._targetValue : parseFloat(this.getAttribute("percent")) || this.getNumericValue() || 0;
+      this._targetValue = targetVal;
+      if (isReduced) {
+        this._initialized = true;
+        this._value = targetVal;
+        this._animationStarted = true;
+        this._animDone = true;
+        const hasSsr2 = typeof this.querySelector === "function" && Boolean(this.querySelector(".dx-num-wrap"));
+        if (!hasSsr2) {
+          this.render();
+        } else {
+          this._updateCounterVars(targetVal, true);
+        }
+        this.makeStatic();
+        const st = this.querySelector("dx-s");
+        if (st) st.textContent = this.formatValue(targetVal);
+        this.setAccessibility(targetVal);
+        this._inViewport = true;
+        this._parentReady = true;
+        return;
+      }
       const hasSsr = typeof this.querySelector === "function" && Boolean(this.querySelector(".dx-num-wrap"));
       if (!hasSsr) {
         this.render();
@@ -2974,7 +3011,9 @@ var DxType = (() => {
         this.setAccessibility(parsedValue);
         return this;
       }
-      const animDuration = duration !== void 0 && duration !== null ? duration : this.getDuration() || 600;
+      const isReduced = isReducedMotionActive();
+      const durVal = this.getDuration();
+      const animDuration = isReduced ? 0 : duration !== void 0 && duration !== null ? duration : durVal !== void 0 && !isNaN(durVal) ? durVal : 600;
       const ready = this.isReadyToAnimate();
       if (!ready && animDuration > 0) {
         this._pendingVal = { targetValue: parsedValue, duration: animDuration };
@@ -2988,6 +3027,20 @@ var DxType = (() => {
       this.setAccessibility(parsedValue);
       const st = this.querySelector("dx-s");
       if (st) st.textContent = this.formatValue(parsedValue);
+      if (isReduced || animDuration === 0) {
+        unregisterRAF(this);
+        this.classList.remove("ui-number-running");
+        this._value = parsedValue;
+        this._updateCounterVars(parsedValue, true);
+        this.makeStatic();
+        this.setAccessibility(parsedValue);
+        this._animDone = true;
+        const twEmbed = this.classList.contains("tw-embed") || !!(typeof this.closest === "function" && this.closest(TYPE_PARENT_SEL3));
+        if (twEmbed) {
+          onTypewriterEnd(this);
+        }
+        return this;
+      }
       if (_DxCounter.supportsHoudini) {
         unregisterRAF(this);
         this._setupTiming(startVal, parsedValue, animDuration);
@@ -3000,7 +3053,8 @@ var DxType = (() => {
         unregisterRAF(this);
         this.classList.remove("ui-number-running");
         this._value = parsedValue;
-        this._updateCounterVars(parsedValue);
+        this._updateCounterVars(parsedValue, true);
+        this.makeStatic();
         this.setAccessibility(parsedValue);
       }
       return this;

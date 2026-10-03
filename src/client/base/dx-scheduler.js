@@ -151,10 +151,38 @@ export function getSdaGaps() {
     const winTop = rootWin?.sdaTopGap ?? rootWin?.__dxTypeConfig?.sdaTopGap;
     const winBottom = rootWin?.sdaBottomGap ?? rootWin?.__dxTypeConfig?.sdaBottomGap;
 
+    let defaultBottom = _sdaBottomGap;
+    if (typeof rootWin !== 'undefined' && rootWin?.innerHeight && rootWin.innerHeight < 500) {
+        defaultBottom = '-40px';
+    }
+
     return {
         sdaTopGap: winTop !== undefined ? winTop : _sdaTopGap,
-        sdaBottomGap: winBottom !== undefined ? winBottom : _sdaBottomGap
+        sdaBottomGap: winBottom !== undefined ? winBottom : defaultBottom
     };
+}
+
+if (rootWin && typeof rootWin.matchMedia === 'function') {
+    try {
+        const mq = rootWin.matchMedia('(orientation: landscape) and (height < 500px)');
+        const onLandscapeChange = () => {
+            if (ioInstance) {
+                ioInstance.disconnect();
+                ioInstance = null;
+                const obs = getIO();
+                if (obs && activeIoElements.size > 0) {
+                    for (const [el] of activeIoElements.entries()) {
+                        if (el && el.isConnected) obs.observe(el);
+                    }
+                }
+            }
+        };
+        if (typeof mq.addEventListener === 'function') {
+            mq.addEventListener('change', onLandscapeChange);
+        } else if (typeof mq.addListener === 'function') {
+            mq.addListener(onLandscapeChange);
+        }
+    } catch (_) {}
 }
 
 function ioLookaheadHandler(entries) {
