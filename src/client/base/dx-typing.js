@@ -293,6 +293,7 @@ export function unpackTemplate(el) {
 
     if (typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
         el.classList.add(DX_ANIM.TYPED);
+        cleanupTypedDOM(el);
         return false;
     }
 

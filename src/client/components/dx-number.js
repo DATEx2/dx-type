@@ -8,7 +8,7 @@
 // used_by: src/client/index.js
 
 import { DxMeter, parseNumParts } from '../base/dx-meter.js';
-import { rootWin, span, defCustomElement } from '../base/dx-base.js';
+import { rootWin, span, defCustomElement, isReducedMotionActive } from '../base/dx-base.js';
 import { registerRAF, unregisterRAF, DX_ANIM, observeIO } from '../base/dx-scheduler.js';
 import { onTypewriterEnd } from '../base/dx-typing.js';
 
@@ -25,6 +25,8 @@ function getElDesc(el) {
 // ─── Parent selectors (dx-* tags + legacy class/tag selectors) ───────────────
 const TYPE_PARENT_SEL = 'dx-type-sda, dx-type, .type-sda, .type, ui-type, ui-type-sda';
 const REVEAL_PARENT_SEL = 'dx-reveal-sda, dx-reveal, .reveal-sda, .reveal, ui-reveal-sda, ui-reveal';
+
+export { isReducedMotionActive };
 
 export class DxNumber extends DxMeter {
     static get observedAttributes() {
@@ -140,6 +142,7 @@ export class DxNumber extends DxMeter {
     }
 
     getDuration() {
+        if (isReducedMotionActive()) return 0;
         if (this.hasAttribute && this.hasAttribute('duration')) {
             const parsed = parseFloat(this.getAttribute('duration'));
             if (!isNaN(parsed) && parsed > 0) return parsed;
@@ -201,6 +204,7 @@ export class DxNumber extends DxMeter {
         }
 
         const inST = typeof this.closest === 'function' ? !!this.closest('dx-s') : false;
+        const isReduced = isReducedMotionActive();
         const isStatic = (this.classList && this.classList.contains('data-static')) || this.isStatic || inST;
         const targetVal = (this._targetValue !== undefined && !isNaN(this._targetValue) && this._targetValue !== 0)
             ? this._targetValue
@@ -213,7 +217,7 @@ export class DxNumber extends DxMeter {
         const parentActionBar = typeof this.closest === 'function' ? this.closest('.action-bar, .action-bar-wrapper') : null;
         const hasParent = Boolean(parentChar || parentReveal || parentActionBar);
 
-        if (isStatic) {
+        if (isStatic || isReduced) {
             this._value = targetVal;
             this._animationStarted = true;
             this._animDone = true;
@@ -232,12 +236,15 @@ export class DxNumber extends DxMeter {
             this._pfxSpan = this.querySelector('.ui-pfx:not(.ui-pfx-pad)');
             this._sfxSpan = this.querySelector('.ui-sfx');
             this._cacheTextNodes();
+            if (isReduced) {
+                this._updateFrameDisplay(targetVal);
+            }
         }
 
         this._inViewport = false;
 
         // 1. Condition #1: In-viewport observer (Singleton IO)
-        if (isStatic) {
+        if (isStatic || isReduced) {
             this._inViewport = true;
             this._parentReady = true;
             this.makeStatic();
@@ -333,7 +340,9 @@ export class DxNumber extends DxMeter {
             return this;
         }
 
-        const animDuration = (duration !== undefined && duration !== null) ? duration : this.getDuration();
+        const isReduced = isReducedMotionActive();
+        const defaultDur = this.getDuration();
+        const animDuration = isReduced ? 0 : ((duration !== undefined && duration !== null) ? duration : defaultDur);
         const ready = this.isReadyToAnimate();
 
         // If not yet ready to animate (e.g. element off-screen or Action Bar sliding up), defer execution
@@ -356,6 +365,7 @@ export class DxNumber extends DxMeter {
             this.classList.remove('ui-number-running');
             this._value = parsedValue;
             this.setAttribute('percent', this._value);
+            this.makeStatic();
             this.render();
             this.setAccessibility(parsedValue);
             this._animDone = true;

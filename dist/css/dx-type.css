@@ -603,9 +603,8 @@ dx-odometer.data-static dx-s,
   contain: style !important;
 }
 @media (prefers-reduced-motion: reduce) {
-  :is(dx-type, dx-type-sda) > dx-s,
-  :is(dx-type, dx-type-sda):not(.dx-typed) > dx-s,
-  :is(dx-type, dx-type-sda):not(.dx-typed) > dx-s :is(dx-w, dx-c, dx-odometer, ui-odometer, b, strong, span, a, i, em, mark, i.c-ui-num) {
+  :is(dx-type, dx-type-sda).dx-typed > dx-s,
+  :is(dx-type, dx-type-sda).dx-typed > dx-s :is(dx-w, dx-c, dx-odometer, ui-odometer, b, strong, span, a, i, em, mark, i.c-ui-num) {
     color: inherit !important;
     -webkit-text-fill-color: currentColor !important;
     opacity: 1 !important;
@@ -614,12 +613,17 @@ dx-odometer.data-static dx-s,
   :is(dx-type, dx-type-sda) > dx-t {
     display: none !important;
   }
-  :is(dx-reveal, dx-reveal-sda) {
+  :is(dx-reveal, dx-reveal-sda).dx-revealed {
     animation: none !important;
     transition: none !important;
     opacity: 1 !important;
     transform: none !important;
     visibility: visible !important;
+  }
+  :is(dx-reveal, dx-reveal-sda) {
+    animation: none !important;
+    transition: none !important;
+    transform: none !important;
   }
   dx-odometer dx-d::before {
     animation: none !important;

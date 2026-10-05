@@ -49,7 +49,7 @@ export function startReveal(el, e) {
 // ─── Base Class DxRevealing ──────────────────────────────────────────────────
 export class DxRevealing extends DxBase {
     static get observedAttributes() {
-        return ['delay', 'd', 'duration', 't'];
+        return ['delay', 'd', 'duration', 't', 'paused'];
     }
 
     constructor() {
@@ -60,6 +60,12 @@ export class DxRevealing extends DxBase {
 
     attributeChangedCallback(name, oldVal, newVal) {
         if (oldVal === newVal) return;
+        if (name === 'paused') {
+            if (newVal === null) {
+                this.resume();
+            }
+            return;
+        }
         this._syncTimingAttributes();
     }
 
@@ -78,6 +84,24 @@ export class DxRevealing extends DxBase {
         return this.classList.contains(DX_ANIM.REVEALED);
     }
 
+    get isPaused() {
+        return !!(this.classList?.contains('dx-paused') || (typeof this.hasAttribute === 'function' ? this.hasAttribute('paused') : (this.getAttribute?.('paused') != null)));
+    }
+
+    pause() {
+        this.classList?.add('dx-paused');
+    }
+
+    resume() {
+        this.classList?.remove('dx-paused');
+        if (typeof this.removeAttribute === 'function') {
+            this.removeAttribute('paused');
+        }
+        if (this._inViewport && !this._isRevealingStarted && !this.isRevealed) {
+            this._checkAndTrigger();
+        }
+    }
+
     getParentReveal() {
         return this.parentElement?.closest(REVEAL_CONTAINER_SEL) || null;
     }
@@ -85,6 +109,7 @@ export class DxRevealing extends DxBase {
     _checkAndTrigger() {
         if (this._isRevealingStarted || this.isRevealed) return;
         if (!this._inViewport) return;
+        if (this.isPaused) return;
 
         const parentReveal = this.getParentReveal();
         if (parentReveal && !parentReveal.classList.contains(DX_ANIM.REVEALED) && !parentReveal.isRevealed) {

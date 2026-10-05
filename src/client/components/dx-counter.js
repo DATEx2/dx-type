@@ -7,7 +7,7 @@
 // exports: DxCounter
 // used_by: src/client/index.js
 
-import { DxNumber } from './dx-number.js';
+import { DxNumber, isReducedMotionActive } from './dx-number.js';
 import { rootWin, defCustomElement } from '../base/dx-base.js';
 import { DX_ANIM, observeIO, registerRAF, unregisterRAF } from '../base/dx-scheduler.js';
 import { onTypewriterEnd } from '../base/dx-typing.js';
@@ -71,6 +71,32 @@ export class DxCounter extends DxNumber {
     init() {
         if (this._initialized) return;
         this._cacheDOMElements();
+        const isReduced = isReducedMotionActive();
+        const targetVal = (this._targetValue !== undefined && !isNaN(this._targetValue) && this._targetValue !== 0)
+            ? this._targetValue
+            : (parseFloat(this.getAttribute('percent')) || this.getNumericValue() || 0);
+        this._targetValue = targetVal;
+
+        if (isReduced) {
+            this._initialized = true;
+            this._value = targetVal;
+            this._animationStarted = true;
+            this._animDone = true;
+            const hasSsr = typeof this.querySelector === 'function' && Boolean(this.querySelector('.dx-num-wrap'));
+            if (!hasSsr) {
+                this.render();
+            } else {
+                this._updateCounterVars(targetVal, true);
+            }
+            this.makeStatic();
+            const st = this.querySelector('dx-s');
+            if (st) st.textContent = this.formatValue(targetVal);
+            this.setAccessibility(targetVal);
+            this._inViewport = true;
+            this._parentReady = true;
+            return;
+        }
+
         const hasSsr = typeof this.querySelector === 'function' && Boolean(this.querySelector('.dx-num-wrap'));
         if (!hasSsr) {
             this.render();
@@ -465,7 +491,9 @@ export class DxCounter extends DxNumber {
             return this;
         }
 
-        const animDuration = (duration !== undefined && duration !== null) ? duration : (this.getDuration() || 600);
+        const isReduced = isReducedMotionActive();
+        const durVal = this.getDuration();
+        const animDuration = isReduced ? 0 : ((duration !== undefined && duration !== null) ? duration : (durVal !== undefined && !isNaN(durVal) ? durVal : 600));
         const ready = this.isReadyToAnimate();
 
         if (!ready && animDuration > 0) {
@@ -484,6 +512,21 @@ export class DxCounter extends DxNumber {
         const st = this.querySelector('dx-s');
         if (st) st.textContent = this.formatValue(parsedValue);
 
+        if (isReduced || animDuration === 0) {
+            unregisterRAF(this);
+            this.classList.remove('ui-number-running');
+            this._value = parsedValue;
+            this._updateCounterVars(parsedValue, true);
+            this.makeStatic();
+            this.setAccessibility(parsedValue);
+            this._animDone = true;
+            const twEmbed = this.classList.contains('tw-embed') || !!(typeof this.closest === 'function' && this.closest(TYPE_PARENT_SEL));
+            if (twEmbed) {
+                onTypewriterEnd(this);
+            }
+            return this;
+        }
+
         if (DxCounter.supportsHoudini) {
             // ── Mode 1: Pure declarative GPU CSS transition with threshold calculation ──
             unregisterRAF(this);
@@ -499,7 +542,8 @@ export class DxCounter extends DxNumber {
             unregisterRAF(this);
             this.classList.remove('ui-number-running');
             this._value = parsedValue;
-            this._updateCounterVars(parsedValue);
+            this._updateCounterVars(parsedValue, true);
+            this.makeStatic();
             this.setAccessibility(parsedValue);
         }
         return this;

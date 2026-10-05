@@ -1,10 +1,14 @@
 // dx-base.js — DATEx2 Base HTMLElement for all dx-* Web Components.
 //
-// exports: DxBase, rootWin
+// exports: DxBase, rootWin, isReducedMotionActive
 // used_by: src/client/components/*.js
 
 export const rootWin = typeof window !== 'undefined' ? window : (typeof global !== 'undefined' ? global : null);
 const BaseHTMLElement = rootWin?.HTMLElement || class {};
+
+export function isReducedMotionActive() {
+    return typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+}
 
 import { DX_ANIM } from './dx-scheduler.js';
 

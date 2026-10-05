@@ -8,7 +8,7 @@
 // used_by: src/client/index.js
 
 import { DxTyping, unpackTemplate, prepareTemplateContent, cleanupTypedDOM, isElementHidden, syncSectionHeaderTyping, SECTION_HEADER_SEL } from '../base/dx-typing.js';
-import { defCustomElement } from '../base/dx-base.js';
+import { defCustomElement, isReducedMotionActive } from '../base/dx-base.js';
 import { DX_ANIM, observeIO, unobserveIO, observeLookaheadIO, unobserveLookaheadIO, queueIdleUnpack, removeFromIdleQueue } from '../base/dx-scheduler.js';
 
 const REVEAL_PARENT_SEL = 'dx-reveal-sda, dx-reveal, .reveal-sda, .reveal, ui-reveal-sda, ui-reveal';
@@ -22,6 +22,7 @@ export class DxTypeSda extends DxTyping {
             if (secHeader) secHeader.classList.add(DX_ANIM.TYPED);
             return;
         }
+
         this._syncTimingAttributes();
 
         // 1. Preemptive JIT Lookahead Unpack (+500px or idle queue)
@@ -45,6 +46,14 @@ export class DxTypeSda extends DxTyping {
                 if (el.isTyped || el.classList.contains(DX_ANIM.TYPED)) return;
                 removeFromIdleQueue(el);
                 unobserveLookaheadIO(el);
+
+                if (isReducedMotionActive()) {
+                    el.classList.add(DX_ANIM.TYPED);
+                    cleanupTypedDOM(el);
+                    syncSectionHeaderTyping(el);
+                    return;
+                }
+
                 unpackTemplate(el); // Fast no-op if already unpacked by lookahead/idle
                 el.classList.add(DX_ANIM.TYPING);
                 syncSectionHeaderTyping(el);

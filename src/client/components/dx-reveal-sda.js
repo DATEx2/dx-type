@@ -9,13 +9,12 @@
 
 import { DxRevealing, finishReveal, REVEAL_CONTAINER_SEL } from '../base/dx-revealing.js';
 import { unpackTemplate, prepareTemplateContent } from '../base/dx-typing.js';
-import { defCustomElement } from '../base/dx-base.js';
+import { defCustomElement, isReducedMotionActive } from '../base/dx-base.js';
 import { DX_ANIM, observeIO, unobserveLookaheadIO, queueIdleUnpack, removeFromIdleQueue } from '../base/dx-scheduler.js';
 
 export class DxRevealSda extends DxRevealing {
     connectedCallback() {
         if (this.isRevealed) return;
-        this._syncTimingAttributes();
 
         this._triggerChildren = () => {
             this.querySelectorAll('dx-counter, dx-number, dx-type').forEach(child => {
@@ -44,10 +43,19 @@ export class DxRevealSda extends DxRevealing {
             });
         };
 
+        this._syncTimingAttributes();
+
         observeIO(this, () => {
             removeFromIdleQueue(this);
             unpackTemplate(this);
             this._inViewport = true;
+
+            if (isReducedMotionActive()) {
+                this.markRevealed();
+                this._triggerChildren();
+                return;
+            }
+
             this._checkAndTrigger();
         });
 

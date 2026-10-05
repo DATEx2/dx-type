@@ -14,7 +14,7 @@ export default function testExports() {
     // 1. Verify client/index.js exports the expected symbols
     const clientIndex = readFileSync(join(root, 'src/client/index.js'), 'utf8');
     const expectedExports = [
-        'DxBase', 'DX_ANIM', 'getIO', 'observeIO', 'registerRAF', 'unregisterRAF',
+        'DxBase', 'isReducedMotionActive', 'DX_ANIM', 'getIO', 'observeIO', 'registerRAF', 'unregisterRAF',
         'gateIOUntil', 'flushScrollGate', 'isScrollRestored',
         'DxTyping', 'unpackTemplate', 'observeTypewriter', 'mountTypewriter',
         'ensureElementsUpToTarget', 'onTypewriterEnd', 'cleanupTypedDOM', 'bootstrapTypewriterObserver', 'buildTypingLayer', 'HEX_LUT',

@@ -369,8 +369,7 @@ dx-d::before {
 }
 
 /* ─── Odometer animation trigger (embedded in typewriter) ─────────────────── */
-:is(dx-type-sda.dx-typing, dx-type-sda.dx-typed,
-    dx-type.dx-typing, dx-type.dx-typed) dx-odometer :is(dx-d, d)::before {
+:is(dx-type-sda.dx-typing, dx-type-sda.dx-typed) dx-odometer :is(dx-d, d)::before {
     animation: run-odometer
         calc((var(--odo-dur, 1400ms) - (var(--r, 0) * var(--odo-stag, 60ms))) * var(--A, 1))
         cubic-bezier(0.37, 0, 0.63, 1)
@@ -581,15 +580,15 @@ dx-number {
     -webkit-backface-visibility: hidden;
 }
 
-:is(dx-reveal.dx-revealing, dx-reveal[data-static]):not(.dx-revealed) {
-    visibility: visible !important;
-    animation: reveal-in calc(var(--t, 600) * var(--A, 1) * 1ms) ease-out calc(var(--d, 0) * var(--A, 1) * 1ms) both !important;
-}
-
-/* ─── 8. SDA Reveal Domain (<dx-reveal-sda>) ──────────────────────────────── */
-:is(dx-reveal-sda.dx-revealing, dx-reveal-sda[data-static]):not(.dx-revealed) {
+/* ─── 8. Unified Reveal Domain (<dx-reveal-sda>) ─────────────────────────── */
+:is(dx-reveal-sda.dx-revealing, dx-reveal-sda[data-static]):not(.dx-revealed):not(.dx-paused) {
     will-change: transform, opacity;
     animation: dx-reveal-sda calc(var(--t, 500) * var(--A, 1) * 1ms) cubic-bezier(0.22, 1, 0.36, 1) calc(var(--d, 0) * var(--A, 1) * 1ms) both !important;
+}
+
+dx-reveal-sda.dx-paused {
+    animation: none !important;
+    opacity: 0;
 }
 
 /* ─── 10. Final State & Static Cleanup ───────────────────────────────────── */
@@ -674,9 +673,8 @@ dx-odometer.data-static dx-s,
 
 /* ─── 11. Accessibility: Reduced Motion ──────────────────────────────────── */
 @media (prefers-reduced-motion: reduce) {
-    :is(dx-type, dx-type-sda) > dx-s,
-    :is(dx-type, dx-type-sda):not(.dx-typed) > dx-s,
-    :is(dx-type, dx-type-sda):not(.dx-typed) > dx-s :is(dx-w, dx-c, dx-odometer, ui-odometer, b, strong, span, a, i, em, mark, i.c-ui-num) {
+    :is(dx-type, dx-type-sda).dx-typed > dx-s,
+    :is(dx-type, dx-type-sda).dx-typed > dx-s :is(dx-w, dx-c, dx-odometer, ui-odometer, b, strong, span, a, i, em, mark, i.c-ui-num) {
         color: inherit !important;
         -webkit-text-fill-color: currentColor !important;
         opacity: 1 !important;
@@ -687,12 +685,18 @@ dx-odometer.data-static dx-s,
         display: none !important;
     }
 
-    :is(dx-reveal, dx-reveal-sda) {
+    :is(dx-reveal, dx-reveal-sda).dx-revealed {
         animation: none !important;
         transition: none !important;
         opacity: 1 !important;
         transform: none !important;
         visibility: visible !important;
+    }
+
+    :is(dx-reveal, dx-reveal-sda) {
+        animation: none !important;
+        transition: none !important;
+        transform: none !important;
     }
 
     dx-odometer dx-d::before {

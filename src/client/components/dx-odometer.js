@@ -9,7 +9,7 @@
 // used_by: src/client/index.js
 
 import { DxMeter, expandOdometerDrums } from '../base/dx-meter.js';
-import { rootWin, defCustomElement } from '../base/dx-base.js';
+import { rootWin, defCustomElement, isReducedMotionActive } from '../base/dx-base.js';
 import { DX_ANIM, observeIO } from '../base/dx-scheduler.js';
 import { onTypewriterEnd } from '../base/dx-typing.js';
 
@@ -49,8 +49,45 @@ export class DxOdometer extends DxMeter {
     }
 
     connectedCallback() {
+        const isReduced = isReducedMotionActive();
+
+        // Inside <dx-s> or <t-s> = static context, nothing to animate
+        if (this.closest('dx-s, t-s')) {
+            this.classList.add('data-static');
+            this._animDone = true;
+            return;
+        }
+
+        // Already static (SSR marked) or reduced motion preferred: direct cleanup & immediate return
+        if (this.classList.contains('data-static') || isReduced) {
+            this.classList.add('data-static');
+            this.makeStatic();
+            this._animDone = true;
+
+            // Direct DOM cleanup: purge drum ribbons if present from SSR
+            const drumB = this.querySelector('b');
+            if (drumB) drumB.remove();
+            const pfx = this.querySelector('.ui-pfx');
+            if (pfx) pfx.remove();
+            const sfx = this.querySelector('.ui-sfx');
+            if (sfx) sfx.remove();
+
+            const innerDxS = this.querySelector(':scope > :is(dx-s, t-s)');
+            if (innerDxS) {
+                this.textContent = innerDxS.textContent || '';
+            } else if (!this.textContent.trim() && typeof this.getStaticHTML === 'function') {
+                this.innerHTML = this.getStaticHTML();
+            }
+
+            const twEmbed = this.classList.contains('tw-embed') || !!this.closest(TYPE_PARENT_SEL);
+            if (twEmbed) {
+                onTypewriterEnd(this);
+            }
+            return;
+        }
+
         const dataO = this.getAttribute('data-o');
-        if (dataO && !this.querySelector('dx-d') && !this.closest('dx-s, t-s') && !this.classList.contains('data-static')) {
+        if (dataO && !this.querySelector('dx-d')) {
             this.unpackDataO(dataO);
         }
 
@@ -58,15 +95,6 @@ export class DxOdometer extends DxMeter {
 
         if (this._initialized) return;
         this._initialized = true;
-
-        // Inside <dx-s> or <t-s> = static context, nothing to animate
-        if (this.closest('dx-s, t-s')) {
-            this.classList.add('data-static');
-            return;
-        }
-
-        // Already static (SSR marked)
-        if (this.classList.contains('data-static')) return;
 
         // Listen for animation completion on <d>::before
         this.addEventListener('animationend', this._onAnimEnd);

@@ -5,7 +5,7 @@ function assert(condition, msg) {
     if (!condition) throw new Error(`ASSERT FAILED: ${msg}`);
 }
 
-export default function testNumber() {
+export default async function testNumber() {
     // 1. parseNumParts tests
     const p1 = parseNumParts('2 450 €');
     assert(p1.digits.includes('2') && p1.digits.includes('450'), 'Should parse formatted digits');
@@ -25,4 +25,8 @@ export default function testNumber() {
     const p4 = parseNumParts('99 999 €');
     assert(p4.digits === '99 999', 'Should parse spaced thousand digits 99 999');
     assert(p4.sfx === '€', 'Should parse suffix €');
+
+    // 2. Reduced motion test
+    const { DxNumber, isReducedMotionActive } = await import('../src/client/components/dx-number.js');
+    assert(typeof isReducedMotionActive === 'function', 'isReducedMotionActive should be exported function');
 }

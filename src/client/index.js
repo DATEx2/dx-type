@@ -3,7 +3,7 @@
 // Usage: import { DxType, DxTypeSda, DxReveal, ... } from '@datex2/dx-type/client';
 
 // Base classes & lifecycle functions
-export { DxBase, rootWin } from './base/dx-base.js';
+export { DxBase, rootWin, isReducedMotionActive } from './base/dx-base.js';
 export { DX_ANIM, getIO, observeIO, unobserveIO, getLookaheadIO, observeLookaheadIO, unobserveLookaheadIO, queueIdleUnpack, removeFromIdleQueue, queueIdleCleanup, flushIdleCleanup, registerRAF, unregisterRAF, onAllAnimationsEnd, setSdaGaps, getSdaGaps, gateIOUntil, flushScrollGate, isScrollRestored } from './base/dx-scheduler.js';
 export { DxTyping, unpackTemplate, prepareTemplateContent, observeTypewriter, mountTypewriter, ensureElementsUpToTarget, onTypewriterEnd, cleanupTypedDOM, bootstrapTypewriterObserver, getTypewriterObserver, buildTypingLayer, HEX_LUT, syncSectionHeaderTyping, SECTION_HEADER_SEL, DX_CHAR_DURATION } from './base/dx-typing.js';
 export { DxRevealing, finishReveal, startReveal } from './base/dx-revealing.js';

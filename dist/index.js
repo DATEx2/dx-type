@@ -439,6 +439,9 @@ if (rootWin) {
 var rootWin2 = typeof window !== "undefined" ? window : typeof global !== "undefined" ? global : null;
 var BaseHTMLElement = rootWin2?.HTMLElement || class {
 };
+function isReducedMotionActive() {
+  return typeof window !== "undefined" && window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+}
 var DxBase = class extends BaseHTMLElement {
   constructor() {
     super();
@@ -1015,6 +1018,7 @@ function unpackTemplate(el2) {
   if (el2.classList && el2.classList.contains(DX_ANIM.TYPED)) return false;
   if (typeof window !== "undefined" && window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
     el2.classList.add(DX_ANIM.TYPED);
+    cleanupTypedDOM(el2);
     return false;
   }
   const tpl = el2.querySelector(":scope > template");
@@ -1599,6 +1603,12 @@ var DxType = class extends DxTyping {
         if (el2.isTyped || el2.classList.contains(DX_ANIM.TYPED)) return;
         removeFromIdleQueue(el2);
         unobserveLookaheadIO(el2);
+        if (isReducedMotionActive()) {
+          el2.classList.add(DX_ANIM.TYPED);
+          cleanupTypedDOM(el2);
+          syncSectionHeaderTyping(el2);
+          return;
+        }
         unpackTemplate(el2);
         el2.classList.add(DX_ANIM.TYPING);
         syncSectionHeaderTyping(el2);
@@ -1654,6 +1664,12 @@ var DxTypeSda = class extends DxTyping {
         if (el2.isTyped || el2.classList.contains(DX_ANIM.TYPED)) return;
         removeFromIdleQueue(el2);
         unobserveLookaheadIO(el2);
+        if (isReducedMotionActive()) {
+          el2.classList.add(DX_ANIM.TYPED);
+          cleanupTypedDOM(el2);
+          syncSectionHeaderTyping(el2);
+          return;
+        }
         unpackTemplate(el2);
         el2.classList.add(DX_ANIM.TYPING);
         syncSectionHeaderTyping(el2);
@@ -1684,7 +1700,6 @@ defCustomElement("ui-type-sda", DxTypeSda);
 var DxRevealSda = class extends DxRevealing {
   connectedCallback() {
     if (this.isRevealed) return;
-    this._syncTimingAttributes();
     this._triggerChildren = () => {
       this.querySelectorAll("dx-counter, dx-number, dx-type").forEach((child) => {
         const closedDetails = !child.closest("summary") && child.closest("details:not([open])");
@@ -1706,10 +1721,16 @@ var DxRevealSda = class extends DxRevealing {
         }
       });
     };
+    this._syncTimingAttributes();
     observeIO(this, () => {
       removeFromIdleQueue(this);
       unpackTemplate(this);
       this._inViewport = true;
+      if (isReducedMotionActive()) {
+        this.markRevealed();
+        this._triggerChildren();
+        return;
+      }
       this._checkAndTrigger();
     });
     queueIdleUnpack(this, (el2) => {
@@ -1778,9 +1799,6 @@ defCustomElement("dx-type-ready", DxTypeReady);
 // src/client/components/dx-number.js
 var TYPE_PARENT_SEL = "dx-type-sda, dx-type, .type-sda, .type, ui-type, ui-type-sda";
 var REVEAL_PARENT_SEL3 = "dx-reveal-sda, dx-reveal, .reveal-sda, .reveal, ui-reveal-sda, ui-reveal";
-function isReducedMotionActive() {
-  return typeof window !== "undefined" && window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-}
 var DxNumber = class extends DxMeter {
   static get observedAttributes() {
     return ["prefix", "suffix", "comma", "type", "percent", "value", "duration", "start"];
@@ -2371,24 +2389,41 @@ var DxOdometer = class extends DxMeter {
     b.innerHTML = digitsHtml;
   }
   connectedCallback() {
+    const isReduced = isReducedMotionActive();
+    if (this.closest("dx-s, t-s")) {
+      this.classList.add("data-static");
+      this._animDone = true;
+      return;
+    }
+    if (this.classList.contains("data-static") || isReduced) {
+      this.classList.add("data-static");
+      this.makeStatic();
+      this._animDone = true;
+      const drumB = this.querySelector("b");
+      if (drumB) drumB.remove();
+      const pfx = this.querySelector(".ui-pfx");
+      if (pfx) pfx.remove();
+      const sfx = this.querySelector(".ui-sfx");
+      if (sfx) sfx.remove();
+      const innerDxS = this.querySelector(":scope > :is(dx-s, t-s)");
+      if (innerDxS) {
+        this.textContent = innerDxS.textContent || "";
+      } else if (!this.textContent.trim() && typeof this.getStaticHTML === "function") {
+        this.innerHTML = this.getStaticHTML();
+      }
+      const twEmbed2 = this.classList.contains("tw-embed") || !!this.closest(TYPE_PARENT_SEL2);
+      if (twEmbed2) {
+        onTypewriterEnd(this);
+      }
+      return;
+    }
     const dataO = this.getAttribute("data-o");
-    if (dataO && !this.querySelector("dx-d") && !this.closest("dx-s, t-s") && !this.classList.contains("data-static")) {
+    if (dataO && !this.querySelector("dx-d")) {
       this.unpackDataO(dataO);
     }
     expandOdometerDrums(this);
     if (this._initialized) return;
     this._initialized = true;
-    if (this.closest("dx-s, t-s")) {
-      this.classList.add("data-static");
-      return;
-    }
-    if (this.classList.contains("data-static")) return;
-    if (typeof window !== "undefined" && window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
-      this.classList.add("data-static");
-      this.makeStatic();
-      this._animDone = true;
-      return;
-    }
     this.addEventListener("animationend", this._onAnimEnd);
     this.addEventListener("animationstart", (e) => {
       if (e?.stopPropagation) e.stopPropagation();
@@ -3492,6 +3527,7 @@ export {
   getLookaheadIO,
   getSdaGaps,
   getTypewriterObserver,
+  isReducedMotionActive,
   isScrollRestored,
   mountTypewriter,
   observeIO,
