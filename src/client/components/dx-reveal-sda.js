@@ -16,7 +16,10 @@ export class DxRevealSda extends DxRevealing {
     connectedCallback() {
         if (this.isRevealed) return;
 
+        let childrenTriggered = false;
         this._triggerChildren = () => {
+            if (childrenTriggered) return;
+            childrenTriggered = true;
             this.querySelectorAll('dx-counter, dx-number, dx-type').forEach(child => {
                 // If child is inside a closed details/accordion (and not in summary) or hidden button, DO NOT trigger it!
                 const closedDetails = !child.closest('summary') && child.closest('details:not([open])');

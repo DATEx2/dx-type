@@ -3,7 +3,7 @@
 // exports: DxTyping, unpackTemplate, onTypewriterEnd, cleanupTypedDOM, ensureElementsUpToTarget, bootstrapTypewriterObserver, syncSectionHeaderTyping, SECTION_HEADER_SEL, DX_CHAR_DURATION
 // used_by: src/client/components/dx-type.js, src/client/components/dx-type-sda.js
 
-import { DxBase, rootWin } from './dx-base.js';
+import { DxBase, rootWin, isReducedMotionActive } from './dx-base.js';
 import { observeIO, unobserveIO, getLookaheadIO, observeLookaheadIO, unobserveLookaheadIO, queueIdleUnpack, removeFromIdleQueue, queueIdleCleanup, flushIdleCleanup, getIO, DX_ANIM } from './dx-scheduler.js';
 import { generateRibbonHtml, expandOdometerDrums } from './dx-meter.js';
 
@@ -71,8 +71,13 @@ export function buildTypingLayer(ts, delay, offset, speed) {
                     // Emit word
                     const wClass = hyphen ? ' class="word"' : '';
                     tHtml += `<dx-w${wClass}>`;
+                    const curWordStr = chars.slice(ci, ci + len).join('');
+                    const isDateWord = /^DATE(?:x2)?(?:-|$)/i.test(curWordStr);
                     for (let c = 0; c < len && ci < chars.length; c++, ci++) {
-                        const curCh = chars[ci];
+                        let curCh = chars[ci];
+                        if (isDateWord && c === 0 && curCh === 'D') {
+                            curCh = '\u{1D5D7}';
+                        }
                         const d = Math.round(delay + (offset + charIdx++) * speed);
                         const cls = (curCh === '\u00B7' || curCh === '\u2022') ? ' class="bullet-dot"' : '';
                         tHtml += `<dx-c${cls} style="animation-delay:${d}ms">${curCh}</dx-c>`;
@@ -291,7 +296,7 @@ export function unpackTemplate(el) {
     if (!el) return false;
     if (el.classList && el.classList.contains(DX_ANIM.TYPED)) return false;
 
-    if (typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    if (isReducedMotionActive()) {
         el.classList.add(DX_ANIM.TYPED);
         cleanupTypedDOM(el);
         return false;

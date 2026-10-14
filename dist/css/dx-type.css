@@ -496,11 +496,13 @@ dx-number {
 @keyframes dx-reveal-sda {
   0% {
     opacity: 0;
-    transform: translateY(15px);
+    transform: translateY(14px);
+    filter: blur(8px);
   }
   100% {
     opacity: 1;
     transform: translateY(0);
+    filter: blur(0);
   }
 }
 :is(dx-type.dx-typing, dx-type-sda.dx-typing, dx-type[data-static], dx-type-sda[data-static]) :is(dx-t, t, dx-type > dx-t, dx-type-sda > dx-t) :is(dx-w, s) > dx-c {
@@ -522,8 +524,15 @@ dx-number {
   -webkit-backface-visibility: hidden;
 }
 :is(dx-reveal-sda.dx-revealing, dx-reveal-sda[data-static]):not(.dx-revealed):not(.dx-paused) {
-  will-change: transform, opacity;
-  animation: dx-reveal-sda calc(var(--t, 500) * var(--A, 1) * 1ms) cubic-bezier(0.22, 1, 0.36, 1) calc(var(--d, 0) * var(--A, 1) * 1ms) both !important;
+  will-change:
+    transform,
+    opacity,
+    filter;
+  animation: dx-reveal-sda calc(var(--t, 480) * var(--A, 1) * 1ms) cubic-bezier(0.22, 1, 0.36, 1) calc(var(--d, 0) * var(--A, 1) * 1ms) both !important;
+}
+:is(#hero, .hero-header, .hero-content-wrapper, .hero-container, product-hero, .ga__gallery, .ga__main-container, .ga__thumbs-container) dx-reveal-sda.dx-revealing:not(.dx-revealed):not(.dx-paused),
+dx-reveal-sda:is(.hero-specs-separator, .hero-btn-container-left, .hero-btn-container-right, .ga__thumb-overlay).dx-revealing:not(.dx-revealed):not(.dx-paused) {
+  animation: reveal-in calc(var(--t, 500) * var(--A, 1) * 1ms) ease-out calc(var(--d, 0) * var(--A, 1) * 1ms) both !important;
 }
 dx-reveal-sda.dx-paused {
   animation: none !important;
@@ -599,6 +608,7 @@ dx-odometer.data-static dx-s,
   opacity: 1 !important;
   visibility: visible !important;
   transform: none !important;
+  filter: none !important;
   will-change: auto !important;
   contain: style !important;
 }

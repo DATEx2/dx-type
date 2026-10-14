@@ -51,7 +51,8 @@ let isScrollGated = false;
 const pendingIoQueue = new Set();
 const pendingLookaheadQueue = new Set();
 
-const isProductPage = (typeof location !== 'undefined') && /^\/(?:[a-z]{2}\/)?products?\//i.test(location.pathname || '');
+const isCheckoutOrCart = (typeof location !== 'undefined') && /(?:^|\/)(?:checkout|cart)(?:\/|$)/i.test(location.pathname || '');
+const isProductPage = !isCheckoutOrCart && (typeof location !== 'undefined') && /^\/(?:[a-z]{2}\/)?products?\//i.test(location.pathname || '');
 if (isProductPage && rootWin && !rootWin.__dxScrollRestored && !rootWin.__sdaReadyPerformanceTime && typeof rootWin.IntersectionObserver === 'function') {
     isScrollGated = true;
 }

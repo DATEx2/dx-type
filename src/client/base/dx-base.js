@@ -7,7 +7,15 @@ export const rootWin = typeof window !== 'undefined' ? window : (typeof global !
 const BaseHTMLElement = rootWin?.HTMLElement || class {};
 
 export function isReducedMotionActive() {
-    return typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+        return true;
+    }
+    if (typeof document !== 'undefined' && document.documentElement) {
+        if (document.documentElement.style.getPropertyValue('--A') === '0') {
+            return true;
+        }
+    }
+    return false;
 }
 
 import { DX_ANIM } from './dx-scheduler.js';

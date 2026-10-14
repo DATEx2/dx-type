@@ -60,8 +60,14 @@ export class DxType extends DxTyping {
 
             const isHeader = !!el.closest?.(SECTION_HEADER_SEL);
             const parentRev = el.closest?.(REVEAL_PARENT_SEL);
-            if (!isHeader && parentRev && !parentRev.classList.contains(DX_ANIM.REVEALED) && !parentRev.classList.contains(DX_ANIM.REVEALING)) {
-                const onParentStart = () => {
+            const parentHasPendingDelay = parentRev && !parentRev.isRevealed && !parentRev.classList.contains(DX_ANIM.REVEALED) && !parentRev._animStarted && (
+                !parentRev.classList.contains(DX_ANIM.REVEALING) ||
+                (typeof AnimationEvent !== 'undefined' && (parseFloat(parentRev.style?.getPropertyValue('--d') || parentRev.getAttribute?.('delay') || parentRev.getAttribute?.('d') || 0) > 0))
+            );
+            if (!isHeader && parentRev && parentHasPendingDelay) {
+                // If parent reveal container hasn't started yet or is in its delay phase, wait for animationstart
+                const onParentStart = (e) => {
+                    if (e && e.target && e.target !== parentRev) return;
                     parentRev.removeEventListener('animationstart', onParentStart);
                     triggerTyping();
                 };

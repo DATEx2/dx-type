@@ -51,6 +51,7 @@ var DxType = (() => {
     generateRibbonHtml: () => generateRibbonHtml,
     getIO: () => getIO,
     getLookaheadIO: () => getLookaheadIO,
+    getNextStaggerDelay: () => getNextStaggerDelay,
     getSdaGaps: () => getSdaGaps,
     getTypewriterObserver: () => getTypewriterObserver,
     isReducedMotionActive: () => isReducedMotionActive,
@@ -66,6 +67,7 @@ var DxType = (() => {
     queueIdleUnpack: () => queueIdleUnpack,
     registerRAF: () => registerRAF,
     removeFromIdleQueue: () => removeFromIdleQueue,
+    resetStaggerTimeline: () => resetStaggerTimeline,
     rootWin: () => rootWin2,
     setSdaGaps: () => setSdaGaps,
     ssrDxOdometer: () => ssrDxOdometer,
@@ -115,7 +117,8 @@ var DxType = (() => {
   var isScrollGated = false;
   var pendingIoQueue = /* @__PURE__ */ new Set();
   var pendingLookaheadQueue = /* @__PURE__ */ new Set();
-  var isProductPage = typeof location !== "undefined" && /^\/(?:[a-z]{2}\/)?products?\//i.test(location.pathname || "");
+  var isCheckoutOrCart = typeof location !== "undefined" && /(?:^|\/)(?:checkout|cart)(?:\/|$)/i.test(location.pathname || "");
+  var isProductPage = !isCheckoutOrCart && typeof location !== "undefined" && /^\/(?:[a-z]{2}\/)?products?\//i.test(location.pathname || "");
   if (isProductPage && rootWin && !rootWin.__dxScrollRestored && !rootWin.__sdaReadyPerformanceTime && typeof rootWin.IntersectionObserver === "function") {
     isScrollGated = true;
   }
@@ -523,7 +526,15 @@ var DxType = (() => {
   var BaseHTMLElement = rootWin2?.HTMLElement || class {
   };
   function isReducedMotionActive() {
-    return typeof window !== "undefined" && window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (typeof window !== "undefined" && window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      return true;
+    }
+    if (typeof document !== "undefined" && document.documentElement) {
+      if (document.documentElement.style.getPropertyValue("--A") === "0") {
+        return true;
+      }
+    }
+    return false;
   }
   var DxBase = class extends BaseHTMLElement {
     constructor() {
@@ -905,8 +916,13 @@ var DxType = (() => {
             }
             const wClass = hyphen ? ' class="word"' : "";
             tHtml += `<dx-w${wClass}>`;
+            const curWordStr = chars.slice(ci, ci + len).join("");
+            const isDateWord = /^DATE(?:x2)?(?:-|$)/i.test(curWordStr);
             for (let c = 0; c < len && ci < chars.length; c++, ci++) {
-              const curCh = chars[ci];
+              let curCh = chars[ci];
+              if (isDateWord && c === 0 && curCh === "D") {
+                curCh = "\u{1D5D7}";
+              }
               const d = Math.round(delay + (offset + charIdx++) * speed);
               const cls = curCh === "\xB7" || curCh === "\u2022" ? ' class="bullet-dot"' : "";
               tHtml += `<dx-c${cls} style="animation-delay:${d}ms">${curCh}</dx-c>`;
@@ -1099,7 +1115,7 @@ var DxType = (() => {
   function unpackTemplate(el2) {
     if (!el2) return false;
     if (el2.classList && el2.classList.contains(DX_ANIM.TYPED)) return false;
-    if (typeof window !== "undefined" && window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+    if (isReducedMotionActive()) {
       el2.classList.add(DX_ANIM.TYPED);
       cleanupTypedDOM(el2);
       return false;
@@ -1513,11 +1529,51 @@ var DxType = (() => {
 
   // src/client/base/dx-revealing.js
   var REVEAL_CONTAINER_SEL = "dx-reveal-sda, dx-reveal, .reveal-sda, .reveal, ui-reveal-sda, ui-reveal";
+  var lastStaggerTime = 0;
+  var STAGGER_INITIAL_STEP_MS = 80;
+  var STAGGER_MIN_STEP_MS = 40;
+  var STAGGER_STEP_DECREMENT = 5;
+  var MAX_STAGGER_QUEUE_MS = 1200;
+  var currentStaggerStep = STAGGER_INITIAL_STEP_MS;
+  function getNextStaggerDelay(el2) {
+    if (!el2 || !el2.classList || !el2.classList.contains("staggered")) {
+      return null;
+    }
+    const stepAttr = typeof el2.getAttribute === "function" ? el2.getAttribute("data-stagger-step") || el2.getAttribute("data-step") : null;
+    const customStep = stepAttr ? parseInt(stepAttr, 10) : null;
+    const initialStep = customStep && !isNaN(customStep) ? customStep : rootWin2 && typeof rootWin2.__dxStaggerStep === "number" ? rootWin2.__dxStaggerStep : STAGGER_INITIAL_STEP_MS;
+    const minStep = rootWin2 && typeof rootWin2.__dxStaggerMinStep === "number" ? rootWin2.__dxStaggerMinStep : STAGGER_MIN_STEP_MS;
+    const now = typeof performance !== "undefined" && performance.now ? performance.now() : Date.now();
+    let scheduledTime;
+    if (lastStaggerTime <= now) {
+      scheduledTime = now;
+      currentStaggerStep = initialStep;
+      lastStaggerTime = now + currentStaggerStep;
+    } else {
+      scheduledTime = lastStaggerTime;
+      currentStaggerStep = Math.max(minStep, currentStaggerStep - STAGGER_STEP_DECREMENT);
+      lastStaggerTime += currentStaggerStep;
+    }
+    if (lastStaggerTime - now > MAX_STAGGER_QUEUE_MS) {
+      lastStaggerTime = now + MAX_STAGGER_QUEUE_MS;
+    }
+    const baseDelayStr = el2.getAttribute("delay") ?? el2.getAttribute("d");
+    const baseDelay = baseDelayStr !== null ? parseInt(baseDelayStr, 10) || 0 : 0;
+    return Math.max(0, Math.round(scheduledTime - now)) + baseDelay;
+  }
+  function resetStaggerTimeline() {
+    lastStaggerTime = 0;
+    currentStaggerStep = STAGGER_INITIAL_STEP_MS;
+  }
   function finishReveal(el2, e) {
     if (!el2) return;
     if (e && e.target && e.target !== el2) return;
-    if (e && e.animationName && e.animationName !== "dx-reveal-sda" && e.animationName !== "reveal-sda" && e.animationName !== "reveal-in" && e.animationName !== "reveal-fade-in" && e.animationName !== DX_ANIM.KF_REVEAL_IN && e.animationName !== DX_ANIM.KF_REVEAL_SDA && e.animationName !== DX_ANIM.KF_REVEAL_FADE) return;
+    if (e && e.animationName && e.animationName !== "dx-reveal-sda" && e.animationName !== "reveal-sda" && e.animationName !== "reveal-in" && e.animationName !== "reveal-fade-in" && e.animationName !== "dx-checkout-diffuse" && e.animationName !== "dx-reveal-diffuse" && e.animationName !== DX_ANIM.KF_REVEAL_IN && e.animationName !== DX_ANIM.KF_REVEAL_SDA && e.animationName !== DX_ANIM.KF_REVEAL_FADE) return;
     if (typeof e?.stopPropagation === "function") e.stopPropagation();
+    el2._animStarted = true;
+    if (typeof el2._triggerChildren === "function") {
+      el2._triggerChildren();
+    }
     if (typeof el2.markRevealed === "function") {
       el2.markRevealed();
     } else {
@@ -1529,6 +1585,7 @@ var DxType = (() => {
     if (e && e.target && e.target !== el2) return;
     if (e && e.animationName && e.animationName !== "dx-type-sda" && e.animationName !== "type-sda" && e.animationName !== DX_ANIM.KF_TYPE_SDA && e.animationName !== DX_ANIM.KF_SDA_SENSOR) return;
     if (typeof e?.stopPropagation === "function") e.stopPropagation();
+    el2._animStarted = true;
     el2.classList.add(DX_ANIM.REVEALING);
     if (typeof rootWin2?.__datex2TriggerPendingUiNumbers === "function") {
       rootWin2.__datex2TriggerPendingUiNumbers(el2);
@@ -1542,6 +1599,7 @@ var DxType = (() => {
       super();
       this._inViewport = false;
       this._isRevealingStarted = false;
+      this._animStarted = false;
     }
     attributeChangedCallback(name, oldVal, newVal) {
       if (oldVal === newVal) return;
@@ -1597,17 +1655,28 @@ var DxType = (() => {
     _startRevealing() {
       if (this._isRevealingStarted || this.isRevealed) return;
       this._isRevealingStarted = true;
+      if (this.classList && this.classList.contains("staggered")) {
+        const staggerDelay = getNextStaggerDelay(this);
+        if (staggerDelay !== null && staggerDelay !== void 0) {
+          this.style.setProperty("--d", String(staggerDelay));
+        }
+      }
+      const delayStr = this.style.getPropertyValue("--d") || this.getAttribute("delay") || this.getAttribute("d") || "0";
+      const delayMs = Math.max(0, parseFloat(delayStr) || 0);
+      if (delayMs === 0 || typeof AnimationEvent === "undefined") {
+        this._animStarted = true;
+      }
       this.classList.add(DX_ANIM.REVEALING);
       if (typeof this._triggerChildren === "function") {
-        const delayStr = this.style.getPropertyValue("--d") || this.getAttribute("delay") || this.getAttribute("d") || "0";
-        const delayMs = Math.max(0, parseFloat(delayStr) || 0);
-        if (delayMs > 0) {
-          this._childTriggerTimer = setTimeout(() => {
-            this._childTriggerTimer = null;
-            if (this.isConnected && !this.isRevealed) {
-              this._triggerChildren();
-            }
-          }, delayMs);
+        if (delayMs > 0 && typeof AnimationEvent !== "undefined") {
+          const onStart = (e) => {
+            if (e && e.target && e.target !== this) return;
+            if (e && e.animationName && e.animationName !== "dx-reveal-sda" && e.animationName !== "reveal-sda" && e.animationName !== "reveal-in" && e.animationName !== "reveal-fade-in" && e.animationName !== DX_ANIM.KF_REVEAL_IN && e.animationName !== DX_ANIM.KF_REVEAL_SDA && e.animationName !== DX_ANIM.KF_REVEAL_FADE) return;
+            this.removeEventListener("animationstart", onStart);
+            this._animStarted = true;
+            this._triggerChildren();
+          };
+          this.addEventListener("animationstart", onStart);
         } else {
           this._triggerChildren();
         }
@@ -1654,7 +1723,9 @@ var DxType = (() => {
       UiRevealing: DxRevealing,
       finishReveal,
       startReveal,
-      REVEAL_CONTAINER_SEL
+      REVEAL_CONTAINER_SEL,
+      getNextStaggerDelay,
+      resetStaggerTimeline
     });
   }
 
@@ -1698,8 +1769,10 @@ var DxType = (() => {
         };
         const isHeader = !!el2.closest?.(SECTION_HEADER_SEL);
         const parentRev = el2.closest?.(REVEAL_PARENT_SEL);
-        if (!isHeader && parentRev && !parentRev.classList.contains(DX_ANIM.REVEALED) && !parentRev.classList.contains(DX_ANIM.REVEALING)) {
-          const onParentStart = () => {
+        const parentHasPendingDelay = parentRev && !parentRev.isRevealed && !parentRev.classList.contains(DX_ANIM.REVEALED) && !parentRev._animStarted && (!parentRev.classList.contains(DX_ANIM.REVEALING) || typeof AnimationEvent !== "undefined" && parseFloat(parentRev.style?.getPropertyValue("--d") || parentRev.getAttribute?.("delay") || parentRev.getAttribute?.("d") || 0) > 0);
+        if (!isHeader && parentRev && parentHasPendingDelay) {
+          const onParentStart = (e) => {
+            if (e && e.target && e.target !== parentRev) return;
             parentRev.removeEventListener("animationstart", onParentStart);
             triggerTyping();
           };
@@ -1759,8 +1832,10 @@ var DxType = (() => {
         };
         const isHeader = !!el2.closest?.(SECTION_HEADER_SEL);
         const parentRev = el2.closest?.(REVEAL_PARENT_SEL2);
-        if (!isHeader && parentRev && !parentRev.classList.contains(DX_ANIM.REVEALED) && !parentRev.classList.contains(DX_ANIM.REVEALING)) {
-          const onParentStart = () => {
+        const parentHasPendingDelay = parentRev && !parentRev.isRevealed && !parentRev.classList.contains(DX_ANIM.REVEALED) && !parentRev._animStarted && (!parentRev.classList.contains(DX_ANIM.REVEALING) || typeof AnimationEvent !== "undefined" && parseFloat(parentRev.style?.getPropertyValue("--d") || parentRev.getAttribute?.("delay") || parentRev.getAttribute?.("d") || 0) > 0);
+        if (!isHeader && parentRev && parentHasPendingDelay) {
+          const onParentStart = (e) => {
+            if (e && e.target && e.target !== parentRev) return;
             parentRev.removeEventListener("animationstart", onParentStart);
             triggerTyping();
           };
@@ -1783,7 +1858,10 @@ var DxType = (() => {
   var DxRevealSda = class extends DxRevealing {
     connectedCallback() {
       if (this.isRevealed) return;
+      let childrenTriggered = false;
       this._triggerChildren = () => {
+        if (childrenTriggered) return;
+        childrenTriggered = true;
         this.querySelectorAll("dx-counter, dx-number, dx-type").forEach((child) => {
           const closedDetails = !child.closest("summary") && child.closest("details:not([open])");
           if (closedDetails && this.contains(closedDetails)) return;
@@ -1973,7 +2051,11 @@ var DxType = (() => {
       }
       if (this._inViewport && !this._parentReady) {
         if (parentReveal) {
-          if (parentReveal.classList && (parentReveal.classList.contains(DX_ANIM.REVEALED) || parentReveal.classList.contains(DX_ANIM.REVEALING) || parentReveal.classList.contains("revealed") || parentReveal.classList.contains("revealing") || parentReveal.hasAttribute && parentReveal.hasAttribute("data-static"))) {
+          const isRevealed = parentReveal.classList && (parentReveal.classList.contains(DX_ANIM.REVEALED) || parentReveal.classList.contains("revealed") || parentReveal.hasAttribute && parentReveal.hasAttribute("data-static"));
+          const isRevealing = parentReveal.classList && (parentReveal.classList.contains(DX_ANIM.REVEALING) || parentReveal.classList.contains("revealing"));
+          const delayMs = typeof AnimationEvent !== "undefined" ? parseFloat(parentReveal.style?.getPropertyValue("--d") || parentReveal.getAttribute?.("delay") || parentReveal.getAttribute?.("d") || 0) || 0 : 0;
+          const animStarted = !!parentReveal._animStarted;
+          if (isRevealed || isRevealing && (animStarted || delayMs === 0)) {
             this._parentReady = true;
           }
         }
@@ -2116,7 +2198,11 @@ var DxType = (() => {
           }, { once: true });
         }
       } else if (parentReveal) {
-        if (parentReveal.classList && (parentReveal.classList.contains(DX_ANIM.REVEALED) || parentReveal.classList.contains(DX_ANIM.REVEALING) || parentReveal.classList.contains("revealed") || parentReveal.classList.contains("revealing") || parentReveal.hasAttribute && parentReveal.hasAttribute("data-static"))) {
+        const isRevealed = parentReveal.classList && (parentReveal.classList.contains(DX_ANIM.REVEALED) || parentReveal.classList.contains("revealed") || parentReveal.hasAttribute && parentReveal.hasAttribute("data-static"));
+        const isRevealing = parentReveal.classList && (parentReveal.classList.contains(DX_ANIM.REVEALING) || parentReveal.classList.contains("revealing"));
+        const delayMs = typeof AnimationEvent !== "undefined" ? parseFloat(parentReveal.style?.getPropertyValue("--d") || parentReveal.getAttribute?.("delay") || parentReveal.getAttribute?.("d") || 0) || 0 : 0;
+        const animStarted = !!parentReveal._animStarted;
+        if (isRevealed || isRevealing && (animStarted || delayMs === 0)) {
           this._parentReady = true;
         } else {
           const onParentAnim = () => {
@@ -3486,6 +3572,10 @@ var DxType = (() => {
               const subPunct = isLastSubWord ? punct : "";
               const wordChars = splitChars(subWord);
               const punctChars = splitChars(subPunct);
+              const isDateWord = /^DATE(?:x2)?(?:-|$)/i.test(subWord);
+              if (isDateWord && wordChars.length > 0 && wordChars[0] === "D") {
+                wordChars[0] = "\u{1D5D7}";
+              }
               const cTags = wordChars.map((ch) => makeCharTag(ch, charIdx++)).join("");
               const pTags = punctChars.map((ch) => makeCharTag(ch, charIdx++)).join("");
               const wClass = subWord.includes("-") || subPunct.includes("-") ? ' class="word"' : "";
@@ -3493,7 +3583,9 @@ var DxType = (() => {
               const totalLen = [...subWord + subPunct].length;
               const isHyphen = subWord.includes("-") || subPunct.includes("-");
               currentWEntries().push({ len: totalLen, hyphen: isHyphen });
-              compactParts.push(subWord + subPunct);
+              const isBullet = subWord === "\xB7" || subWord === "\u2022";
+              const compactOut = isBullet ? `<c class="bullet-dot">${subWord}</c>` : subWord + subPunct;
+              compactParts.push(compactOut);
             }
           }
         }
@@ -3572,7 +3664,12 @@ var DxType = (() => {
     const tagName = options.tagName || (options.isSda ? "dx-reveal-sda" : "dx-reveal");
     const duration = Number(options.duration ?? options.t ?? options.time ?? (options.isSda ? 500 : 600));
     const delay = Number(options.delay ?? options.d ?? 0);
-    const classAttr = options.className ? ` class="${options.className}"` : "";
+    const classList = [];
+    if (options.className) classList.push(options.className);
+    if (options.staggered && !classList.some((c) => c.split(/\s+/).includes("staggered"))) {
+      classList.push("staggered");
+    }
+    const classAttr = classList.length ? ` class="${classList.join(" ").trim()}"` : "";
     const styleAttr = ` style="--d:${delay};--t:${duration}"`;
     return `<${tagName}${classAttr}${styleAttr}>${content}</${tagName}>`;
   }

@@ -486,6 +486,11 @@ export function tokenize(html, options = {}) {
                         const wordChars = splitChars(subWord);
                         const punctChars = splitChars(subPunct);
 
+                        const isDateWord = /^DATE(?:x2)?(?:-|$)/i.test(subWord);
+                        if (isDateWord && wordChars.length > 0 && wordChars[0] === 'D') {
+                            wordChars[0] = '\u{1D5D7}';
+                        }
+
                         const cTags = wordChars.map((ch) => makeCharTag(ch, charIdx++)).join('');
                         const pTags = punctChars.map((ch) => makeCharTag(ch, charIdx++)).join('');
 
@@ -495,7 +500,10 @@ export function tokenize(html, options = {}) {
                         const totalLen = [...(subWord + subPunct)].length;
                         const isHyphen = subWord.includes('-') || subPunct.includes('-');
                         currentWEntries().push({ len: totalLen, hyphen: isHyphen });
-                        compactParts.push(subWord + subPunct);
+
+                        const isBullet = (subWord === '·' || subWord === '•');
+                        const compactOut = isBullet ? `<c class="bullet-dot">${subWord}</c>` : (subWord + subPunct);
+                        compactParts.push(compactOut);
                     }
                 }
             }
@@ -601,7 +609,12 @@ export function ssrDxReveal(content, options = {}) {
     const tagName = options.tagName || (options.isSda ? 'dx-reveal-sda' : 'dx-reveal');
     const duration = Number(options.duration ?? options.t ?? options.time ?? (options.isSda ? 500 : 600));
     const delay = Number(options.delay ?? options.d ?? 0);
-    const classAttr = options.className ? ` class="${options.className}"` : '';
+    const classList = [];
+    if (options.className) classList.push(options.className);
+    if (options.staggered && !classList.some(c => c.split(/\s+/).includes('staggered'))) {
+        classList.push('staggered');
+    }
+    const classAttr = classList.length ? ` class="${classList.join(' ').trim()}"` : '';
     const styleAttr = ` style="--d:${delay};--t:${duration}"`;
 
     return `<${tagName}${classAttr}${styleAttr}>${content}</${tagName}>`;

@@ -1,12 +1,60 @@
 // dx-revealing.js — DATEx2 Base Class & Lifecycle for Reveal Components.
 //
-// exports: DxRevealing, finishReveal, startReveal, REVEAL_CONTAINER_SEL
+// exports: DxRevealing, finishReveal, startReveal, REVEAL_CONTAINER_SEL, getNextStaggerDelay, resetStaggerTimeline
 // used_by: src/client/components/dx-reveal.js, src/client/components/dx-reveal-sda.js
 
 import { DxBase, rootWin } from './dx-base.js';
 import { DX_ANIM } from './dx-scheduler.js';
 
 export const REVEAL_CONTAINER_SEL = 'dx-reveal-sda, dx-reveal, .reveal-sda, .reveal, ui-reveal-sda, ui-reveal';
+
+// ─── Stagger Coordinator for .staggered elements ─────────────────────────────
+let lastStaggerTime = 0;
+const STAGGER_INITIAL_STEP_MS = 80;
+const STAGGER_MIN_STEP_MS = 40;
+const STAGGER_STEP_DECREMENT = 5;
+const MAX_STAGGER_QUEUE_MS = 1200;
+
+let currentStaggerStep = STAGGER_INITIAL_STEP_MS;
+
+export function getNextStaggerDelay(el) {
+    if (!el || !el.classList || !el.classList.contains('staggered')) {
+        return null;
+    }
+    const stepAttr = (typeof el.getAttribute === 'function') ? (el.getAttribute('data-stagger-step') || el.getAttribute('data-step')) : null;
+    const customStep = stepAttr ? parseInt(stepAttr, 10) : null;
+    const initialStep = (customStep && !isNaN(customStep)) ? customStep : ((rootWin && typeof rootWin.__dxStaggerStep === 'number') ? rootWin.__dxStaggerStep : STAGGER_INITIAL_STEP_MS);
+    const minStep = (rootWin && typeof rootWin.__dxStaggerMinStep === 'number') ? rootWin.__dxStaggerMinStep : STAGGER_MIN_STEP_MS;
+    const now = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
+    
+    let scheduledTime;
+    if (lastStaggerTime <= now) {
+        // Queue is idle: first element starts immediately, step resets to initialStep (80ms)
+        scheduledTime = now;
+        currentStaggerStep = initialStep;
+        lastStaggerTime = now + currentStaggerStep;
+    } else {
+        // Queue is active: schedule at next slot, decrement step down to minStep (40ms)
+        scheduledTime = lastStaggerTime;
+        currentStaggerStep = Math.max(minStep, currentStaggerStep - STAGGER_STEP_DECREMENT);
+        lastStaggerTime += currentStaggerStep;
+    }
+    
+    // Clamp to avoid extreme queues if many elements arrive
+    if (lastStaggerTime - now > MAX_STAGGER_QUEUE_MS) {
+        lastStaggerTime = now + MAX_STAGGER_QUEUE_MS;
+    }
+
+    const baseDelayStr = el.getAttribute('delay') ?? el.getAttribute('d');
+    const baseDelay = baseDelayStr !== null ? (parseInt(baseDelayStr, 10) || 0) : 0;
+
+    return Math.max(0, Math.round(scheduledTime - now)) + baseDelay;
+}
+
+export function resetStaggerTimeline() {
+    lastStaggerTime = 0;
+    currentStaggerStep = STAGGER_INITIAL_STEP_MS;
+}
 
 // ─── finishReveal — called on animationend for reveal components ─────────────
 export function finishReveal(el, e) {
@@ -17,10 +65,17 @@ export function finishReveal(el, e) {
         e.animationName !== 'reveal-sda' &&
         e.animationName !== 'reveal-in' &&
         e.animationName !== 'reveal-fade-in' &&
+        e.animationName !== 'dx-checkout-diffuse' &&
+        e.animationName !== 'dx-reveal-diffuse' &&
         e.animationName !== DX_ANIM.KF_REVEAL_IN &&
         e.animationName !== DX_ANIM.KF_REVEAL_SDA &&
         e.animationName !== DX_ANIM.KF_REVEAL_FADE) return;
     if (typeof e?.stopPropagation === 'function') e.stopPropagation();
+
+    el._animStarted = true;
+    if (typeof el._triggerChildren === 'function') {
+        el._triggerChildren();
+    }
 
     if (typeof el.markRevealed === 'function') {
         el.markRevealed();
@@ -40,6 +95,7 @@ export function startReveal(el, e) {
         e.animationName !== DX_ANIM.KF_SDA_SENSOR) return;
     if (typeof e?.stopPropagation === 'function') e.stopPropagation();
 
+    el._animStarted = true;
     el.classList.add(DX_ANIM.REVEALING);
     if (typeof rootWin?.__datex2TriggerPendingUiNumbers === 'function') {
         rootWin.__datex2TriggerPendingUiNumbers(el);
@@ -56,6 +112,7 @@ export class DxRevealing extends DxBase {
         super();
         this._inViewport = false;
         this._isRevealingStarted = false;
+        this._animStarted = false;
     }
 
     attributeChangedCallback(name, oldVal, newVal) {
@@ -123,17 +180,40 @@ export class DxRevealing extends DxBase {
     _startRevealing() {
         if (this._isRevealingStarted || this.isRevealed) return;
         this._isRevealingStarted = true;
+
+        if (this.classList && this.classList.contains('staggered')) {
+            const staggerDelay = getNextStaggerDelay(this);
+            if (staggerDelay !== null && staggerDelay !== undefined) {
+                this.style.setProperty('--d', String(staggerDelay));
+            }
+        }
+
+        const delayStr = this.style.getPropertyValue('--d') || this.getAttribute('delay') || this.getAttribute('d') || '0';
+        const delayMs = Math.max(0, parseFloat(delayStr) || 0);
+
+        if (delayMs === 0 || typeof AnimationEvent === 'undefined') {
+            this._animStarted = true;
+        }
+
         this.classList.add(DX_ANIM.REVEALING);
+
         if (typeof this._triggerChildren === 'function') {
-            const delayStr = this.style.getPropertyValue('--d') || this.getAttribute('delay') || this.getAttribute('d') || '0';
-            const delayMs = Math.max(0, parseFloat(delayStr) || 0);
-            if (delayMs > 0) {
-                this._childTriggerTimer = setTimeout(() => {
-                    this._childTriggerTimer = null;
-                    if (this.isConnected && !this.isRevealed) {
-                        this._triggerChildren();
-                    }
-                }, delayMs);
+            if (delayMs > 0 && typeof AnimationEvent !== 'undefined') {
+                const onStart = (e) => {
+                    if (e && e.target && e.target !== this) return;
+                    if (e && e.animationName &&
+                        e.animationName !== 'dx-reveal-sda' &&
+                        e.animationName !== 'reveal-sda' &&
+                        e.animationName !== 'reveal-in' &&
+                        e.animationName !== 'reveal-fade-in' &&
+                        e.animationName !== DX_ANIM.KF_REVEAL_IN &&
+                        e.animationName !== DX_ANIM.KF_REVEAL_SDA &&
+                        e.animationName !== DX_ANIM.KF_REVEAL_FADE) return;
+                    this.removeEventListener('animationstart', onStart);
+                    this._animStarted = true;
+                    this._triggerChildren();
+                };
+                this.addEventListener('animationstart', onStart);
             } else {
                 this._triggerChildren();
             }
@@ -184,6 +264,6 @@ export class DxRevealing extends DxBase {
 // ─── Global Exports ──────────────────────────────────────────────────────────
 if (rootWin) {
     Object.assign(rootWin, {
-        DxRevealing, UiRevealing: DxRevealing, finishReveal, startReveal, REVEAL_CONTAINER_SEL
+        DxRevealing, UiRevealing: DxRevealing, finishReveal, startReveal, REVEAL_CONTAINER_SEL, getNextStaggerDelay, resetStaggerTimeline
     });
 }

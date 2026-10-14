@@ -133,7 +133,12 @@ export class DxNumber extends DxMeter {
         }
         if (this._inViewport && !this._parentReady) {
             if (parentReveal) {
-                if (parentReveal.classList && (parentReveal.classList.contains(DX_ANIM.REVEALED) || parentReveal.classList.contains(DX_ANIM.REVEALING) || parentReveal.classList.contains('revealed') || parentReveal.classList.contains('revealing') || (parentReveal.hasAttribute && parentReveal.hasAttribute('data-static')))) {
+                const isRevealed = parentReveal.classList && (parentReveal.classList.contains(DX_ANIM.REVEALED) || parentReveal.classList.contains('revealed') || (parentReveal.hasAttribute && parentReveal.hasAttribute('data-static')));
+                const isRevealing = parentReveal.classList && (parentReveal.classList.contains(DX_ANIM.REVEALING) || parentReveal.classList.contains('revealing'));
+                const delayMs = (typeof AnimationEvent !== 'undefined') ? (parseFloat(parentReveal.style?.getPropertyValue('--d') || parentReveal.getAttribute?.('delay') || parentReveal.getAttribute?.('d') || 0) || 0) : 0;
+                const animStarted = !!parentReveal._animStarted;
+
+                if (isRevealed || (isRevealing && (animStarted || delayMs === 0))) {
                     this._parentReady = true;
                 }
             }
@@ -297,7 +302,12 @@ export class DxNumber extends DxMeter {
                 }, { once: true });
             }
         } else if (parentReveal) {
-            if (parentReveal.classList && (parentReveal.classList.contains(DX_ANIM.REVEALED) || parentReveal.classList.contains(DX_ANIM.REVEALING) || parentReveal.classList.contains('revealed') || parentReveal.classList.contains('revealing') || (parentReveal.hasAttribute && parentReveal.hasAttribute('data-static')))) {
+            const isRevealed = parentReveal.classList && (parentReveal.classList.contains(DX_ANIM.REVEALED) || parentReveal.classList.contains('revealed') || (parentReveal.hasAttribute && parentReveal.hasAttribute('data-static')));
+            const isRevealing = parentReveal.classList && (parentReveal.classList.contains(DX_ANIM.REVEALING) || parentReveal.classList.contains('revealing'));
+            const delayMs = (typeof AnimationEvent !== 'undefined') ? (parseFloat(parentReveal.style?.getPropertyValue('--d') || parentReveal.getAttribute?.('delay') || parentReveal.getAttribute?.('d') || 0) || 0) : 0;
+            const animStarted = !!parentReveal._animStarted;
+
+            if (isRevealed || (isRevealing && (animStarted || delayMs === 0))) {
                 this._parentReady = true;
             } else {
                 const onParentAnim = () => {
