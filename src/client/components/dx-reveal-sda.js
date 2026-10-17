@@ -8,7 +8,7 @@
 // used_by: src/client/index.js
 
 import { DxRevealing, finishReveal, REVEAL_CONTAINER_SEL } from '../base/dx-revealing.js';
-import { unpackTemplate, prepareTemplateContent } from '../base/dx-typing.js';
+import { unpackTemplate, prepareTemplateContent, isElementHidden } from '../base/dx-typing.js';
 import { defCustomElement, isReducedMotionActive } from '../base/dx-base.js';
 import { DX_ANIM, observeIO, unobserveLookaheadIO, queueIdleUnpack, removeFromIdleQueue } from '../base/dx-scheduler.js';
 
@@ -20,7 +20,7 @@ export class DxRevealSda extends DxRevealing {
         this._triggerChildren = () => {
             if (childrenTriggered) return;
             childrenTriggered = true;
-            this.querySelectorAll('dx-counter, dx-number, dx-type').forEach(child => {
+            this.querySelectorAll('dx-counter, dx-number, dx-type, dx-type-sda').forEach(child => {
                 // If child is inside a closed details/accordion (and not in summary) or hidden button, DO NOT trigger it!
                 const closedDetails = !child.closest('summary') && child.closest('details:not([open])');
                 if (closedDetails && this.contains(closedDetails)) return;
@@ -37,7 +37,7 @@ export class DxRevealSda extends DxRevealing {
                     child._checkAndTrigger();
                 }
                 const tag = (child.tagName || '').toUpperCase();
-                if (tag === 'DX-TYPE') {
+                if (tag === 'DX-TYPE' || tag === 'DX-TYPE-SDA') {
                     if (!child.classList.contains(DX_ANIM.TYPED)) {
                         unpackTemplate(child);
                         child.classList.add(DX_ANIM.TYPING);
@@ -49,6 +49,7 @@ export class DxRevealSda extends DxRevealing {
         this._syncTimingAttributes();
 
         observeIO(this, () => {
+            if (isElementHidden(this)) return false;
             removeFromIdleQueue(this);
             unpackTemplate(this);
             this._inViewport = true;

@@ -188,7 +188,7 @@ export class DxRevealing extends DxBase {
             }
         }
 
-        const delayStr = this.style.getPropertyValue('--d') || this.getAttribute('delay') || this.getAttribute('d') || '0';
+        const delayStr = this.style?.getPropertyValue?.('--d') || this.getAttribute?.('delay') || this.getAttribute?.('d') || '0';
         const delayMs = Math.max(0, parseFloat(delayStr) || 0);
 
         if (delayMs === 0 || typeof AnimationEvent === 'undefined') {
@@ -206,6 +206,8 @@ export class DxRevealing extends DxBase {
                         e.animationName !== 'reveal-sda' &&
                         e.animationName !== 'reveal-in' &&
                         e.animationName !== 'reveal-fade-in' &&
+                        e.animationName !== 'dx-checkout-diffuse' &&
+                        e.animationName !== 'dx-reveal-diffuse' &&
                         e.animationName !== DX_ANIM.KF_REVEAL_IN &&
                         e.animationName !== DX_ANIM.KF_REVEAL_SDA &&
                         e.animationName !== DX_ANIM.KF_REVEAL_FADE) return;

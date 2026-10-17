@@ -397,6 +397,7 @@ export function unpackTemplate(el) {
 
 export function isElementHidden(el) {
     if (!el) return true;
+    if (typeof el.closest !== 'function') return false;
     if (!el.closest('summary') && el.closest('details:not([open])')) return true;
     const drawer = el.closest('.spec-drawer, [role="dialog"].spec-drawer');
     if (drawer && !drawer.open && !drawer.classList.contains('open') && !drawer.classList.contains('spec-drawer-open')) return true;

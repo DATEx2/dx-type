@@ -38,7 +38,7 @@ export class DxType extends DxTyping {
         // 2. Trigger Typing Animation via IO (same as dx-type-sda)
         observeIO(this, (el) => {
             if (el.isTyped || el.classList.contains(DX_ANIM.TYPED)) return;
-            if (isElementHidden(el)) return;
+            if (isElementHidden(el)) return false;
             el._inViewport = true;
 
             const triggerTyping = () => {
@@ -65,13 +65,15 @@ export class DxType extends DxTyping {
                 (typeof AnimationEvent !== 'undefined' && (parseFloat(parentRev.style?.getPropertyValue('--d') || parentRev.getAttribute?.('delay') || parentRev.getAttribute?.('d') || 0) > 0))
             );
             if (!isHeader && parentRev && parentHasPendingDelay) {
-                // If parent reveal container hasn't started yet or is in its delay phase, wait for animationstart
+                // If parent reveal container hasn't started yet or is in its delay phase, wait for animationstart/animationend on parentRev itself
                 const onParentStart = (e) => {
                     if (e && e.target && e.target !== parentRev) return;
                     parentRev.removeEventListener('animationstart', onParentStart);
+                    parentRev.removeEventListener('animationend', onParentStart);
                     triggerTyping();
                 };
-                parentRev.addEventListener('animationstart', onParentStart, { once: true });
+                parentRev.addEventListener('animationstart', onParentStart);
+                parentRev.addEventListener('animationend', onParentStart);
                 return;
             }
 
