@@ -117,7 +117,7 @@ var DxType = (() => {
   var isScrollGated = false;
   var pendingIoQueue = /* @__PURE__ */ new Set();
   var pendingLookaheadQueue = /* @__PURE__ */ new Set();
-  var isCheckoutOrCart = typeof location !== "undefined" && /(?:^|\/)(?:checkout|cart)(?:\/|$)/i.test(location.pathname || "");
+  var isCheckoutOrCart = typeof location !== "undefined" && /(?:^|\/)(?:checkout|cart|account)(?:\/|$)/i.test(location.pathname || "");
   var isProductPage = !isCheckoutOrCart && typeof location !== "undefined" && /^\/(?:[a-z]{2}\/)?products?\//i.test(location.pathname || "");
   if (isProductPage && rootWin && !rootWin.__dxScrollRestored && !rootWin.__sdaReadyPerformanceTime && typeof rootWin.IntersectionObserver === "function") {
     isScrollGated = true;
@@ -1209,6 +1209,7 @@ var DxType = (() => {
   }
   function isElementHidden(el2) {
     if (!el2) return true;
+    if (typeof el2.closest !== "function") return false;
     if (!el2.closest("summary") && el2.closest("details:not([open])")) return true;
     const drawer = el2.closest('.spec-drawer, [role="dialog"].spec-drawer');
     if (drawer && !drawer.open && !drawer.classList.contains("open") && !drawer.classList.contains("spec-drawer-open")) return true;
@@ -1661,7 +1662,7 @@ var DxType = (() => {
           this.style.setProperty("--d", String(staggerDelay));
         }
       }
-      const delayStr = this.style.getPropertyValue("--d") || this.getAttribute("delay") || this.getAttribute("d") || "0";
+      const delayStr = this.style?.getPropertyValue?.("--d") || this.getAttribute?.("delay") || this.getAttribute?.("d") || "0";
       const delayMs = Math.max(0, parseFloat(delayStr) || 0);
       if (delayMs === 0 || typeof AnimationEvent === "undefined") {
         this._animStarted = true;
@@ -1671,7 +1672,7 @@ var DxType = (() => {
         if (delayMs > 0 && typeof AnimationEvent !== "undefined") {
           const onStart = (e) => {
             if (e && e.target && e.target !== this) return;
-            if (e && e.animationName && e.animationName !== "dx-reveal-sda" && e.animationName !== "reveal-sda" && e.animationName !== "reveal-in" && e.animationName !== "reveal-fade-in" && e.animationName !== DX_ANIM.KF_REVEAL_IN && e.animationName !== DX_ANIM.KF_REVEAL_SDA && e.animationName !== DX_ANIM.KF_REVEAL_FADE) return;
+            if (e && e.animationName && e.animationName !== "dx-reveal-sda" && e.animationName !== "reveal-sda" && e.animationName !== "reveal-in" && e.animationName !== "reveal-fade-in" && e.animationName !== "dx-checkout-diffuse" && e.animationName !== "dx-reveal-diffuse" && e.animationName !== DX_ANIM.KF_REVEAL_IN && e.animationName !== DX_ANIM.KF_REVEAL_SDA && e.animationName !== DX_ANIM.KF_REVEAL_FADE) return;
             this.removeEventListener("animationstart", onStart);
             this._animStarted = true;
             this._triggerChildren();
@@ -1751,7 +1752,7 @@ var DxType = (() => {
       }
       observeIO(this, (el2) => {
         if (el2.isTyped || el2.classList.contains(DX_ANIM.TYPED)) return;
-        if (isElementHidden(el2)) return;
+        if (isElementHidden(el2)) return false;
         el2._inViewport = true;
         const triggerTyping = () => {
           if (el2.isTyped || el2.classList.contains(DX_ANIM.TYPED)) return;
@@ -1774,9 +1775,11 @@ var DxType = (() => {
           const onParentStart = (e) => {
             if (e && e.target && e.target !== parentRev) return;
             parentRev.removeEventListener("animationstart", onParentStart);
+            parentRev.removeEventListener("animationend", onParentStart);
             triggerTyping();
           };
-          parentRev.addEventListener("animationstart", onParentStart, { once: true });
+          parentRev.addEventListener("animationstart", onParentStart);
+          parentRev.addEventListener("animationend", onParentStart);
           return;
         }
         triggerTyping();
@@ -1837,9 +1840,11 @@ var DxType = (() => {
           const onParentStart = (e) => {
             if (e && e.target && e.target !== parentRev) return;
             parentRev.removeEventListener("animationstart", onParentStart);
+            parentRev.removeEventListener("animationend", onParentStart);
             triggerTyping();
           };
-          parentRev.addEventListener("animationstart", onParentStart, { once: true });
+          parentRev.addEventListener("animationstart", onParentStart);
+          parentRev.addEventListener("animationend", onParentStart);
           return;
         }
         triggerTyping();
@@ -1862,7 +1867,7 @@ var DxType = (() => {
       this._triggerChildren = () => {
         if (childrenTriggered) return;
         childrenTriggered = true;
-        this.querySelectorAll("dx-counter, dx-number, dx-type").forEach((child) => {
+        this.querySelectorAll("dx-counter, dx-number, dx-type, dx-type-sda").forEach((child) => {
           const closedDetails = !child.closest("summary") && child.closest("details:not([open])");
           if (closedDetails && this.contains(closedDetails)) return;
           const hiddenParent = child.closest(".hidden, [hidden], .favorite-product__button--saved");
@@ -1874,7 +1879,7 @@ var DxType = (() => {
             child._checkAndTrigger();
           }
           const tag = (child.tagName || "").toUpperCase();
-          if (tag === "DX-TYPE") {
+          if (tag === "DX-TYPE" || tag === "DX-TYPE-SDA") {
             if (!child.classList.contains(DX_ANIM.TYPED)) {
               unpackTemplate(child);
               child.classList.add(DX_ANIM.TYPING);
@@ -1884,6 +1889,7 @@ var DxType = (() => {
       };
       this._syncTimingAttributes();
       observeIO(this, () => {
+        if (isElementHidden(this)) return false;
         removeFromIdleQueue(this);
         unpackTemplate(this);
         this._inViewport = true;
@@ -2721,7 +2727,7 @@ var DxType = (() => {
           name: p,
           syntax: "<integer>",
           initialValue: 0,
-          inherits: true
+          inherits: false
         });
       } catch (e) {
       }
