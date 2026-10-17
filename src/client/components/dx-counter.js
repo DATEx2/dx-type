@@ -33,7 +33,7 @@ if (SUPPORTS_HOUDINI) {
                 name: p,
                 syntax: '<integer>',
                 initialValue: 0,
-                inherits: true
+                inherits: false
             });
         } catch (e) {}
     });
