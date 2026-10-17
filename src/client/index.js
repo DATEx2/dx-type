@@ -22,3 +22,13 @@ export { DxCheck } from './components/dx-check.js';
 
 // Typewriter & Meter String Utilities
 export { ssrDxType, ssrDxReveal, ssrDxOdometer, tokenize } from '../server/index.js';
+
+import { bootstrapTypewriterObserver } from './base/dx-typing.js';
+if (typeof document !== 'undefined') {
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', () => bootstrapTypewriterObserver(), { once: true });
+    } else {
+        bootstrapTypewriterObserver();
+    }
+}
+

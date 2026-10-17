@@ -8,9 +8,9 @@
 // used_by: src/client/index.js
 
 import { DxRevealing, finishReveal, REVEAL_CONTAINER_SEL } from '../base/dx-revealing.js';
-import { unpackTemplate, prepareTemplateContent, isElementHidden } from '../base/dx-typing.js';
+import { unpackTemplate, prepareTemplateContent, cleanupTypedDOM, isElementHidden, syncSectionHeaderTyping } from '../base/dx-typing.js';
 import { defCustomElement, isReducedMotionActive } from '../base/dx-base.js';
-import { DX_ANIM, observeIO, unobserveLookaheadIO, queueIdleUnpack, removeFromIdleQueue } from '../base/dx-scheduler.js';
+import { DX_ANIM, observeIO, unobserveIO, observeLookaheadIO, unobserveLookaheadIO, queueIdleUnpack, removeFromIdleQueue } from '../base/dx-scheduler.js';
 
 export class DxRevealSda extends DxRevealing {
     connectedCallback() {
@@ -21,15 +21,21 @@ export class DxRevealSda extends DxRevealing {
             if (childrenTriggered) return;
             childrenTriggered = true;
             this.querySelectorAll('dx-counter, dx-number, dx-type, dx-type-sda').forEach(child => {
-                // If child is inside a closed details/accordion (and not in summary) or hidden button, DO NOT trigger it!
-                const closedDetails = !child.closest('summary') && child.closest('details:not([open])');
-                if (closedDetails && this.contains(closedDetails)) return;
-
-                const hiddenParent = child.closest('.hidden, [hidden], .favorite-product__button--saved');
-                if (hiddenParent && this.contains(hiddenParent) && !hiddenParent.closest('.favorite-product--saved')) return;
-
                 // STRICT: DO NOT trigger children that belong to a deeper/nested reveal container!
                 if (child.closest(REVEAL_CONTAINER_SEL) !== this) return;
+
+                // If child is inside a closed details/accordion (and not in summary) or hidden button, DO NOT trigger it!
+                const closedDetails = !child.closest('summary') && child.closest('details:not([open])');
+                if (closedDetails && this.contains(closedDetails)) {
+                    child._observeSelf?.();
+                    return;
+                }
+
+                const hiddenParent = child.closest('.hidden, [hidden], .favorite-product__button--saved');
+                if (hiddenParent && this.contains(hiddenParent) && !hiddenParent.closest('.favorite-product--saved')) {
+                    child._observeSelf?.();
+                    return;
+                }
 
                 if (typeof child._checkAndTrigger === 'function') {
                     child._inViewport = true;
@@ -39,8 +45,16 @@ export class DxRevealSda extends DxRevealing {
                 const tag = (child.tagName || '').toUpperCase();
                 if (tag === 'DX-TYPE' || tag === 'DX-TYPE-SDA') {
                     if (!child.classList.contains(DX_ANIM.TYPED)) {
-                        unpackTemplate(child);
-                        child.classList.add(DX_ANIM.TYPING);
+                        removeFromIdleQueue(child);
+                        if (isReducedMotionActive()) {
+                            child.classList.add(DX_ANIM.TYPED);
+                            cleanupTypedDOM(child);
+                            syncSectionHeaderTyping(child);
+                        } else {
+                            unpackTemplate(child);
+                            child.classList.add(DX_ANIM.TYPING);
+                            syncSectionHeaderTyping(child);
+                        }
                     }
                 }
             });
@@ -48,11 +62,13 @@ export class DxRevealSda extends DxRevealing {
 
         this._syncTimingAttributes();
 
+        // 1. Trigger Reveal Animation (-110px threshold)
         observeIO(this, () => {
             if (isElementHidden(this)) return false;
             removeFromIdleQueue(this);
-            unpackTemplate(this);
+            unobserveLookaheadIO(this);
             this._inViewport = true;
+            unpackTemplate(this);
 
             if (isReducedMotionActive()) {
                 this.markRevealed();
@@ -63,10 +79,28 @@ export class DxRevealSda extends DxRevealing {
             this._checkAndTrigger();
         });
 
-        // Background Pre-warm on Idle: ONLY inside <template>.content, NEVER in live DOM!
-        queueIdleUnpack(this, (el) => {
-            prepareTemplateContent(el);
+        // 2. Preemptive Lookahead (+500px): unpack deferred <template> on reveal container and pre-warm direct child <dx-type-sda>
+        observeLookaheadIO(this, (el) => {
+            if (isElementHidden(el)) return false;
+            removeFromIdleQueue(el);
+            if (el.querySelector?.(':scope > template')) {
+                unpackTemplate(el);
+            } else {
+                prepareTemplateContent(el);
+            }
+            el.querySelectorAll?.('dx-type, dx-type-sda')?.forEach(child => {
+                if (child.closest?.(REVEAL_CONTAINER_SEL) === el && !child.isTyped && !isElementHidden(child)) {
+                    queueIdleUnpack(child, (c) => prepareTemplateContent(c));
+                }
+            });
         });
+
+        // Background Pre-warm on Idle: ONLY inside <template>.content / off-DOM, NEVER in live DOM!
+        if (this.querySelector?.(':scope > dx-s[w]') && !isElementHidden(this)) {
+            queueIdleUnpack(this, (el) => {
+                prepareTemplateContent(el);
+            });
+        }
     }
 
     _startRevealing() {
@@ -85,6 +119,8 @@ export class DxRevealSda extends DxRevealing {
 
     disconnectedCallback() {
         super.disconnectedCallback?.();
+        unobserveLookaheadIO(this);
+        removeFromIdleQueue(this);
         this.removeEventListener('animationend', this._onAnimEnd);
         this.removeEventListener('animationcancel', this._onAnimEnd);
     }

@@ -91,6 +91,9 @@ export function buildTypingLayer(ts, delay, offset, speed) {
                     const d = Math.round(delay + (offset + charIdx++) * speed);
                     const cleanHtml = child.outerHTML.replace(/\bdata-static\b/g, '').replace(/\s{2,}/g, ' ');
                     tHtml += `<dx-w><dx-c class="c-ui-num" style="animation-delay:${d}ms">${cleanHtml}</dx-c></dx-w>`;
+                } else if ((child.classList && child.classList.contains('bullet-dot')) || child.tagName === 'DX-C' || child.tagName === 'C') {
+                    const d = Math.round(delay + (offset + charIdx++) * speed);
+                    tHtml += `<dx-w><dx-c class="bullet-dot" style="animation-delay:${d}ms">${child.textContent}</dx-c></dx-w>`;
                 } else {
                     // Generic element — recurse, preserving tag + attributes
                     const tag = child.tagName.toLowerCase();
@@ -131,64 +134,66 @@ export function buildTypingLayer(ts, delay, offset, speed) {
 
 // ─── Prepare template content strictly inside DocumentFragment (<template>.content) ─────
 export function prepareTemplateContent(el) {
-    if (!el) return false;
+    if (!el || typeof el.querySelector !== 'function') return false;
     if (el.classList && el.classList.contains(DX_ANIM.TYPED)) return false;
+    const elTag = (el.tagName || '').toUpperCase();
+    if (elTag === 'DX-REVEAL-SDA' || elTag === 'UI-REVEAL-SDA' || elTag === 'DX-REVEAL' || elTag === 'UI-REVEAL') return false;
 
     const tpl = el.querySelector(':scope > template');
 
     // ─── Bytecode path: only if NO <template> exists on element ───
     if (!tpl) {
+        if (el._preparedTLayer) return true;
         const ts = el.querySelector(':scope > dx-s[w]');
         if (ts && !el.querySelector(':scope > dx-t')) {
-        const style = el.getAttribute('style') || '';
-        const dMatch = style.match(/--d:([\d.]+)/);
-        const bMatch = style.match(/--b:([\d.]+)/);
-        const uMatch = style.match(/--u:([\d.]+)/);
-        const delay = dMatch ? parseFloat(dMatch[1]) : 0;
-        const offset = bMatch ? parseFloat(bMatch[1]) : 0;
-        const speed = uMatch ? parseFloat(uMatch[1]) : 40;
-        const charDur = DX_CHAR_DURATION;
+            const style = el.getAttribute('style') || '';
+            const dMatch = style.match(/--d:([\d.]+)/);
+            const bMatch = style.match(/--b:([\d.]+)/);
+            const uMatch = style.match(/--u:([\d.]+)/);
+            const delay = dMatch ? parseFloat(dMatch[1]) : 0;
+            const offset = bMatch ? parseFloat(bMatch[1]) : 0;
+            const speed = uMatch ? parseFloat(uMatch[1]) : 40;
 
-        const { tHtml, totalChars } = buildTypingLayer(ts, delay, offset, speed);
-        if (tHtml) {
-            const doc = el.ownerDocument || (typeof document !== 'undefined' ? document : null);
-            if (doc) {
-                const tLayer = doc.createElement('dx-t');
-                tLayer.setAttribute('aria-hidden', 'true');
-                tLayer.innerHTML = tHtml;
+            const { tHtml } = buildTypingLayer(ts, delay, offset, speed);
+            if (tHtml) {
+                const doc = el.ownerDocument || (typeof document !== 'undefined' ? document : null);
+                if (doc) {
+                    const tLayer = doc.createElement('dx-t');
+                    tLayer.setAttribute('aria-hidden', 'true');
+                    tLayer.innerHTML = tHtml;
 
-                // Mark data-last on final <dx-c>
-                const allTC = tLayer.querySelectorAll('dx-c');
-                if (allTC.length > 0) {
-                    const lastTC = allTC[allTC.length - 1];
-                    lastTC.setAttribute('data-last', 'true');
-                    lastTC.classList.add('last-char');
-                }
-
-                // Populate drums for embedded meters
-                const odometers = tLayer.querySelectorAll('dx-odometer, ui-odometer');
-                for (let i = 0; i < odometers.length; i++) {
-                    const odo = odometers[i];
-                    odo.classList.remove('data-static');
-                    if (!odo.querySelector('b')) {
-                        const val = odo.getAttribute('percent') || odo.getAttribute('value') || odo.textContent.trim();
-                        const numVal = parseFloat(val) || 0;
-                        const type = odo.getAttribute('type') || 'int';
-                        const comma = odo.getAttribute('comma') || ',';
-                        const prefix = odo.getAttribute('prefix') || '';
-                        const suffix = odo.getAttribute('suffix') || '';
-                        const start = odo.getAttribute('start') || null;
-                        odo.innerHTML = generateRibbonHtml(numVal, type, comma, prefix, suffix, start);
+                    // Mark data-last on final <dx-c>
+                    const allTC = tLayer.querySelectorAll('dx-c');
+                    if (allTC.length > 0) {
+                        const lastTC = allTC[allTC.length - 1];
+                        lastTC.setAttribute('data-last', 'true');
+                        lastTC.classList.add('last-char');
                     }
-                    expandOdometerDrums(odo);
-                }
 
-                el.appendChild(tLayer);
-                return true;
+                    // Populate drums for embedded meters
+                    const odometers = tLayer.querySelectorAll('dx-odometer, ui-odometer');
+                    for (let i = 0; i < odometers.length; i++) {
+                        const odo = odometers[i];
+                        odo.classList.remove('data-static');
+                        if (!odo.querySelector('b')) {
+                            const val = odo.getAttribute('percent') || odo.getAttribute('value') || odo.textContent.trim();
+                            const numVal = parseFloat(val) || 0;
+                            const type = odo.getAttribute('type') || 'int';
+                            const comma = odo.getAttribute('comma') || ',';
+                            const prefix = odo.getAttribute('prefix') || '';
+                            const suffix = odo.getAttribute('suffix') || '';
+                            const start = odo.getAttribute('start') || null;
+                            odo.innerHTML = generateRibbonHtml(numVal, type, comma, prefix, suffix, start);
+                        }
+                        expandOdometerDrums(odo);
+                    }
+
+                    el._preparedTLayer = tLayer;
+                    return true;
+                }
             }
         }
     }
-}
 
     // ─── Path: <template> with pre-built <dx-t> content ───
     if (!tpl || !tpl.content) return false;
@@ -280,11 +285,13 @@ export function prepareTemplateContent(el) {
         }
 
         // Guarantee data-last on final character
-        const allTC = tLayer.querySelectorAll(':is(dx-c, t-c, i)');
-        if (allTC.length > 0) {
-            const lastTC = allTC[allTC.length - 1];
-            lastTC.setAttribute('data-last', 'true');
-            lastTC.classList.add('last-char');
+        if (!tLayer.querySelector('[data-last="true"]')) {
+            const allTC = tLayer.querySelectorAll(':is(dx-c, t-c, i)');
+            if (allTC.length > 0) {
+                const lastTC = allTC[allTC.length - 1];
+                lastTC.setAttribute('data-last', 'true');
+                lastTC.classList.add('last-char');
+            }
         }
     }
     tpl._prepared = true;
@@ -293,8 +300,20 @@ export function prepareTemplateContent(el) {
 
 // ─── Standalone unpackTemplate (mounts template.content into live DOM) ─────
 export function unpackTemplate(el) {
-    if (!el) return false;
+    if (!el || typeof el.querySelector !== 'function') return false;
     if (el.classList && el.classList.contains(DX_ANIM.TYPED)) return false;
+
+    const elTag = (el.tagName || '').toUpperCase();
+    const isRevealContainer = elTag === 'DX-REVEAL-SDA' || elTag === 'UI-REVEAL-SDA' || elTag === 'DX-REVEAL' || elTag === 'UI-REVEAL';
+    if (isRevealContainer) {
+        const revTpl = el.querySelector(':scope > template');
+        if (revTpl && revTpl.content) {
+            revTpl.replaceWith(revTpl.content);
+            if (el.style && el.style.minHeight) el.style.minHeight = '';
+            return true;
+        }
+        return false;
+    }
 
     if (isReducedMotionActive()) {
         el.classList.add(DX_ANIM.TYPED);
@@ -335,10 +354,16 @@ export function unpackTemplate(el) {
         return true;
     }
 
-    // Fallback path: w="..." bytecode (no template, t-t created by prepareTemplateContent)
+    // Fallback path: w="..." bytecode (no template, dx-t created by prepareTemplateContent)
     const tsWithW = el.querySelector(':scope > :is(dx-s, t-s, s-t)[w]');
     if (tsWithW && !el.querySelector(':scope > :is(dx-t, t-t, t)')) {
-        prepareTemplateContent(el);
+        if (!el._preparedTLayer) {
+            prepareTemplateContent(el);
+        }
+        if (el._preparedTLayer) {
+            el.appendChild(el._preparedTLayer);
+            el._preparedTLayer = null;
+        }
         if (!el.getAttribute('role')) el.setAttribute('role', 'text');
         const ts = el.querySelector(':scope > :is(dx-s, t-s, s-t)');
         if (ts) {
@@ -408,7 +433,7 @@ export function isElementHidden(el) {
 }
 
 // ─── Section Header Line Synchronization ──────────────────────────────────────
-export const SECTION_HEADER_SEL = '.section-header, .po-header, .wholesale-header, .features-header, .cg-header, .fe-header, .as-header, .vs-header, .fq-header, .ga-header, .eco-header, .cs-header, .cs-header-wrapper, .ip-header, .ip-header-wrapper, .spec-drawer-header';
+export const SECTION_HEADER_SEL = '.section-header, .po-header, .wholesale-header, .features-header, .cg-header, .fe-header, .as-header, .vs-header, .fq-header, .ga-header, .eco-header, .cs-header, .cs-header-wrapper, .ip-header, .ip-header-wrapper, .spec-drawer-header, .ec-page-title';
 
 export function syncSectionHeaderTyping(el) {
     if (!el) return;
@@ -709,12 +734,18 @@ export class DxTyping extends DxBase {
     }
 }
 
-const checkAndObserve = (el) => {
+const checkAndObserve = (el, isSubtreeRebootstrap = false) => {
     if (!el?.querySelector) return;
+    const tag = (el.tagName || '').toUpperCase();
+    if (tag === 'DX-REVEAL-SDA' || tag === 'UI-REVEAL-SDA' || tag === 'DX-REVEAL' || tag === 'UI-REVEAL') return;
     if (el.classList.contains(DX_ANIM.TYPED)) {
         cleanupTypedDOM(el);
         const secHeader = el.closest?.(SECTION_HEADER_SEL);
         if (secHeader) secHeader.classList.add(DX_ANIM.TYPED);
+        return;
+    }
+    if (isSubtreeRebootstrap && (tag === 'DX-TYPE-SDA' || tag === 'UI-TYPE-SDA') && typeof el.connectedCallback === 'function') {
+        el.connectedCallback();
         return;
     }
     if (el._isSdaConnected) return;
@@ -730,19 +761,14 @@ const checkAndObserve = (el) => {
 // ─── Auto-Bootstrap at DOM Ready ─────────────────────────────────────────────
 export function bootstrapTypewriterObserver(root = (typeof document !== 'undefined' ? document : null)) {
     if (!root) return;
-    const elements = root.querySelectorAll('dx-type-sda, dx-reveal-sda, dx-type, .type-sda, ui-type-sda, .type, .TYPE');
+    const isSubtree = typeof document !== 'undefined' && root !== document;
+    const elements = root.querySelectorAll('dx-type-sda, dx-type, .type-sda, ui-type-sda, .type, .TYPE');
     for (let i = 0; i < elements.length; i++) {
-        checkAndObserve(elements[i]);
+        checkAndObserve(elements[i], isSubtree);
     }
 }
 
 if (typeof document !== 'undefined') {
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', () => bootstrapTypewriterObserver(), { once: true });
-    } else {
-        bootstrapTypewriterObserver();
-    }
-
     // When a <details> accordion opens, unpack & trigger nested legacy typewriters only (SDA elements remain scroll-driven)
     document.addEventListener('toggle', (e) => {
         const details = e.target;

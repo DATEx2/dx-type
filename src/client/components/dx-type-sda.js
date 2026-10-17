@@ -25,15 +25,38 @@ export class DxTypeSda extends DxTyping {
 
         this._syncTimingAttributes();
 
+        const inDrawer = this.closest?.('.spec-drawer, [role="dialog"].spec-drawer');
+        if (inDrawer) {
+            this._managedBySpecDrawer = true;
+            return;
+        }
+
+        const isHeader = !!this.closest?.(SECTION_HEADER_SEL);
+        const parentRev = !isHeader ? this.closest?.(REVEAL_PARENT_SEL) : null;
+        if (parentRev && !parentRev.isRevealed && !parentRev.classList.contains(DX_ANIM.REVEALED) && !parentRev.classList.contains(DX_ANIM.REVEALING) && !parentRev._inViewport) {
+            this._managedByParentReveal = true;
+            return;
+        }
+
+        this._observeSelf();
+    }
+
+    _observeSelf() {
+        if (this._isObservedSelf || this.isTyped) return;
+        this._isObservedSelf = true;
+
         // 1. Preemptive JIT Lookahead Unpack (+500px or idle queue)
         if (this.querySelector(':scope > template') || this.querySelector(':scope > dx-s[w]')) {
             observeLookaheadIO(this, (el) => {
+                if (isElementHidden(el)) return false;
                 removeFromIdleQueue(el);
                 unpackTemplate(el);
             });
-            queueIdleUnpack(this, (el) => {
-                prepareTemplateContent(el);
-            });
+            if (!isElementHidden(this)) {
+                queueIdleUnpack(this, (el) => {
+                    prepareTemplateContent(el);
+                });
+            }
         }
 
         // 2. Trigger Typing Animation (When crossing -110px threshold past actionbar/footer)

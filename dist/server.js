@@ -400,7 +400,7 @@ function tokenize(html, options = {}) {
             const isHyphen = subWord.includes("-") || subPunct.includes("-");
             currentWEntries().push({ len: totalLen, hyphen: isHyphen });
             const isBullet = subWord === "\xB7" || subWord === "\u2022";
-            const compactOut = isBullet ? `<c class="bullet-dot">${subWord}</c>` : subWord + subPunct;
+            const compactOut = isBullet ? `<dx-c class="bullet-dot">${subWord}</dx-c>` : subWord + subPunct;
             compactParts.push(compactOut);
           }
         }
@@ -468,10 +468,13 @@ function ssrDxType(content, options = {}) {
     const cleanClasses = clsList.filter(Boolean).join(" ");
     return `<dx-odometer class="${cleanClasses}">${cleanText}</dx-odometer>`;
   }) : content;
-  const stTokens = tokenize(stContent, options);
+  const stTokens = stContent === content ? res : tokenize(stContent, options);
   const sdaStContent = stTokens.compactHtml || stContent;
   const wAttr = stTokens.wAttr ? ` w="${stTokens.wAttr}"` : "";
   if (isSda) {
+    if (options.compact && wAttr) {
+      return `<${tagName}${classAttr} style="${res.style}"${ariaAttr}><dx-s${wAttr}>${sdaStContent}</dx-s></${tagName}>`;
+    }
     return `<${tagName}${classAttr} style="${res.style}"${ariaAttr}><dx-s${wAttr}>${sdaStContent}</dx-s><template><dx-t aria-hidden="true">${res.html}</dx-t></template></${tagName}>`;
   }
   return `<${tagName}${classAttr} style="${res.style}"${ariaAttr}><dx-s${wAttr}>${sdaStContent}</dx-s><dx-t aria-hidden="true">${res.html}</dx-t></${tagName}>`;
@@ -486,8 +489,10 @@ function ssrDxReveal(content, options = {}) {
     classList.push("staggered");
   }
   const classAttr = classList.length ? ` class="${classList.join(" ").trim()}"` : "";
-  const styleAttr = ` style="--d:${delay};--t:${duration}"`;
-  return `<${tagName}${classAttr}${styleAttr}>${content}</${tagName}>`;
+  const minH = options.minHeight ? `;min-height:${typeof options.minHeight === "number" ? `${options.minHeight}px` : options.minHeight}` : "";
+  const styleAttr = ` style="--d:${delay};--t:${duration}${minH}"`;
+  const innerHtml = options.defer || options.template ? `<template>${content}</template>` : content;
+  return `<${tagName}${classAttr}${styleAttr}>${innerHtml}</${tagName}>`;
 }
 function ssrDxCounter(numericValue, formattedText, cls, type = "number") {
   if (!numericValue || !formattedText) return "";

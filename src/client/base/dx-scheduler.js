@@ -311,6 +311,7 @@ export function unobserveIO(el) {
 
 // ─── Idle Unpack Queue (1 template per requestIdleCallback) ───────────────────
 const idleQueue = [];
+const idleQueueMap = new Map();
 let isIdleScheduled = false;
 
 const scheduleIdle = (typeof window !== 'undefined' && window.requestIdleCallback)
@@ -318,17 +319,23 @@ const scheduleIdle = (typeof window !== 'undefined' && window.requestIdleCallbac
     : (cb => setTimeout(() => cb({ timeRemaining: () => 15, didTimeout: false }), 50));
 
 function processNextIdle() {
-    if (idleQueue.length === 0) {
+    let item = null;
+    while (idleQueue.length > 0) {
+        const candidate = idleQueue.shift();
+        if (candidate && !candidate.cancelled && candidate.el) {
+            idleQueueMap.delete(candidate.el);
+            item = candidate;
+            break;
+        }
+    }
+    if (!item) {
         isIdleScheduled = false;
         return;
     }
-    const item = idleQueue.shift();
-    if (item && item.el) {
-        try {
-            item.callback(item.el);
-        } catch (e) {
-            console.error('[dx-type] Idle unpack failed:', e);
-        }
+    try {
+        item.callback(item.el);
+    } catch (e) {
+        console.error('[dx-type] Idle unpack failed:', e);
     }
     if (idleQueue.length > 0) {
         scheduleIdle(processNextIdle);
@@ -339,14 +346,15 @@ function processNextIdle() {
 
 export function queueIdleUnpack(el, callback) {
     if (!el) return;
-    // Prevent duplicate entries; update callback if already queued
-    for (let i = 0; i < idleQueue.length; i++) {
-        if (idleQueue[i].el === el) {
-            idleQueue[i].callback = callback;
-            return;
-        }
+    // Prevent duplicate entries in O(1); update callback if already queued
+    const existing = idleQueueMap.get(el);
+    if (existing && !existing.cancelled) {
+        existing.callback = callback;
+        return;
     }
-    idleQueue.push({ el, callback });
+    const item = { el, callback, cancelled: false };
+    idleQueueMap.set(el, item);
+    idleQueue.push(item);
     if (!isIdleScheduled) {
         isIdleScheduled = true;
         scheduleIdle(processNextIdle);
@@ -355,15 +363,16 @@ export function queueIdleUnpack(el, callback) {
 
 export function removeFromIdleQueue(el) {
     if (!el) return;
-    for (let i = idleQueue.length - 1; i >= 0; i--) {
-        if (idleQueue[i].el === el) {
-            idleQueue.splice(i, 1);
-        }
+    const existing = idleQueueMap.get(el);
+    if (existing) {
+        existing.cancelled = true;
+        idleQueueMap.delete(el);
     }
 }
 
 // ─── Idle Cleanup Queue (1 cleanup per requestIdleCallback slot) ─────────────
 const idleCleanupQueue = [];
+const idleCleanupMap = new Map();
 let isCleanupIdleScheduled = false;
 
 function processNextIdleCleanup(deadline) {
@@ -373,7 +382,8 @@ function processNextIdleCleanup(deadline) {
     }
     while (idleCleanupQueue.length > 0 && (!deadline || deadline.timeRemaining() > 2 || deadline.didTimeout)) {
         const item = idleCleanupQueue.shift();
-        if (item && item.el) {
+        if (item && !item.cancelled && item.el) {
+            idleCleanupMap.delete(item.el);
             try {
                 item.callback(item.el);
             } catch (e) {
@@ -389,11 +399,10 @@ function processNextIdleCleanup(deadline) {
 }
 
 export function queueIdleCleanup(el, callback) {
-    if (!el) return;
-    for (let i = 0; i < idleCleanupQueue.length; i++) {
-        if (idleCleanupQueue[i].el === el) return;
-    }
-    idleCleanupQueue.push({ el, callback });
+    if (!el || idleCleanupMap.has(el)) return;
+    const item = { el, callback, cancelled: false };
+    idleCleanupMap.set(el, item);
+    idleCleanupQueue.push(item);
     if (!isCleanupIdleScheduled) {
         isCleanupIdleScheduled = true;
         scheduleIdle(processNextIdleCleanup);
@@ -402,11 +411,11 @@ export function queueIdleCleanup(el, callback) {
 
 export function flushIdleCleanup(el) {
     if (!el) return;
-    for (let i = idleCleanupQueue.length - 1; i >= 0; i--) {
-        if (idleCleanupQueue[i].el === el) {
-            const item = idleCleanupQueue.splice(i, 1)[0];
-            try { item.callback(item.el); } catch (e) {}
-        }
+    const item = idleCleanupMap.get(el);
+    if (item && !item.cancelled) {
+        item.cancelled = true;
+        idleCleanupMap.delete(el);
+        try { item.callback(item.el); } catch (e) {}
     }
 }
 

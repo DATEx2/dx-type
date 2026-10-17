@@ -502,7 +502,7 @@ export function tokenize(html, options = {}) {
                         currentWEntries().push({ len: totalLen, hyphen: isHyphen });
 
                         const isBullet = (subWord === '·' || subWord === '•');
-                        const compactOut = isBullet ? `<c class="bullet-dot">${subWord}</c>` : (subWord + subPunct);
+                        const compactOut = isBullet ? `<dx-c class="bullet-dot">${subWord}</dx-c>` : (subWord + subPunct);
                         compactParts.push(compactOut);
                     }
                 }
@@ -546,7 +546,7 @@ export function tokenize(html, options = {}) {
 /**
  * Generate full SSR markup for <dx-type> or <dx-type-sda>.
  * @param {string} content — Raw HTML or plain text
- * @param {object} options — { duration, delay, offset, tagName, isSda, ariaLabel, className }
+ * @param {object} options — { duration, delay, offset, tagName, isSda, compact, ariaLabel, className }
  * @returns {string} Fully formatted HTML string
  */
 export function ssrDxType(content, options = {}) {
@@ -589,11 +589,14 @@ export function ssrDxType(content, options = {}) {
         })
         : content;
 
-    const stTokens = tokenize(stContent, options);
+    const stTokens = (stContent === content) ? res : tokenize(stContent, options);
     const sdaStContent = stTokens.compactHtml || stContent;
     const wAttr = stTokens.wAttr ? ` w="${stTokens.wAttr}"` : '';
 
     if (isSda) {
+        if (options.compact && wAttr) {
+            return `<${tagName}${classAttr} style="${res.style}"${ariaAttr}><dx-s${wAttr}>${sdaStContent}</dx-s></${tagName}>`;
+        }
         return `<${tagName}${classAttr} style="${res.style}"${ariaAttr}><dx-s${wAttr}>${sdaStContent}</dx-s><template><dx-t aria-hidden="true">${res.html}</dx-t></template></${tagName}>`;
     }
     return `<${tagName}${classAttr} style="${res.style}"${ariaAttr}><dx-s${wAttr}>${sdaStContent}</dx-s><dx-t aria-hidden="true">${res.html}</dx-t></${tagName}>`;
@@ -602,7 +605,7 @@ export function ssrDxType(content, options = {}) {
 /**
  * Generate full SSR markup for <dx-reveal> or <dx-reveal-sda>.
  * @param {string} content — Raw HTML or plain text
- * @param {object} options — { duration, delay, tagName, isSda, className }
+ * @param {object} options — { duration, delay, tagName, isSda, className, defer, minHeight }
  * @returns {string} Fully formatted HTML string
  */
 export function ssrDxReveal(content, options = {}) {
@@ -615,9 +618,13 @@ export function ssrDxReveal(content, options = {}) {
         classList.push('staggered');
     }
     const classAttr = classList.length ? ` class="${classList.join(' ').trim()}"` : '';
-    const styleAttr = ` style="--d:${delay};--t:${duration}"`;
+    const minH = options.minHeight
+        ? `;min-height:${typeof options.minHeight === 'number' ? `${options.minHeight}px` : options.minHeight}`
+        : '';
+    const styleAttr = ` style="--d:${delay};--t:${duration}${minH}"`;
+    const innerHtml = (options.defer || options.template) ? `<template>${content}</template>` : content;
 
-    return `<${tagName}${classAttr}${styleAttr}>${content}</${tagName}>`;
+    return `<${tagName}${classAttr}${styleAttr}>${innerHtml}</${tagName}>`;
 }
 
 /**
