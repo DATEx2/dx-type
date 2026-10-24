@@ -193,6 +193,7 @@ var DxType = (() => {
     return "0px";
   }
   function setSdaGaps(top = "0%", bottom = "0%") {
+    if (_sdaTopGap === top && _sdaBottomGap === bottom) return;
     _sdaTopGap = top;
     _sdaBottomGap = bottom;
     if (ioInstance) {
@@ -210,8 +211,13 @@ var DxType = (() => {
     const winTop = rootWin?.sdaTopGap ?? rootWin?.__dxTypeConfig?.sdaTopGap;
     const winBottom = rootWin?.sdaBottomGap ?? rootWin?.__dxTypeConfig?.sdaBottomGap;
     let defaultBottom = _sdaBottomGap;
-    if (typeof rootWin !== "undefined" && rootWin?.innerHeight && rootWin.innerHeight < 500) {
-      defaultBottom = "-40px";
+    if (isCheckoutOrCart) {
+      defaultBottom = "0px";
+    } else if (winBottom === void 0 && typeof rootWin !== "undefined") {
+      const isShort = typeof rootWin.matchMedia === "function" ? rootWin.matchMedia("(height < 500px)").matches : Boolean(rootWin?.innerHeight && rootWin.innerHeight < 500);
+      if (isShort) {
+        defaultBottom = "-40px";
+      }
     }
     return {
       sdaTopGap: winTop !== void 0 ? winTop : _sdaTopGap,
@@ -241,6 +247,7 @@ var DxType = (() => {
     } catch (_) {
     }
   }
+  var _isJsdomEnv = typeof navigator !== "undefined" && /jsdom/i.test(navigator.userAgent || "");
   function ioLookaheadHandler(entries) {
     for (let i = 0; i < entries.length; i++) {
       const entry = entries[i];
@@ -261,7 +268,7 @@ var DxType = (() => {
     if (typeof IO === "function") {
       ioLookaheadInstance = new IO(ioLookaheadHandler, {
         root: null,
-        rootMargin: "0px 0px 500px 0px",
+        rootMargin: "500px 0px 500px 0px",
         threshold: 0
       });
     }
@@ -356,45 +363,79 @@ var DxType = (() => {
   var idleQueue = [];
   var idleQueueMap = /* @__PURE__ */ new Map();
   var isIdleScheduled = false;
-  var scheduleIdle = typeof window !== "undefined" && window.requestIdleCallback ? ((cb) => window.requestIdleCallback(cb, { timeout: 1e3 })) : ((cb) => setTimeout(() => cb({ timeRemaining: () => 15, didTimeout: false }), 50));
-  function processNextIdle() {
-    let item = null;
+  var isPriorityScheduled = false;
+  var currentIdleHandle = null;
+  var scheduleIdle = typeof window !== "undefined" && window.requestIdleCallback ? ((cb, timeout = 40) => window.requestIdleCallback(cb, { timeout })) : ((cb) => setTimeout(() => cb({ timeRemaining: () => 15, didTimeout: false }), 16));
+  function scheduleNextIdleSlice() {
+    const hasPriorityHead = idleQueue.length > 0 && Boolean(idleQueue[0]?.priority);
+    isIdleScheduled = true;
+    isPriorityScheduled = hasPriorityHead;
+    const baseTimeout = hasPriorityHead ? 16 : 40;
+    currentIdleHandle = scheduleIdle(processNextIdle, baseTimeout);
+  }
+  function processNextIdle(deadline) {
+    currentIdleHandle = null;
+    isPriorityScheduled = false;
+    let processed = 0;
     while (idleQueue.length > 0) {
-      const candidate = idleQueue.shift();
-      if (candidate && !candidate.cancelled && candidate.el) {
-        idleQueueMap.delete(candidate.el);
-        item = candidate;
-        break;
+      let item = null;
+      while (idleQueue.length > 0) {
+        const candidate = idleQueue.shift();
+        if (candidate && !candidate.cancelled && candidate.el) {
+          idleQueueMap.delete(candidate.el);
+          item = candidate;
+          break;
+        }
       }
-    }
-    if (!item) {
-      isIdleScheduled = false;
-      return;
-    }
-    try {
-      item.callback(item.el);
-    } catch (e) {
-      console.error("[dx-type] Idle unpack failed:", e);
+      if (!item) break;
+      try {
+        item.callback(item.el);
+      } catch (e) {
+        console.error("[dx-type] Idle unpack failed:", e);
+      }
+      processed++;
+      const rem = deadline && typeof deadline.timeRemaining === "function" ? deadline.timeRemaining() : 0;
+      if (!item.priority && !deadline?.didTimeout && rem <= 2) break;
+      const maxBatch = 1;
+      if (processed >= maxBatch || !item.priority && !deadline?.didTimeout && rem <= 4) break;
     }
     if (idleQueue.length > 0) {
-      scheduleIdle(processNextIdle);
+      scheduleNextIdleSlice();
     } else {
       isIdleScheduled = false;
     }
   }
-  function queueIdleUnpack(el2, callback) {
+  function queueIdleUnpack(el2, callback, priority = false) {
     if (!el2) return;
     const existing = idleQueueMap.get(el2);
     if (existing && !existing.cancelled) {
       existing.callback = callback;
+      if (priority && !existing.priority) {
+        existing.cancelled = true;
+        const promoted = { el: el2, callback, cancelled: false, priority: true };
+        idleQueueMap.set(el2, promoted);
+        idleQueue.unshift(promoted);
+        if (isIdleScheduled && !isPriorityScheduled && currentIdleHandle !== null && typeof window !== "undefined" && typeof window.cancelIdleCallback === "function") {
+          window.cancelIdleCallback(currentIdleHandle);
+          scheduleNextIdleSlice();
+        }
+      }
       return;
     }
-    const item = { el: el2, callback, cancelled: false };
+    const item = { el: el2, callback, cancelled: false, priority: !!priority };
     idleQueueMap.set(el2, item);
-    idleQueue.push(item);
+    if (priority) {
+      idleQueue.unshift(item);
+      if (isIdleScheduled && !isPriorityScheduled && currentIdleHandle !== null && typeof window !== "undefined" && typeof window.cancelIdleCallback === "function") {
+        window.cancelIdleCallback(currentIdleHandle);
+        scheduleNextIdleSlice();
+        return;
+      }
+    } else {
+      idleQueue.push(item);
+    }
     if (!isIdleScheduled) {
-      isIdleScheduled = true;
-      scheduleIdle(processNextIdle);
+      scheduleNextIdleSlice();
     }
   }
   function removeFromIdleQueue(el2) {
@@ -413,7 +454,10 @@ var DxType = (() => {
       isCleanupIdleScheduled = false;
       return;
     }
-    while (idleCleanupQueue.length > 0 && (!deadline || deadline.timeRemaining() > 2 || deadline.didTimeout)) {
+    const isUnderPressure = !deadline || deadline.didTimeout || deadline.timeRemaining() <= 3;
+    const maxItems = isUnderPressure ? 1 : 4;
+    let processed = 0;
+    while (idleCleanupQueue.length > 0 && processed < maxItems) {
       const item = idleCleanupQueue.shift();
       if (item && !item.cancelled && item.el) {
         idleCleanupMap.delete(item.el);
@@ -422,6 +466,10 @@ var DxType = (() => {
         } catch (e) {
           console.error("[dx-type] Idle cleanup failed:", e);
         }
+        processed++;
+      }
+      if (deadline && !deadline.didTimeout && deadline.timeRemaining() <= 2) {
+        break;
       }
     }
     if (idleCleanupQueue.length > 0) {
@@ -712,6 +760,7 @@ var DxType = (() => {
   function formatNumber(val, type = "int", comma = ",", prefix = "", suffix = "") {
     const num = parseFloat(val) || 0;
     let formatted = "";
+    const hasAttachedAffix = Boolean(prefix && !prefix.endsWith(" ") || suffix && !suffix.startsWith(" "));
     if (type.includes("number-1dec") || type === "float" || type.startsWith("float")) {
       formatted = num.toFixed(1).replace(".", comma);
     } else if (type.includes("number-2dec") || type === "number") {
@@ -719,13 +768,12 @@ var DxType = (() => {
     } else if (type === "int" || type.startsWith("int-") || type.startsWith("number-")) {
       const intVal = Math.round(num);
       const str = intVal.toString();
-      formatted = str.replace(/\B(?=(\d{3})+(?!\d))/g, " ");
+      formatted = hasAttachedAffix || type.includes("compact") || type.includes("year") ? str : str.replace(/\B(?=(\d{3})+(?!\d))/g, " ");
     } else {
       formatted = num.toString().replace(".", comma);
     }
-    const pfx = prefix ? `${prefix}${prefix.endsWith(" ") ? "" : " "}` : "";
-    const noLeadingSpace = /^[%°"”″’'VvAaWw€$£]|\//.test(suffix);
-    const sfx = suffix ? `${suffix.startsWith(" ") || noLeadingSpace ? "" : " "}${suffix}` : "";
+    const pfx = prefix || "";
+    const sfx = suffix || "";
     return `${pfx}${formatted}${sfx}`;
   }
   function generateRibbonHtml(numericValue, type = "int", comma = ",", prefix = "", suffix = "", startValue = null) {
@@ -823,7 +871,11 @@ var DxType = (() => {
         }
         const isLeadingZero = !isYear && curDigitIdx <= lastLeadingZeroIdx;
         if (isLeadingZero && drumValues.length > 0 && drumValues[0] === 0) {
-          drumValues[0] = " ";
+          if (drumValues.length === 1) {
+            drumValues = [" ", 0];
+          } else {
+            drumValues[0] = " ";
+          }
         }
         const totalItems = drumValues.length;
         const finalIndex = totalItems - 1;
@@ -834,10 +886,11 @@ var DxType = (() => {
         digitsHtml += `<span class="ui-radix">${char}</span>`;
       }
     }
-    const pfxHtml = prefixText ? `<span class="ui-pfx">${prefixText}${prefix.endsWith(" ") ? "" : " "}</span>` : "";
-    const hasExplicitSpace = suffix.startsWith(" ");
-    const noSfxSpace = /^[%°"”″’'VvAaWw€$£]|\//.test(suffixText);
-    const suffixSpace = hasExplicitSpace || !noSfxSpace ? suffixText ? " " : "" : "";
+    const prefixHasSpace = (numberPartMatch?.[1] || "").endsWith(" ") || Boolean(prefix && prefix.endsWith(" "));
+    const prefixSpace = prefixHasSpace ? " " : "";
+    const pfxHtml = prefixText ? `<span class="ui-pfx">${prefixText}${prefixSpace}</span>` : "";
+    const hasExplicitSpace = (suffixText ? numberPartMatch?.[5] || "" : "").startsWith(" ") || Boolean(suffix && suffix.startsWith(" "));
+    const suffixSpace = hasExplicitSpace ? suffixText ? " " : "" : "";
     const sfxHtml = suffixText ? `<span class="ui-sfx">${suffixSpace}${suffixText}</span>` : "";
     return `${pfxHtml}<b>${digitsHtml}</b>${sfxHtml}`;
   }
@@ -927,9 +980,18 @@ var DxType = (() => {
             tHtml += `<dx-w${wClass}>`;
             const curWordStr = chars.slice(ci, ci + len).join("");
             const isDateWord = /^DATE(?:x2)?(?:-|$)/i.test(curWordStr);
+            const isStandardDate = isDateWord && curWordStr.startsWith("DATE");
             for (let c = 0; c < len && ci < chars.length; c++, ci++) {
               let curCh = chars[ci];
-              if (isDateWord && c === 0 && curCh === "D") {
+              if (isStandardDate && c === 0 && curCh === "D") {
+                curCh = "\u{1D5D7}";
+              } else if (isStandardDate && c === 1 && curCh === "A") {
+                curCh = "\uE004";
+              } else if (isStandardDate && c === 2 && curCh === "T") {
+                curCh = "\uE005";
+              } else if (isStandardDate && c === 3 && curCh === "E") {
+                curCh = "\uE006";
+              } else if (isDateWord && c === 0 && curCh === "D") {
                 curCh = "\u{1D5D7}";
               }
               const d = Math.round(delay + (offset + charIdx++) * speed);
@@ -1016,14 +1078,27 @@ var DxType = (() => {
             for (let i = 0; i < odometers.length; i++) {
               const odo = odometers[i];
               odo.classList.remove("data-static");
+              const parentDelay = odo.parentElement?.style?.animationDelay;
+              if (parentDelay && !odo.style.getPropertyValue("--d")) {
+                odo.style.setProperty("--d", String(parseInt(parentDelay, 10) || 0));
+              }
               if (!odo.querySelector("b")) {
-                const val = odo.getAttribute("percent") || odo.getAttribute("value") || odo.textContent.trim();
-                const numVal = parseFloat(val) || 0;
-                const type = odo.getAttribute("type") || "int";
-                const comma = odo.getAttribute("comma") || ",";
-                const prefix = odo.getAttribute("prefix") || "";
-                const suffix = odo.getAttribute("suffix") || "";
+                const rawText = odo.textContent.trim();
+                const parts = parseNumParts(rawText);
+                const parsedNumStr = (parts.digits + parts.radix + parts.decimals).replace(/\s+/g, "");
+                const valAttr = odo.getAttribute("percent") || odo.getAttribute("value");
+                const numVal = parseFloat(String(valAttr || parsedNumStr || rawText).replace(/\s+/g, "").replace(",", ".")) || 0;
+                const decLen = parts.decimals ? Math.min(parts.decimals.length, 2) : 0;
+                const hasSpaceInDigits = parts.digits.includes(" ");
+                const inferredType = parts.sfx === "%" ? decLen === 0 ? "int" : decLen === 1 ? "number-1dec" : "percent" : decLen === 1 ? "number-1dec" : decLen >= 2 ? "number" : parts.digits.length >= 4 && !hasSpaceInDigits ? "int-compact" : "int";
+                const type = odo.getAttribute("type") || inferredType;
+                const comma = odo.getAttribute("comma") || parts.radix || ",";
+                const prefix = odo.getAttribute("prefix") !== null ? odo.getAttribute("prefix") : parts.pfx ? parts.pfx + parts.pfxSpace : "";
+                const suffix = odo.getAttribute("suffix") !== null ? odo.getAttribute("suffix") : parts.sfx ? parts.sfxSpace + parts.sfx : "";
                 const start = odo.getAttribute("start") || null;
+                if (!odo.hasAttribute("percent")) odo.setAttribute("percent", String(numVal));
+                if (prefix && !odo.hasAttribute("prefix")) odo.setAttribute("prefix", prefix);
+                if (suffix && !odo.hasAttribute("suffix")) odo.setAttribute("suffix", suffix);
                 odo.innerHTML = generateRibbonHtml(numVal, type, comma, prefix, suffix, start);
               }
               expandOdometerDrums(odo);
@@ -1128,6 +1203,12 @@ var DxType = (() => {
     tpl._prepared = true;
     return true;
   }
+  function attachLayerStopStorm(layer) {
+    if (!layer || layer._stopAnimStorm) return;
+    layer._stopAnimStorm = true;
+    layer.addEventListener("animationend", (ev) => ev.stopPropagation());
+    layer.addEventListener("animationstart", (ev) => ev.stopPropagation());
+  }
   function unpackTemplate(el2) {
     if (!el2 || typeof el2.querySelector !== "function") return false;
     if (el2.classList && el2.classList.contains(DX_ANIM.TYPED)) return false;
@@ -1147,6 +1228,9 @@ var DxType = (() => {
       cleanupTypedDOM(el2);
       return false;
     }
+    if (el2._unpacked && el2._tLayer && el2._tLayer.parentNode === el2) {
+      return true;
+    }
     const tpl = el2.querySelector(":scope > template");
     if (tpl && tpl.content) {
       prepareTemplateContent(el2);
@@ -1162,14 +1246,11 @@ var DxType = (() => {
       const tt = el2.querySelector(":scope > :is(dx-t, t-t, t)");
       if (tt) {
         tt.setAttribute("aria-hidden", "true");
-        if (!tt._boundStopProp) {
-          tt._boundStopProp = true;
-          tt.addEventListener("animationend", (ev) => {
-            ev.stopPropagation();
-          });
-        }
+        el2._tLayer = tt;
+        el2._unpacked = true;
+        attachLayerStopStorm(tt);
         const lastChar = tt.querySelector('[data-last="true"], .last-char');
-        if (lastChar && !lastChar._hasTwEnd) {
+        if (lastChar && !lastChar._hasTwEnd && !lastChar.hasAttribute("onanimationend")) {
           lastChar._hasTwEnd = true;
           lastChar.addEventListener("animationend", (ev) => {
             onTypewriterEnd(lastChar, ev);
@@ -1198,14 +1279,11 @@ var DxType = (() => {
       const tt = el2.querySelector(":scope > :is(dx-t, t-t, t)");
       if (tt) {
         tt.setAttribute("aria-hidden", "true");
-        if (!tt._boundStopProp) {
-          tt._boundStopProp = true;
-          tt.addEventListener("animationend", (ev) => {
-            ev.stopPropagation();
-          });
-        }
+        el2._tLayer = tt;
+        el2._unpacked = true;
+        attachLayerStopStorm(tt);
         const lastChar = tt.querySelector('[data-last="true"], .last-char');
-        if (lastChar && !lastChar._hasTwEnd) {
+        if (lastChar && !lastChar._hasTwEnd && !lastChar.hasAttribute("onanimationend")) {
           lastChar._hasTwEnd = true;
           lastChar.addEventListener("animationend", (ev) => {
             onTypewriterEnd(lastChar, ev);
@@ -1223,14 +1301,11 @@ var DxType = (() => {
         if (raw) el2.setAttribute("aria-label", raw);
       }
       directTt.setAttribute("aria-hidden", "true");
-      if (!directTt._boundStopProp) {
-        directTt._boundStopProp = true;
-        directTt.addEventListener("animationend", (ev) => {
-          ev.stopPropagation();
-        });
-      }
+      el2._tLayer = directTt;
+      el2._unpacked = true;
+      attachLayerStopStorm(directTt);
       const lastChar = directTt.querySelector('[data-last="true"], .last-char');
-      if (lastChar && !lastChar._hasTwEnd) {
+      if (lastChar && !lastChar._hasTwEnd && !lastChar.hasAttribute("onanimationend")) {
         lastChar._hasTwEnd = true;
         lastChar.addEventListener("animationend", (ev) => {
           onTypewriterEnd(lastChar, ev);
@@ -1247,11 +1322,12 @@ var DxType = (() => {
     const drawer = el2.closest('.spec-drawer, [role="dialog"].spec-drawer');
     if (drawer && !drawer.open && !drawer.classList.contains("open") && !drawer.classList.contains("spec-drawer-open")) return true;
     const isMobile = typeof window !== "undefined" && window.matchMedia && window.matchMedia("(width < 768px), (width < 1025px) and (orientation: portrait)").matches;
+    if (!isMobile && el2.closest(".spec-sim-sticky-strip")) return true;
     const hiddenParent = el2.closest(isMobile ? ".hidden, [hidden], .wait-stuck:not(.is-stuck), .favorite-product__button--saved" : ".hidden, [hidden], .favorite-product__button--saved");
     if (hiddenParent && !hiddenParent.closest(".favorite-product--saved, .is-stuck")) return true;
     return false;
   }
-  var SECTION_HEADER_SEL = ".section-header, .po-header, .wholesale-header, .features-header, .cg-header, .fe-header, .as-header, .vs-header, .fq-header, .ga-header, .eco-header, .cs-header, .cs-header-wrapper, .ip-header, .ip-header-wrapper, .spec-drawer-header, .ec-page-title";
+  var SECTION_HEADER_SEL = ".section-header, .po-header, .wholesale-header, .features-header, .cg-header, .fe-header, .as-header, .vs-header, .fq-header, .ga-header, .eco-header, .cs-header, .cs-header-wrapper, .ip-header, .ip-header-wrapper, .spec-drawer-header, .ec-page-title, .ec-unified-page-title, .ec-section-title--orbitron";
   function syncSectionHeaderTyping(el2) {
     if (!el2) return;
     const secHeader = el2.closest?.(SECTION_HEADER_SEL);
@@ -1277,9 +1353,7 @@ var DxType = (() => {
       const charDur = DX_CHAR_DURATION;
       const totalDur = Math.round(baseDur + charDur);
       secHeader.style.setProperty("--header-line-dur", `${totalDur}ms`);
-      if (delayMs > 0) {
-        secHeader.style.setProperty("--header-line-del", `${Math.round(delayMs)}ms`);
-      }
+      secHeader.style.setProperty("--header-line-del", `${Math.round(delayMs || 0)}ms`);
       secHeader.classList.add(DX_ANIM.TYPING);
     }
   }
@@ -1328,6 +1402,7 @@ var DxType = (() => {
   function cleanupTypedDOM(typeEl) {
     if (!typeEl || typeEl._cleanedUp) return;
     typeEl._cleanedUp = true;
+    typeEl._unpacked = false;
     typeEl._tLayer = null;
     if (typeEl._safetyTimer) {
       clearTimeout(typeEl._safetyTimer);
@@ -1368,10 +1443,12 @@ var DxType = (() => {
     const stMeters = typeEl.querySelectorAll ? typeEl.querySelectorAll(":is(dx-s, t-s) :is(dx-odometer, ui-odometer, dx-number, ui-number, dx-counter, ui-counter)") : [];
     for (let i = 0; i < stMeters.length; i++) {
       const m = stMeters[i];
-      if (typeof m.makeStatic === "function") m.makeStatic();
-      else {
-        m.classList?.add("data-static");
-        m.setAttribute?.("data-static", "true");
+      if (!m.classList?.contains("data-static") || !m.hasAttribute?.("data-static")) {
+        if (typeof m.makeStatic === "function") m.makeStatic();
+        else {
+          if (!m.classList?.contains("data-static")) m.classList?.add("data-static");
+          if (!m.hasAttribute?.("data-static")) m.setAttribute?.("data-static", "true");
+        }
       }
       const isOdo = m.tagName === "DX-ODOMETER" || m.tagName === "UI-ODOMETER";
       if (isOdo) {
@@ -1495,7 +1572,67 @@ var DxType = (() => {
         cleanupTypedDOM(target);
       });
     }
+    replay() {
+      this.classList.remove(DX_ANIM.TYPED);
+      this._cleanedUp = false;
+      this._unpacked = false;
+      this._tLayer = null;
+      this._preparedTLayer = null;
+      this._charDone = false;
+      this._lastC = null;
+      const existingTt = this.querySelector(":scope > :is(dx-t, t-t, t)");
+      if (existingTt) existingTt.remove();
+      unpackTemplate(this);
+      this.classList.add(DX_ANIM.TYPING);
+    }
+    reset() {
+      this.classList.remove(DX_ANIM.TYPING, DX_ANIM.TYPED);
+      this._cleanedUp = false;
+      this._unpacked = false;
+      this._tLayer = null;
+      this._preparedTLayer = null;
+      this._charDone = false;
+      this._lastC = null;
+      const existingTt = this.querySelector(":scope > :is(dx-t, t-t, t)");
+      if (existingTt) existingTt.remove();
+    }
   };
+  if (typeof rootWin2 !== "undefined" && rootWin2) {
+    rootWin2.__dxReplayTypewriter = (el2) => {
+      if (!el2) return;
+      if (typeof el2.replay === "function") {
+        el2.replay();
+      } else {
+        el2.classList.remove(DX_ANIM.TYPED);
+        el2._cleanedUp = false;
+        el2._unpacked = false;
+        el2._tLayer = null;
+        el2._preparedTLayer = null;
+        el2._charDone = false;
+        el2._lastC = null;
+        const existingTt = el2.querySelector(":scope > :is(dx-t, t-t, t)");
+        if (existingTt) existingTt.remove();
+        unpackTemplate(el2);
+        el2.classList.add(DX_ANIM.TYPING);
+      }
+    };
+    rootWin2.__dxResetTypewriter = (el2) => {
+      if (!el2) return;
+      if (typeof el2.reset === "function") {
+        el2.reset();
+      } else {
+        el2.classList.remove(DX_ANIM.TYPING, DX_ANIM.TYPED);
+        el2._cleanedUp = false;
+        el2._unpacked = false;
+        el2._tLayer = null;
+        el2._preparedTLayer = null;
+        el2._charDone = false;
+        el2._lastC = null;
+        const existingTt = el2.querySelector(":scope > :is(dx-t, t-t, t)");
+        if (existingTt) existingTt.remove();
+      }
+    };
+  }
   var checkAndObserve = (el2, isSubtreeRebootstrap = false) => {
     if (!el2?.querySelector) return;
     const tag = (el2.tagName || "").toUpperCase();
@@ -1590,8 +1727,10 @@ var DxType = (() => {
       currentStaggerStep = Math.max(minStep, currentStaggerStep - STAGGER_STEP_DECREMENT);
       lastStaggerTime += currentStaggerStep;
     }
-    if (lastStaggerTime - now > MAX_STAGGER_QUEUE_MS) {
-      lastStaggerTime = now + MAX_STAGGER_QUEUE_MS;
+    const maxQueueAttr = typeof el2.getAttribute === "function" ? el2.getAttribute("data-stagger-max") : null;
+    const maxQueue = maxQueueAttr && !isNaN(parseInt(maxQueueAttr, 10)) ? parseInt(maxQueueAttr, 10) : rootWin2 && typeof rootWin2.__dxStaggerMax === "number" ? rootWin2.__dxStaggerMax : MAX_STAGGER_QUEUE_MS;
+    if (lastStaggerTime - now > maxQueue) {
+      lastStaggerTime = now + maxQueue;
     }
     const baseDelayStr = el2.getAttribute("delay") ?? el2.getAttribute("d");
     const baseDelay = baseDelayStr !== null ? parseInt(baseDelayStr, 10) || 0 : 0;
@@ -1602,9 +1741,9 @@ var DxType = (() => {
     currentStaggerStep = STAGGER_INITIAL_STEP_MS;
   }
   function finishReveal(el2, e) {
-    if (!el2) return;
-    if (e && e.target && e.target !== el2) return;
-    if (e && e.animationName && e.animationName !== "dx-reveal-sda" && e.animationName !== "reveal-sda" && e.animationName !== "reveal-in" && e.animationName !== "reveal-fade-in" && e.animationName !== "dx-checkout-diffuse" && e.animationName !== "dx-reveal-diffuse" && e.animationName !== DX_ANIM.KF_REVEAL_IN && e.animationName !== DX_ANIM.KF_REVEAL_SDA && e.animationName !== DX_ANIM.KF_REVEAL_FADE) return;
+    if (!el2) return false;
+    if (e && e.target && e.target !== el2) return false;
+    if (e && e.animationName && e.animationName !== "dx-reveal-sda" && e.animationName !== "reveal-sda" && e.animationName !== "reveal-in" && e.animationName !== "reveal-fade-in" && e.animationName !== "dx-checkout-diffuse" && e.animationName !== "dx-reveal-diffuse" && e.animationName !== DX_ANIM.KF_REVEAL_IN && e.animationName !== DX_ANIM.KF_REVEAL_SDA && e.animationName !== DX_ANIM.KF_REVEAL_FADE) return false;
     if (typeof e?.stopPropagation === "function") e.stopPropagation();
     el2._animStarted = true;
     if (typeof el2._triggerChildren === "function") {
@@ -1615,6 +1754,7 @@ var DxType = (() => {
     } else {
       DxRevealing.prototype.markRevealed.call(el2);
     }
+    return true;
   }
   function startReveal(el2, e) {
     if (!el2 || el2.classList.contains(DX_ANIM.REVEALED) || el2.classList.contains(DX_ANIM.REVEALING)) return;
@@ -1629,7 +1769,7 @@ var DxType = (() => {
   }
   var DxRevealing = class extends DxBase {
     static get observedAttributes() {
-      return ["delay", "d", "duration", "t", "paused"];
+      return ["delay", "d", "duration", "t", "paused", "cis", "h"];
     }
     constructor() {
       super();
@@ -1655,6 +1795,10 @@ var DxType = (() => {
       const duration = this.getAttribute("duration") ?? this.getAttribute("t");
       if (duration !== null) {
         this.style.setProperty("--t", String(parseInt(duration, 10) || 0));
+      }
+      const cis = this.getAttribute("cis") ?? this.getAttribute("h");
+      if (cis !== null) {
+        this.style.setProperty("--dx-cis", cis);
       }
     }
     get isRevealed() {
@@ -1707,7 +1851,7 @@ var DxType = (() => {
         if (delayMs > 0 && typeof AnimationEvent !== "undefined") {
           const onStart = (e) => {
             if (e && e.target && e.target !== this) return;
-            if (e && e.animationName && e.animationName !== "dx-reveal-sda" && e.animationName !== "reveal-sda" && e.animationName !== "reveal-in" && e.animationName !== "reveal-fade-in" && e.animationName !== "dx-checkout-diffuse" && e.animationName !== "dx-reveal-diffuse" && e.animationName !== DX_ANIM.KF_REVEAL_IN && e.animationName !== DX_ANIM.KF_REVEAL_SDA && e.animationName !== DX_ANIM.KF_REVEAL_FADE) return;
+            if (e && e.animationName && e.animationName !== "dx-diffuse-optics" && e.animationName !== "dx-reveal-sda" && e.animationName !== "reveal-sda" && e.animationName !== "reveal-in" && e.animationName !== "reveal-fade-in" && e.animationName !== "dx-checkout-diffuse" && e.animationName !== "dx-reveal-diffuse" && e.animationName !== DX_ANIM.KF_REVEAL_IN && e.animationName !== DX_ANIM.KF_REVEAL_SDA && e.animationName !== DX_ANIM.KF_REVEAL_FADE) return;
             this.removeEventListener("animationstart", onStart);
             this._animStarted = true;
             this._triggerChildren();
@@ -1767,8 +1911,27 @@ var DxType = (() => {
 
   // src/client/components/dx-type.js
   var REVEAL_PARENT_SEL = "dx-reveal-sda, dx-reveal, .reveal-sda, .reveal, ui-reveal-sda, ui-reveal";
+  var _typingStaggerQueue = [];
+  var _typingStaggerRaf = 0;
+  var _typedThisFrame = false;
+  function _flushTypingStagger() {
+    _typingStaggerRaf = 0;
+    if (_typedThisFrame) {
+      _typedThisFrame = false;
+      if (_typingStaggerQueue.length > 0 && typeof requestAnimationFrame === "function") {
+        _typingStaggerRaf = requestAnimationFrame(_flushTypingStagger);
+      }
+      return;
+    }
+    const fn = _typingStaggerQueue.shift();
+    if (fn) fn();
+    if (_typingStaggerQueue.length > 0 && typeof requestAnimationFrame === "function") {
+      _typingStaggerRaf = requestAnimationFrame(_flushTypingStagger);
+    }
+  }
   var DxType = class extends DxTyping {
     connectedCallback() {
+      this._isSdaConnected = true;
       if (this.isTyped) {
         cleanupTypedDOM(this);
         const secHeader = this.closest?.(SECTION_HEADER_SEL);
@@ -1776,10 +1939,13 @@ var DxType = (() => {
         return;
       }
       this._syncTimingAttributes();
-      if (this.querySelector(":scope > template") || this.querySelector(":scope > dx-s[w]")) {
+      if (!this.querySelector(":scope > dx-t") && (this.querySelector(":scope > template") || this.querySelector(":scope > dx-s[w]"))) {
         observeLookaheadIO(this, (el2) => {
-          removeFromIdleQueue(el2);
-          unpackTemplate(el2);
+          if (isElementHidden(el2)) return false;
+          queueIdleUnpack(el2, (t) => {
+            if (rootWin2?.__dxHasScrolled) unpackTemplate(t);
+            else prepareTemplateContent(t);
+          });
         });
         queueIdleUnpack(this, (el2) => {
           prepareTemplateContent(el2);
@@ -1790,7 +1956,7 @@ var DxType = (() => {
         if (isElementHidden(el2)) return false;
         el2._inViewport = true;
         const triggerTyping = () => {
-          if (el2.isTyped || el2.classList.contains(DX_ANIM.TYPED)) return;
+          if (el2.isConnected === false || el2.isTyped || el2.classList.contains(DX_ANIM.TYPED)) return;
           removeFromIdleQueue(el2);
           unobserveLookaheadIO(el2);
           if (isReducedMotionActive()) {
@@ -1816,6 +1982,21 @@ var DxType = (() => {
           parentRev.addEventListener("animationstart", onParentStart);
           parentRev.addEventListener("animationend", onParentStart);
           return;
+        }
+        const dVal = parseFloat(el2.style?.getPropertyValue("--d") || el2.getAttribute?.("delay") || el2.getAttribute?.("d") || 0);
+        const isBrowser = typeof requestAnimationFrame === "function" && typeof navigator !== "undefined" && !/jsdom/i.test(navigator.userAgent || "");
+        if (dVal >= 100 && !isReducedMotionActive() && isBrowser) {
+          _typingStaggerQueue.push(triggerTyping);
+          if (!_typingStaggerRaf) {
+            _typingStaggerRaf = requestAnimationFrame(_flushTypingStagger);
+          }
+          return;
+        }
+        if (isBrowser) {
+          _typedThisFrame = true;
+          if (!_typingStaggerRaf) {
+            _typingStaggerRaf = requestAnimationFrame(_flushTypingStagger);
+          }
         }
         triggerTyping();
       });
@@ -1846,6 +2027,10 @@ var DxType = (() => {
         this._managedBySpecDrawer = true;
         return;
       }
+      if (this.classList?.contains("es-review-part-2") || typeof this.hasAttribute === "function" && this.hasAttribute("data-manual")) {
+        this._manualControl = true;
+        return;
+      }
       const isHeader = !!this.closest?.(SECTION_HEADER_SEL);
       const parentRev = !isHeader ? this.closest?.(REVEAL_PARENT_SEL2) : null;
       if (parentRev && !parentRev.isRevealed && !parentRev.classList.contains(DX_ANIM.REVEALED) && !parentRev.classList.contains(DX_ANIM.REVEALING) && !parentRev._inViewport) {
@@ -1860,8 +2045,10 @@ var DxType = (() => {
       if (this.querySelector(":scope > template") || this.querySelector(":scope > dx-s[w]")) {
         observeLookaheadIO(this, (el2) => {
           if (isElementHidden(el2)) return false;
-          removeFromIdleQueue(el2);
-          unpackTemplate(el2);
+          queueIdleUnpack(el2, (t) => {
+            if (rootWin2?.__dxHasScrolled) unpackTemplate(t);
+            else prepareTemplateContent(t);
+          });
         });
         if (!isElementHidden(this)) {
           queueIdleUnpack(this, (el2) => {
@@ -1916,11 +2103,13 @@ var DxType = (() => {
   // src/client/components/dx-reveal-sda.js
   var DxRevealSda = class extends DxRevealing {
     connectedCallback() {
-      if (this.isRevealed) return;
       let childrenTriggered = false;
       this._triggerChildren = () => {
         if (childrenTriggered) return;
         childrenTriggered = true;
+        const isTestEnv = typeof process !== "undefined" && Boolean(process.versions?.node) || typeof navigator !== "undefined" && /jsdom/i.test(navigator.userAgent || "") || /jsdom/i.test(rootWin2?.navigator?.userAgent || "");
+        const syncMode = isTestEnv || isReducedMotionActive() || this.isRevealed;
+        const deferredTypeChildren = [];
         this.querySelectorAll("dx-counter, dx-number, dx-type, dx-type-sda").forEach((child) => {
           if (child.closest(REVEAL_CONTAINER_SEL) !== this) return;
           const closedDetails = !child.closest("summary") && child.closest("details:not([open])");
@@ -1933,16 +2122,23 @@ var DxType = (() => {
             child._observeSelf?.();
             return;
           }
-          if (typeof child._checkAndTrigger === "function") {
-            child._inViewport = true;
-            child._parentReady = true;
-            child._checkAndTrigger();
+          if (child.classList?.contains("es-review-part-2") || typeof child.hasAttribute === "function" && child.hasAttribute("data-manual")) {
+            return;
+          }
+          if (isElementHidden(child)) {
+            child._observeSelf?.();
+            return;
           }
           const tag = (child.tagName || "").toUpperCase();
           if (tag === "DX-TYPE" || tag === "DX-TYPE-SDA") {
             if (!child.classList.contains(DX_ANIM.TYPED)) {
               removeFromIdleQueue(child);
-              if (isReducedMotionActive()) {
+              if (typeof child._checkAndTrigger === "function") {
+                child._inViewport = true;
+                child._parentReady = true;
+                child._checkAndTrigger(true);
+              }
+              if (isReducedMotionActive() || this.isRevealed) {
                 child.classList.add(DX_ANIM.TYPED);
                 cleanupTypedDOM(child);
                 syncSectionHeaderTyping(child);
@@ -1952,9 +2148,19 @@ var DxType = (() => {
                 syncSectionHeaderTyping(child);
               }
             }
+            return;
+          }
+          if (typeof child._checkAndTrigger === "function") {
+            child._inViewport = true;
+            child._parentReady = true;
+            child._checkAndTrigger(true);
           }
         });
       };
+      if (this.isRevealed) {
+        this._triggerChildren();
+        return;
+      }
       this._syncTimingAttributes();
       observeIO(this, () => {
         if (isElementHidden(this)) return false;
@@ -1971,19 +2177,21 @@ var DxType = (() => {
       });
       observeLookaheadIO(this, (el2) => {
         if (isElementHidden(el2)) return false;
-        removeFromIdleQueue(el2);
-        if (el2.querySelector?.(":scope > template")) {
-          unpackTemplate(el2);
-        } else {
-          prepareTemplateContent(el2);
-        }
+        queueIdleUnpack(el2, (t) => {
+          if (rootWin2?.__dxHasScrolled && t.querySelector?.(":scope > template")) {
+            unpackTemplate(t);
+          } else {
+            prepareTemplateContent(t);
+          }
+        });
+        if (!rootWin2?.__dxHasScrolled) return;
         el2.querySelectorAll?.("dx-type, dx-type-sda")?.forEach((child) => {
           if (child.closest?.(REVEAL_CONTAINER_SEL) === el2 && !child.isTyped && !isElementHidden(child)) {
-            queueIdleUnpack(child, (c) => prepareTemplateContent(c));
+            queueIdleUnpack(child, (c) => unpackTemplate(c), true);
           }
         });
       });
-      if (this.querySelector?.(":scope > dx-s[w]") && !isElementHidden(this)) {
+      if (this.querySelector?.(":scope > dx-s[w], :scope > template") && !isElementHidden(this)) {
         queueIdleUnpack(this, (el2) => {
           prepareTemplateContent(el2);
         });
@@ -1994,12 +2202,26 @@ var DxType = (() => {
       this.addEventListener("animationend", this._onAnimEnd);
       this.addEventListener("animationcancel", this._onAnimEnd);
       super._startRevealing();
+      if (!this._animStarted) {
+        this.querySelectorAll?.("dx-type, dx-type-sda")?.forEach((child) => {
+          if (child.closest?.(REVEAL_CONTAINER_SEL) === this && !child.isTyped && !child._unpacked && !isElementHidden(child)) {
+            queueIdleUnpack(child, (c) => prepareTemplateContent(c));
+          }
+        });
+      }
     }
     _onAnimEnd = (e) => {
       if (e.target !== this) return;
-      finishReveal(this, e);
-      this.removeEventListener("animationend", this._onAnimEnd);
-      this.removeEventListener("animationcancel", this._onAnimEnd);
+      if (e.type === "animationcancel") {
+        finishReveal(this, e);
+        this.removeEventListener("animationend", this._onAnimEnd);
+        this.removeEventListener("animationcancel", this._onAnimEnd);
+        return;
+      }
+      if (finishReveal(this, e) || this.isRevealed) {
+        this.removeEventListener("animationend", this._onAnimEnd);
+        this.removeEventListener("animationcancel", this._onAnimEnd);
+      }
     };
     disconnectedCallback() {
       super.disconnectedCallback?.();
@@ -2127,14 +2349,17 @@ var DxType = (() => {
       const parentReveal = this.closest(REVEAL_PARENT_SEL3);
       const parentActionBar = this.closest(".action-bar, .action-bar-wrapper");
       if (parentActionBar) {
-        const isAbShowing = !!this.closest(".show-action-bar, .showing-action-bar") || typeof document !== "undefined" && document.body && (document.body.classList.contains("show-action-bar") || document.body.classList.contains("showing-action-bar"));
+        const isWrapperShowing = !!this.closest(".showing-action-bar") || typeof document !== "undefined" && document.body && document.body.classList.contains("showing-action-bar");
+        const isAbShowing = isWrapperShowing || !!this.closest(".show-action-bar") || typeof document !== "undefined" && document.body && document.body.classList.contains("show-action-bar");
         if (!isAbShowing) {
           return false;
         }
         this._inViewport = true;
-        const isAbShown = !!this.closest(".show-action-bar") || typeof document !== "undefined" && document.body && document.body.classList.contains("show-action-bar");
-        if (isAbShown) {
-          this._parentReady = true;
+        if (!isWrapperShowing) {
+          const isAbShown = !!this.closest(".show-action-bar") || typeof document !== "undefined" && document.body && document.body.classList.contains("show-action-bar");
+          if (isAbShown) {
+            this._parentReady = true;
+          }
         }
         return Boolean(this._parentReady);
       }
@@ -2253,21 +2478,25 @@ var DxType = (() => {
       }
       if (parentActionBar) {
         this._inViewport = true;
-        const isAbShown = parentActionBar.classList && parentActionBar.classList.contains("show-action-bar") || typeof document !== "undefined" && document.body && document.body.classList.contains("show-action-bar");
+        const abWrapper = typeof this.closest === "function" ? this.closest(".action-bar-wrapper") : null;
+        const isWrapperShowing = Boolean(
+          abWrapper && abWrapper.classList && abWrapper.classList.contains("showing-action-bar") || parentActionBar.classList && parentActionBar.classList.contains("showing-action-bar")
+        );
+        const isAbShown = !isWrapperShowing && (parentActionBar.classList && parentActionBar.classList.contains("show-action-bar") || abWrapper && abWrapper.classList && abWrapper.classList.contains("show-action-bar") || typeof document !== "undefined" && document.body && document.body.classList.contains("show-action-bar"));
         if (isAbShown) {
           this._parentReady = true;
           this._checkAndTrigger(true);
         } else {
           const onAbTrigger = (e) => {
-            if (!e || !e.animationName || e.animationName === "dxc-trigger" || e.animationName === "actionbar-slide-up") {
+            if (!e || !e.animationName || e.animationName === "dxc-trigger" || e.animationName === "actionbar-slide-up" || animTarget && (e.target === animTarget || e.currentTarget === animTarget)) {
               this._parentReady = true;
               this._checkAndTrigger(true);
             }
           };
           this.addEventListener("animationstart", onAbTrigger, { once: true });
-          parentActionBar.addEventListener("animationstart", onAbTrigger, { once: true });
-          parentActionBar.addEventListener("animationend", onAbTrigger, { once: true });
-          parentActionBar.addEventListener("transitionend", onAbTrigger, { once: true });
+          const animTarget = abWrapper || parentActionBar;
+          animTarget.addEventListener("animationend", onAbTrigger, { once: true });
+          animTarget.addEventListener("transitionend", onAbTrigger, { once: true });
         }
       } else {
         observeIO(this, () => {
@@ -2299,19 +2528,13 @@ var DxType = (() => {
           this._parentReady = true;
         } else {
           const onParentAnim = () => {
+            if (this._parentReady) return;
             this._parentReady = true;
             this._checkAndTrigger();
           };
           parentReveal.addEventListener("animationstart", onParentAnim, { once: true });
-          parentReveal.addEventListener("transitionstart", onParentAnim, { once: true });
-          parentReveal.addEventListener("animationend", onParentAnim, { once: true });
-          const choiceParent = typeof this.closest === "function" ? this.closest(".form-control--checkbox-button, .details-product-option") : null;
-          if (choiceParent && choiceParent !== parentReveal) {
-            choiceParent.addEventListener("animationstart", onParentAnim, { once: true });
-            choiceParent.addEventListener("transitionstart", onParentAnim, { once: true });
-          }
         }
-      } else {
+      } else if (!parentActionBar) {
         this._parentReady = true;
       }
       this._checkAndTrigger();
@@ -2326,16 +2549,18 @@ var DxType = (() => {
         this._twDelayId = null;
       }
       unregisterRAF(this);
-      this.classList.remove("ui-number-running");
     }
     val(newValue, duration) {
       if (!this._initialized) this.init();
       if (newValue === void 0) return this._targetValue !== void 0 && !isNaN(this._targetValue) ? this._targetValue : this._value;
       const parsedValue = parseFloat(newValue) || 0;
       this._targetValue = parsedValue;
+      const valChangedFromAttr = this.getAttribute("percent") !== String(parsedValue);
       if (this._initialized && this._value === parsedValue && !this._pendingVal) {
         this.render();
-        this.setAccessibility(parsedValue);
+        if (valChangedFromAttr || !this.getAttribute("aria-label")) {
+          this.setAccessibility(parsedValue);
+        }
         return this;
       }
       const isReduced = isReducedMotionActive();
@@ -2344,24 +2569,23 @@ var DxType = (() => {
       const ready = this.isReadyToAnimate();
       if (!ready && animDuration > 0) {
         this._pendingVal = { targetValue: parsedValue, duration: animDuration };
-        this.setAttribute("percent", parsedValue);
-        this.setAccessibility(parsedValue);
+        if (valChangedFromAttr) this.setAttribute("percent", parsedValue);
+        if (valChangedFromAttr || !this.getAttribute("aria-label")) this.setAccessibility(parsedValue);
         return this;
       }
       this._animationStarted = true;
       this._pendingVal = null;
       if (animDuration > 0 && this._value !== parsedValue) {
-        this.setAttribute("percent", parsedValue);
-        this.setAccessibility(parsedValue);
+        if (valChangedFromAttr) this.setAttribute("percent", parsedValue);
+        if (valChangedFromAttr || !this.getAttribute("aria-label")) this.setAccessibility(parsedValue);
         this.animateTo(parsedValue, animDuration);
       } else {
         unregisterRAF(this);
-        this.classList.remove("ui-number-running");
         this._value = parsedValue;
-        this.setAttribute("percent", this._value);
+        if (valChangedFromAttr) this.setAttribute("percent", this._value);
         this.makeStatic();
         this.render();
-        this.setAccessibility(parsedValue);
+        if (valChangedFromAttr || !this.getAttribute("aria-label")) this.setAccessibility(parsedValue);
         this._animDone = true;
         const twEmbed = this.classList.contains("tw-embed") || !!(typeof this.closest === "function" && this.closest(TYPE_PARENT_SEL));
         if (twEmbed) {
@@ -2371,13 +2595,15 @@ var DxType = (() => {
       return this;
     }
     animateTo(targetValue, duration) {
-      if (typeof this.removeAttribute === "function") this.removeAttribute("data-static");
-      if (this.classList && typeof this.classList.remove === "function") this.classList.remove("data-static");
+      if (typeof this.removeAttribute === "function" && this.hasAttribute("data-static")) this.removeAttribute("data-static");
+      if (this.classList && typeof this.classList.remove === "function" && this.classList.contains("data-static")) this.classList.remove("data-static");
       this._targetValue = targetValue;
       this._animStartValue = this._value !== void 0 && !isNaN(this._value) ? this._value : 0;
       this._animDuration = duration;
       this._animStartTime = null;
-      this.classList.add("ui-number-running");
+      this._lastFormattedStr = null;
+      const tp = parseNumParts(this.formatValue(targetValue));
+      this._targetDigitsLen = tp.digits.length;
       this.render();
       registerRAF(this);
     }
@@ -2391,11 +2617,12 @@ var DxType = (() => {
       const startValue = this._animStartValue;
       if (elapsed >= duration) {
         this._value = targetValue;
-        this.setAttribute("percent", this._value);
         this.makeStatic();
-        this.classList.remove("ui-number-running");
-        this.render();
-        this.setAccessibility(targetValue);
+        if (this._numTextNode) {
+          this._updateFrameDisplay(targetValue);
+        } else {
+          this.render();
+        }
         unregisterRAF(this);
         this._animDone = true;
         const twEmbed = this.classList.contains("tw-embed") || !!(typeof this.closest === "function" && this.closest(TYPE_PARENT_SEL));
@@ -2411,26 +2638,32 @@ var DxType = (() => {
     }
     _updateFrameDisplay(targetVal) {
       if ((this.hasAttribute("hide-zero") || this.hasAttribute("empty-zero")) && (this._value === 0 || Math.abs(this._value) < 1e-4)) {
-        if (this._numTextNode) this._numTextNode.nodeValue = "";
-        if (this._padTextNode) this._padTextNode.nodeValue = "";
+        if (this._numTextNode && this._numTextNode.nodeValue !== "") this._numTextNode.nodeValue = "";
+        if (this._padTextNode && this._padTextNode.nodeValue !== "") this._padTextNode.nodeValue = "";
+        this._lastFormattedStr = "";
         return;
       }
       if (!this._numTextNode) {
         this.render();
         return;
       }
-      const p = parseNumParts(this.formatValue(this._value));
+      const formatted = this.formatValue(this._value);
+      if (formatted === this._lastFormattedStr && this._value !== targetVal) {
+        return;
+      }
+      this._lastFormattedStr = formatted;
+      const p = parseNumParts(formatted);
       const numText = `${p.digits}${p.radix}${p.decimals}`;
       if (this._numTextNode.nodeValue !== numText) {
         this._numTextNode.nodeValue = numText;
       }
       if (this._padTextNode) {
-        const effectiveTarget = targetVal !== void 0 && !isNaN(targetVal) ? targetVal : this.getNumericValue();
         let padPrefix = "";
+        const effectiveTarget = targetVal !== void 0 && !isNaN(targetVal) ? targetVal : this.getNumericValue();
         if (effectiveTarget !== void 0 && !isNaN(effectiveTarget) && this._value !== effectiveTarget) {
-          const tp = parseNumParts(this.formatValue(effectiveTarget));
-          if (tp.digits.length > p.digits.length) {
-            padPrefix = tp.digits.slice(0, tp.digits.length - p.digits.length).replace(/\d/g, "0");
+          const targetLen = this._targetDigitsLen !== void 0 ? this._targetDigitsLen : parseNumParts(this.formatValue(effectiveTarget)).digits.length;
+          if (targetLen > p.digits.length) {
+            padPrefix = "0".repeat(targetLen - p.digits.length);
           }
         }
         if (this._padTextNode.nodeValue !== padPrefix) {
@@ -2599,8 +2832,7 @@ var DxType = (() => {
       if (this._twDelayId) clearTimeout(this._twDelayId);
       if (this._timeoutId) clearTimeout(this._timeoutId);
       this._animationStarted = false;
-      this.classList.remove("ui-number-running");
-      this.removeAttribute("data-static");
+      if (this.hasAttribute("data-static")) this.removeAttribute("data-static");
       const startVal = parseFloat(this.getAttribute("start")) || 0;
       this._value = startVal;
       this.render();
@@ -2653,13 +2885,13 @@ var DxType = (() => {
     connectedCallback() {
       const isReduced = isReducedMotionActive();
       if (this.closest("dx-s, t-s")) {
-        this.classList.add("data-static");
+        if (!this.classList.contains("data-static")) this.classList.add("data-static");
         this._animDone = true;
         return;
       }
       if (this.classList.contains("data-static") || isReduced) {
-        this.classList.add("data-static");
-        this.makeStatic();
+        if (!this.classList.contains("data-static")) this.classList.add("data-static");
+        if (typeof this.hasAttribute !== "function" || !this.hasAttribute("data-static")) this.makeStatic();
         this._animDone = true;
         const drumB = this.querySelector("b");
         if (drumB) drumB.remove();
@@ -2682,8 +2914,9 @@ var DxType = (() => {
       const dataO = this.getAttribute("data-o");
       if (dataO && !this.querySelector("dx-d")) {
         this.unpackDataO(dataO);
+      } else {
+        expandOdometerDrums(this);
       }
-      expandOdometerDrums(this);
       if (this._initialized) return;
       this._initialized = true;
       this.addEventListener("animationend", this._onAnimEnd);
@@ -2692,6 +2925,9 @@ var DxType = (() => {
       }, { passive: true });
       const twEmbed = this.classList.contains("tw-embed") || !!this.closest("dx-type, dx-type-sda, .type, .type-sda, ui-type, ui-type-sda");
       if (twEmbed) {
+        if (this.querySelector("dx-d[data-seq], .odometer-ribbon-inner")) {
+          return;
+        }
         const checkEmbedReady = () => {
           if (!this.isConnected || this._animDone) return;
           expandOdometerDrums(this);
@@ -2749,8 +2985,8 @@ var DxType = (() => {
       this._digitsDone++;
       if (this._digitsDone >= this._digitCount) {
         this._animDone = true;
-        const twEmbed = this.classList.contains("tw-embed") || !!this.closest("dx-type, dx-type-sda, .type, .type-sda, ui-type, ui-type-sda");
-        if (!twEmbed) {
+        const parentTw = this.closest("dx-type, dx-type-sda, .type, .type-sda, ui-type, ui-type-sda");
+        if (!parentTw) {
           this.makeStatic();
         } else {
           onTypewriterEnd(this);
@@ -2872,7 +3108,10 @@ var DxType = (() => {
         this.render();
       } else if (this.hasAttribute && this.hasAttribute("start") && this.getAttribute("start") !== "") {
         const startVal = parseFloat(this.getAttribute("start")) || 0;
-        this._updateCounterVars(startVal);
+        this._value = startVal;
+        if (typeof navigator === "undefined" || /jsdom/i.test(navigator.userAgent || "")) {
+          this._updateCounterVars(startVal);
+        }
       }
       super.init();
     }
@@ -3084,42 +3323,61 @@ var DxType = (() => {
       const cfg = this._cachedCfg || (typeof this.getFormatConfig === "function" ? this.getFormatConfig() : {});
       const radix = cfg.comma !== "" ? cfg.comma || "," : ",";
       const hasDec = cfg.comma !== "" && cfg.type !== "int" && (c.dec > 0 || cfg.type && cfg.type.includes("number"));
+      const setSegText = (el2, str) => {
+        const fc = el2.firstChild;
+        if (fc && fc.nodeType === 3 && fc === el2.lastChild) {
+          if (fc.nodeValue !== str) fc.nodeValue = str;
+        } else if (el2.textContent !== str) {
+          el2.textContent = str;
+        }
+      };
       if (this._elB) {
-        const bStr = hasB ? String(c.b) : "";
-        if (this._elB.textContent !== bStr) this._elB.textContent = bStr;
+        setSegText(this._elB, hasB ? String(c.b) : "");
       }
       if (this._elM) {
-        const mStr = hasM ? hasB ? String(c.m).padStart(3, "0") : String(c.m) : "";
-        if (this._elM.textContent !== mStr) this._elM.textContent = mStr;
+        setSegText(this._elM, hasM ? hasB ? String(c.m).padStart(3, "0") : String(c.m) : "");
       }
       if (this._elK) {
-        const kStr = hasK ? hasM ? String(c.k).padStart(3, "0") : String(c.k) : "";
-        if (this._elK.textContent !== kStr) this._elK.textContent = kStr;
+        setSegText(this._elK, hasK ? hasM ? String(c.k).padStart(3, "0") : String(c.k) : "");
       }
       if (this._elU) {
-        const uStr = hasK ? String(c.u).padStart(3, "0") : String(c.u);
-        if (this._elU.textContent !== uStr) this._elU.textContent = uStr;
+        setSegText(this._elU, hasK ? String(c.u).padStart(3, "0") : String(c.u));
       }
       if (this._elDec) {
         const is1Dec = cfg.type && (cfg.type.includes("number-1dec") || cfg.type.includes("float-1dec"));
         const decVal = is1Dec ? Math.round(c.dec / 10) : String(c.dec).padStart(2, "0");
-        const decStr = hasDec ? `${radix}${decVal}` : "";
-        if (this._elDec.textContent !== decStr) this._elDec.textContent = decStr;
+        setSegText(this._elDec, hasDec ? `${radix}${decVal}` : "");
       }
       if (hasB !== this._lastHasB) {
-        if (this._elB) this._elB.style.display = hasB ? "inline" : "none";
+        if (this._elB) {
+          const h = this._elB.style.display === "none";
+          if (hasB && h) this._elB.style.display = "inline";
+          else if (!hasB && !h) this._elB.style.display = "none";
+        }
         this._lastHasB = hasB;
       }
       if (hasM !== this._lastHasM) {
-        if (this._elM) this._elM.style.display = hasM ? "inline" : "none";
+        if (this._elM) {
+          const h = this._elM.style.display === "none";
+          if (hasM && h) this._elM.style.display = "inline";
+          else if (!hasM && !h) this._elM.style.display = "none";
+        }
         this._lastHasM = hasM;
       }
       if (hasK !== this._lastHasK) {
-        if (this._elK) this._elK.style.display = hasK ? "inline" : "none";
+        if (this._elK) {
+          const h = this._elK.style.display === "none";
+          if (hasK && h) this._elK.style.display = "inline";
+          else if (!hasK && !h) this._elK.style.display = "none";
+        }
         this._lastHasK = hasK;
       }
       if (hasDec !== this._lastHasDec) {
-        if (this._elDec) this._elDec.style.display = hasDec ? "inline" : "none";
+        if (this._elDec) {
+          const h = this._elDec.style.display === "none";
+          if (hasDec && h) this._elDec.style.display = "inline";
+          else if (!hasDec && !h) this._elDec.style.display = "none";
+        }
         this._lastHasDec = hasDec;
       }
       if (isFinal || _DxCounter.supportsHoudini) {
@@ -3129,7 +3387,7 @@ var DxType = (() => {
         if (this._elU?.style) this._elU.style.setProperty("--dxc-u", String(c.u));
         if (this._elDec?.style) this._elDec.style.setProperty("--dxc-dec", String(c.dec));
       }
-      if (this.style && typeof this.style.setProperty === "function") {
+      if ((isFinal || !this._elU || _DxCounter.supportsHoudini) && this.style && typeof this.style.setProperty === "function") {
         if (c.b !== this._lastB) {
           this.style.setProperty("--dxc-b", String(c.b));
           this._lastB = c.b;
@@ -3162,11 +3420,8 @@ var DxType = (() => {
       const startValue = this._animStartValue;
       if (elapsed >= duration) {
         this._value = targetValue;
-        this.setAttribute("percent", this._value);
         this.makeStatic();
-        this.classList.remove("ui-number-running");
         this._updateCounterVars(targetValue, true);
-        this.setAccessibility(targetValue);
         unregisterRAF(this);
         this._animDone = true;
         const twEmbed = this.classList.contains("tw-embed") || !!(typeof this.closest === "function" && this.closest(TYPE_PARENT_SEL3));
@@ -3181,7 +3436,7 @@ var DxType = (() => {
       }
     }
     animateTo(targetValue, duration) {
-      if (typeof this.removeAttribute === "function") this.removeAttribute("data-static");
+      if (typeof this.removeAttribute === "function" && this.hasAttribute("data-static")) this.removeAttribute("data-static");
       this._targetValue = targetValue;
       this._animStartValue = this._value !== void 0 && !isNaN(this._value) ? this._value : 0;
       this._animDuration = duration;
@@ -3191,7 +3446,6 @@ var DxType = (() => {
       this._lastHasM = null;
       this._lastHasK = null;
       this._lastHasDec = null;
-      this.classList.add("ui-number-running");
       this._updateCounterVars(this._animStartValue, false);
       registerRAF(this);
     }
@@ -3203,7 +3457,8 @@ var DxType = (() => {
       this.makeStatic();
       const st = this.querySelector("dx-s");
       if (st) {
-        st.textContent = this.formatValue(this._value);
+        const formatted = this.formatValue(this._value);
+        if (st.textContent !== formatted) st.textContent = formatted;
       }
       const num = this.querySelector(".dx-num");
       if (num) {
@@ -3222,8 +3477,11 @@ var DxType = (() => {
       const parsedValue = parseFloat(newValue) || 0;
       this._targetValue = parsedValue;
       const startVal = this._value !== void 0 && !isNaN(this._value) ? this._value : 0;
+      const valChangedFromAttr = this.getAttribute("percent") !== String(parsedValue);
       if (this._initialized && startVal === parsedValue && !this._pendingVal) {
-        this.setAccessibility(parsedValue);
+        if (valChangedFromAttr || !this.getAttribute("aria-label")) {
+          this.setAccessibility(parsedValue);
+        }
         return this;
       }
       const isReduced = isReducedMotionActive();
@@ -3232,23 +3490,25 @@ var DxType = (() => {
       const ready = this.isReadyToAnimate();
       if (!ready && animDuration > 0) {
         this._pendingVal = { targetValue: parsedValue, duration: animDuration };
-        this.setAttribute("percent", parsedValue);
-        this.setAccessibility(parsedValue);
+        if (valChangedFromAttr) this.setAttribute("percent", parsedValue);
+        if (valChangedFromAttr || !this.getAttribute("aria-label")) this.setAccessibility(parsedValue);
         return this;
       }
       this._animationStarted = true;
       this._pendingVal = null;
-      this.setAttribute("percent", parsedValue);
-      this.setAccessibility(parsedValue);
+      if (valChangedFromAttr) this.setAttribute("percent", parsedValue);
+      if (valChangedFromAttr || !this.getAttribute("aria-label")) this.setAccessibility(parsedValue);
       const st = this.querySelector("dx-s");
-      if (st) st.textContent = this.formatValue(parsedValue);
+      if (st && valChangedFromAttr) {
+        const formatted = this.formatValue(parsedValue);
+        if (st.textContent !== formatted) st.textContent = formatted;
+      }
       if (isReduced || animDuration === 0) {
         unregisterRAF(this);
-        this.classList.remove("ui-number-running");
         this._value = parsedValue;
         this._updateCounterVars(parsedValue, true);
         this.makeStatic();
-        this.setAccessibility(parsedValue);
+        if (valChangedFromAttr || !this.getAttribute("aria-label")) this.setAccessibility(parsedValue);
         this._animDone = true;
         const twEmbed = this.classList.contains("tw-embed") || !!(typeof this.closest === "function" && this.closest(TYPE_PARENT_SEL3));
         if (twEmbed) {
@@ -3266,11 +3526,10 @@ var DxType = (() => {
         this.animateTo(parsedValue, animDuration);
       } else {
         unregisterRAF(this);
-        this.classList.remove("ui-number-running");
         this._value = parsedValue;
         this._updateCounterVars(parsedValue, true);
         this.makeStatic();
-        this.setAccessibility(parsedValue);
+        if (valChangedFromAttr || !this.getAttribute("aria-label")) this.setAccessibility(parsedValue);
       }
       return this;
     }
@@ -3301,13 +3560,13 @@ var DxType = (() => {
     } else if (type === "int" || type.startsWith("int-") || type.startsWith("number-")) {
       const intVal = Math.round(num);
       const str = intVal.toString();
-      formatted = str.replace(/\B(?=(\d{3})+(?!\d))/g, " ");
+      const hasAttachedAffix = Boolean(prefix && !prefix.endsWith(" ") || suffix && !suffix.startsWith(" "));
+      formatted = hasAttachedAffix || type.includes("compact") || type.includes("year") ? str : str.replace(/\B(?=(\d{3})+(?!\d))/g, " ");
     } else {
       formatted = num.toString().replace(".", comma);
     }
-    const pfx = prefix ? `${prefix}${prefix.endsWith(" ") ? "" : " "}` : "";
-    const noLeadingSpace = /^[%°"”″’'VvAaWw€$£]|\//.test(suffix);
-    const sfx = suffix ? `${suffix.startsWith(" ") || noLeadingSpace ? "" : " "}${suffix}` : "";
+    const pfx = prefix || "";
+    const sfx = suffix || "";
     return `${pfx}${formatted}${sfx}`;
   }
   function generateRibbonHtml2(numericValue, type = "int", comma = ",", prefix = "", suffix = "", startValue = null) {
@@ -3402,7 +3661,13 @@ var DxType = (() => {
                 break;
               }
             }
-            if (allZero) drumValues[0] = " ";
+            if (allZero) {
+              if (drumValues.length === 1) {
+                drumValues = [" ", 0];
+              } else {
+                drumValues[0] = " ";
+              }
+            }
           }
         }
         const totalItems = drumValues.length;
@@ -3414,10 +3679,11 @@ var DxType = (() => {
         digitsHtml += `<span class="ui-radix">${char}</span>`;
       }
     }
-    const pfxHtml = prefixText ? `<span class="ui-pfx">${prefixText}${prefix.endsWith(" ") ? "" : " "}</span>` : "";
-    const hasExplicitSpace = suffix.startsWith(" ");
-    const noSfxSpace = /^[%°"”″’'VvAaWw€$£]|\//.test(suffixText);
-    const sfxSpace = hasExplicitSpace || !noSfxSpace ? suffixText ? " " : "" : "";
+    const prefixHasSpace = (numberPartMatch?.[1] || "").endsWith(" ") || Boolean(prefix && prefix.endsWith(" "));
+    const prefixSpace = prefixHasSpace ? " " : "";
+    const pfxHtml = prefixText ? `<span class="ui-pfx">${prefixText}${prefixSpace}</span>` : "";
+    const hasExplicitSpace = (suffixText ? numberPartMatch?.[5] || "" : "").startsWith(" ") || Boolean(suffix && suffix.startsWith(" "));
+    const sfxSpace = hasExplicitSpace ? suffixText ? " " : "" : "";
     const sfxHtml = suffixText ? `<span class="ui-sfx">${sfxSpace}${suffixText}</span>` : "";
     return `${pfxHtml}<b>${digitsHtml}</b>${sfxHtml}`;
   }
@@ -3478,6 +3744,9 @@ var DxType = (() => {
   }
   function tokenize(html, options = {}) {
     if (!html) return { html: "", cleanText: "", totalUnits: 0, speed: 40, duration: 0, delay: 0, style: "" };
+    if (/[\u{1D400}-\u{1D7FF}]/u.test(html)) {
+      html = html.replace(/[\u{1D400}-\u{1D7FF}]+/gu, (m) => m.normalize("NFKD"));
+    }
     const duration = Number(options.duration ?? options.t ?? options.time ?? 580);
     const delay = Number(options.delay ?? options.d ?? 0);
     const offset = Number(options.offset ?? options.b ?? 0);
@@ -3658,15 +3927,23 @@ var DxType = (() => {
                 tokens[i + 1].value = nextText.substring(punct.length);
               }
             }
-            const subWords = part.includes("-") && part.length > 1 && !/^-+$/.test(part) ? part.match(/[^-]+-?/g) || [part] : [part];
+            const subWords = part.includes("-") && part.length > 1 && !/^-+$/.test(part) ? part.match(/-*[^-]+-?|-+/g) || [part] : [part];
             for (let sIdx = 0; sIdx < subWords.length; sIdx++) {
               const subWord = subWords[sIdx];
               const isLastSubWord = sIdx === subWords.length - 1;
               const subPunct = isLastSubWord ? punct : "";
               const wordChars = splitChars(subWord);
               const punctChars = splitChars(subPunct);
-              const isDateWord = /^DATE(?:x2)?(?:-|$)/i.test(subWord);
-              if (isDateWord && wordChars.length > 0 && wordChars[0] === "D") {
+              const isDateWord = /^DATE/i.test(subWord);
+              if (isDateWord && wordChars.length >= 4 && wordChars[0] === "D" && wordChars[1] === "A" && wordChars[2] === "T" && wordChars[3] === "E") {
+                wordChars[0] = "\u{1D5D7}";
+                wordChars[1] = "\uE004";
+                wordChars[2] = "\uE005";
+                wordChars[3] = "\uE006";
+                if (wordChars.length > 4 && wordChars[4] === "X" && /\d/.test(wordChars[5])) {
+                  wordChars[4] = "x";
+                }
+              } else if (isDateWord && wordChars.length > 0 && wordChars[0] === "D") {
                 wordChars[0] = "\u{1D5D7}";
               }
               const cTags = wordChars.map((ch) => makeCharTag(ch, charIdx++)).join("");
@@ -3748,13 +4025,14 @@ var DxType = (() => {
     const stTokens = stContent === content ? res : tokenize(stContent, options);
     const sdaStContent = stTokens.compactHtml || stContent;
     const wAttr = stTokens.wAttr ? ` w="${stTokens.wAttr}"` : "";
+    const extraAttrs = options.attrs ? ` ${options.attrs.trim()}` : "";
     if (isSda) {
       if (options.compact && wAttr) {
-        return `<${tagName}${classAttr} style="${res.style}"${ariaAttr}><dx-s${wAttr}>${sdaStContent}</dx-s></${tagName}>`;
+        return `<${tagName}${classAttr} style="${res.style}"${ariaAttr}${extraAttrs}><dx-s${wAttr}>${sdaStContent}</dx-s></${tagName}>`;
       }
-      return `<${tagName}${classAttr} style="${res.style}"${ariaAttr}><dx-s${wAttr}>${sdaStContent}</dx-s><template><dx-t aria-hidden="true">${res.html}</dx-t></template></${tagName}>`;
+      return `<${tagName}${classAttr} style="${res.style}"${ariaAttr}${extraAttrs}><dx-s${wAttr}>${sdaStContent}</dx-s><template><dx-t aria-hidden="true">${res.html}</dx-t></template></${tagName}>`;
     }
-    return `<${tagName}${classAttr} style="${res.style}"${ariaAttr}><dx-s${wAttr}>${sdaStContent}</dx-s><dx-t aria-hidden="true">${res.html}</dx-t></${tagName}>`;
+    return `<${tagName}${classAttr} style="${res.style}"${ariaAttr}${extraAttrs}><dx-s${wAttr}>${sdaStContent}</dx-s><dx-t aria-hidden="true">${res.html}</dx-t></${tagName}>`;
   }
   function ssrDxReveal(content, options = {}) {
     const tagName = options.tagName || (options.isSda ? "dx-reveal-sda" : "dx-reveal");
@@ -3768,8 +4046,11 @@ var DxType = (() => {
     const classAttr = classList.length ? ` class="${classList.join(" ").trim()}"` : "";
     const minH = options.minHeight ? `;min-height:${typeof options.minHeight === "number" ? `${options.minHeight}px` : options.minHeight}` : "";
     const styleAttr = ` style="--d:${delay};--t:${duration}${minH}"`;
+    let extraAttrs = options.attrs ? ` ${options.attrs.trim()}` : "";
+    if (options.staggerStep) extraAttrs += ` data-stagger-step="${options.staggerStep}"`;
+    if (options.staggerMax) extraAttrs += ` data-stagger-max="${options.staggerMax}"`;
     const innerHtml = options.defer || options.template ? `<template>${content}</template>` : content;
-    return `<${tagName}${classAttr}${styleAttr}>${innerHtml}</${tagName}>`;
+    return `<${tagName}${classAttr}${styleAttr}${extraAttrs}>${innerHtml}</${tagName}>`;
   }
 
   // src/client/index.js

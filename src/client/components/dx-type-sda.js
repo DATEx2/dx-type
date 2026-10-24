@@ -8,7 +8,7 @@
 // used_by: src/client/index.js
 
 import { DxTyping, unpackTemplate, prepareTemplateContent, cleanupTypedDOM, isElementHidden, syncSectionHeaderTyping, SECTION_HEADER_SEL } from '../base/dx-typing.js';
-import { defCustomElement, isReducedMotionActive } from '../base/dx-base.js';
+import { defCustomElement, isReducedMotionActive, rootWin } from '../base/dx-base.js';
 import { DX_ANIM, observeIO, unobserveIO, observeLookaheadIO, unobserveLookaheadIO, queueIdleUnpack, removeFromIdleQueue } from '../base/dx-scheduler.js';
 
 const REVEAL_PARENT_SEL = 'dx-reveal-sda, dx-reveal, .reveal-sda, .reveal, ui-reveal-sda, ui-reveal';
@@ -31,6 +31,11 @@ export class DxTypeSda extends DxTyping {
             return;
         }
 
+        if (this.classList?.contains('es-review-part-2') || (typeof this.hasAttribute === 'function' && this.hasAttribute('data-manual'))) {
+            this._manualControl = true;
+            return;
+        }
+
         const isHeader = !!this.closest?.(SECTION_HEADER_SEL);
         const parentRev = !isHeader ? this.closest?.(REVEAL_PARENT_SEL) : null;
         if (parentRev && !parentRev.isRevealed && !parentRev.classList.contains(DX_ANIM.REVEALED) && !parentRev.classList.contains(DX_ANIM.REVEALING) && !parentRev._inViewport) {
@@ -49,8 +54,10 @@ export class DxTypeSda extends DxTyping {
         if (this.querySelector(':scope > template') || this.querySelector(':scope > dx-s[w]')) {
             observeLookaheadIO(this, (el) => {
                 if (isElementHidden(el)) return false;
-                removeFromIdleQueue(el);
-                unpackTemplate(el);
+                queueIdleUnpack(el, (t) => {
+                    if (rootWin?.__dxHasScrolled) unpackTemplate(t);
+                    else prepareTemplateContent(t);
+                });
             });
             if (!isElementHidden(this)) {
                 queueIdleUnpack(this, (el) => {

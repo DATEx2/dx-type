@@ -5,7 +5,7 @@
 
 import { DxBase, rootWin, isReducedMotionActive } from './dx-base.js';
 import { observeIO, unobserveIO, getLookaheadIO, observeLookaheadIO, unobserveLookaheadIO, queueIdleUnpack, removeFromIdleQueue, queueIdleCleanup, flushIdleCleanup, getIO, DX_ANIM } from './dx-scheduler.js';
-import { generateRibbonHtml, expandOdometerDrums } from './dx-meter.js';
+import { generateRibbonHtml, expandOdometerDrums, parseNumParts } from './dx-meter.js';
 
 // Fixed Character Duration Baseline: 225ms (H1 Hero) or 170ms (H3 Hero)
 export const DX_CHAR_DURATION = 225;
@@ -73,9 +73,18 @@ export function buildTypingLayer(ts, delay, offset, speed) {
                     tHtml += `<dx-w${wClass}>`;
                     const curWordStr = chars.slice(ci, ci + len).join('');
                     const isDateWord = /^DATE(?:x2)?(?:-|$)/i.test(curWordStr);
+                    const isStandardDate = isDateWord && curWordStr.startsWith('DATE');
                     for (let c = 0; c < len && ci < chars.length; c++, ci++) {
                         let curCh = chars[ci];
-                        if (isDateWord && c === 0 && curCh === 'D') {
+                        if (isStandardDate && c === 0 && curCh === 'D') {
+                            curCh = '\u{1D5D7}';
+                        } else if (isStandardDate && c === 1 && curCh === 'A') {
+                            curCh = '\u{E004}';
+                        } else if (isStandardDate && c === 2 && curCh === 'T') {
+                            curCh = '\u{E005}';
+                        } else if (isStandardDate && c === 3 && curCh === 'E') {
+                            curCh = '\u{E006}';
+                        } else if (isDateWord && c === 0 && curCh === 'D') {
                             curCh = '\u{1D5D7}';
                         }
                         const d = Math.round(delay + (offset + charIdx++) * speed);
@@ -175,14 +184,31 @@ export function prepareTemplateContent(el) {
                     for (let i = 0; i < odometers.length; i++) {
                         const odo = odometers[i];
                         odo.classList.remove('data-static');
+                        const parentDelay = odo.parentElement?.style?.animationDelay;
+                        if (parentDelay && !odo.style.getPropertyValue('--d')) {
+                            odo.style.setProperty('--d', String(parseInt(parentDelay, 10) || 0));
+                        }
                         if (!odo.querySelector('b')) {
-                            const val = odo.getAttribute('percent') || odo.getAttribute('value') || odo.textContent.trim();
-                            const numVal = parseFloat(val) || 0;
-                            const type = odo.getAttribute('type') || 'int';
-                            const comma = odo.getAttribute('comma') || ',';
-                            const prefix = odo.getAttribute('prefix') || '';
-                            const suffix = odo.getAttribute('suffix') || '';
+                            const rawText = odo.textContent.trim();
+                            const parts = parseNumParts(rawText);
+                            const parsedNumStr = (parts.digits + parts.radix + parts.decimals).replace(/\s+/g, '');
+                            const valAttr = odo.getAttribute('percent') || odo.getAttribute('value');
+                            const numVal = parseFloat(String(valAttr || parsedNumStr || rawText).replace(/\s+/g, '').replace(',', '.')) || 0;
+                            const decLen = parts.decimals ? Math.min(parts.decimals.length, 2) : 0;
+                            const hasSpaceInDigits = parts.digits.includes(' ');
+                            const inferredType = parts.sfx === '%'
+                                ? (decLen === 0 ? 'int' : decLen === 1 ? 'number-1dec' : 'percent')
+                                : decLen === 1 ? 'number-1dec'
+                                : decLen >= 2 ? 'number'
+                                : (parts.digits.length >= 4 && !hasSpaceInDigits ? 'int-compact' : 'int');
+                            const type = odo.getAttribute('type') || inferredType;
+                            const comma = odo.getAttribute('comma') || parts.radix || ',';
+                            const prefix = odo.getAttribute('prefix') !== null ? odo.getAttribute('prefix') : (parts.pfx ? parts.pfx + parts.pfxSpace : '');
+                            const suffix = odo.getAttribute('suffix') !== null ? odo.getAttribute('suffix') : (parts.sfx ? parts.sfxSpace + parts.sfx : '');
                             const start = odo.getAttribute('start') || null;
+                            if (!odo.hasAttribute('percent')) odo.setAttribute('percent', String(numVal));
+                            if (prefix && !odo.hasAttribute('prefix')) odo.setAttribute('prefix', prefix);
+                            if (suffix && !odo.hasAttribute('suffix')) odo.setAttribute('suffix', suffix);
                             odo.innerHTML = generateRibbonHtml(numVal, type, comma, prefix, suffix, start);
                         }
                         expandOdometerDrums(odo);
@@ -298,6 +324,13 @@ export function prepareTemplateContent(el) {
     return true;
 }
 
+function attachLayerStopStorm(layer) {
+    if (!layer || layer._stopAnimStorm) return;
+    layer._stopAnimStorm = true;
+    layer.addEventListener('animationend', (ev) => ev.stopPropagation());
+    layer.addEventListener('animationstart', (ev) => ev.stopPropagation());
+}
+
 // ─── Standalone unpackTemplate (mounts template.content into live DOM) ─────
 export function unpackTemplate(el) {
     if (!el || typeof el.querySelector !== 'function') return false;
@@ -321,6 +354,10 @@ export function unpackTemplate(el) {
         return false;
     }
 
+    if (el._unpacked && el._tLayer && el._tLayer.parentNode === el) {
+        return true;
+    }
+
     // Primary path: template
     const tpl = el.querySelector(':scope > template');
     if (tpl && tpl.content) {
@@ -337,14 +374,11 @@ export function unpackTemplate(el) {
         const tt = el.querySelector(':scope > :is(dx-t, t-t, t)');
         if (tt) {
             tt.setAttribute('aria-hidden', 'true');
-            if (!tt._boundStopProp) {
-                tt._boundStopProp = true;
-                tt.addEventListener('animationend', (ev) => {
-                    ev.stopPropagation();
-                });
-            }
+            el._tLayer = tt;
+            el._unpacked = true;
+            attachLayerStopStorm(tt);
             const lastChar = tt.querySelector('[data-last="true"], .last-char');
-            if (lastChar && !lastChar._hasTwEnd) {
+            if (lastChar && !lastChar._hasTwEnd && !lastChar.hasAttribute('onanimationend')) {
                 lastChar._hasTwEnd = true;
                 lastChar.addEventListener('animationend', (ev) => {
                     onTypewriterEnd(lastChar, ev);
@@ -375,14 +409,11 @@ export function unpackTemplate(el) {
         const tt = el.querySelector(':scope > :is(dx-t, t-t, t)');
         if (tt) {
             tt.setAttribute('aria-hidden', 'true');
-            if (!tt._boundStopProp) {
-                tt._boundStopProp = true;
-                tt.addEventListener('animationend', (ev) => {
-                    ev.stopPropagation();
-                });
-            }
+            el._tLayer = tt;
+            el._unpacked = true;
+            attachLayerStopStorm(tt);
             const lastChar = tt.querySelector('[data-last="true"], .last-char');
-            if (lastChar && !lastChar._hasTwEnd) {
+            if (lastChar && !lastChar._hasTwEnd && !lastChar.hasAttribute('onanimationend')) {
                 lastChar._hasTwEnd = true;
                 lastChar.addEventListener('animationend', (ev) => {
                     onTypewriterEnd(lastChar, ev);
@@ -402,14 +433,11 @@ export function unpackTemplate(el) {
             if (raw) el.setAttribute('aria-label', raw);
         }
         directTt.setAttribute('aria-hidden', 'true');
-        if (!directTt._boundStopProp) {
-            directTt._boundStopProp = true;
-            directTt.addEventListener('animationend', (ev) => {
-                ev.stopPropagation();
-            });
-        }
+        el._tLayer = directTt;
+        el._unpacked = true;
+        attachLayerStopStorm(directTt);
         const lastChar = directTt.querySelector('[data-last="true"], .last-char');
-        if (lastChar && !lastChar._hasTwEnd) {
+        if (lastChar && !lastChar._hasTwEnd && !lastChar.hasAttribute('onanimationend')) {
             lastChar._hasTwEnd = true;
             lastChar.addEventListener('animationend', (ev) => {
                 onTypewriterEnd(lastChar, ev);
@@ -427,13 +455,14 @@ export function isElementHidden(el) {
     const drawer = el.closest('.spec-drawer, [role="dialog"].spec-drawer');
     if (drawer && !drawer.open && !drawer.classList.contains('open') && !drawer.classList.contains('spec-drawer-open')) return true;
     const isMobile = typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(width < 768px), (width < 1025px) and (orientation: portrait)').matches;
+    if (!isMobile && el.closest('.spec-sim-sticky-strip')) return true;
     const hiddenParent = el.closest(isMobile ? '.hidden, [hidden], .wait-stuck:not(.is-stuck), .favorite-product__button--saved' : '.hidden, [hidden], .favorite-product__button--saved');
     if (hiddenParent && !hiddenParent.closest('.favorite-product--saved, .is-stuck')) return true;
     return false;
 }
 
 // ─── Section Header Line Synchronization ──────────────────────────────────────
-export const SECTION_HEADER_SEL = '.section-header, .po-header, .wholesale-header, .features-header, .cg-header, .fe-header, .as-header, .vs-header, .fq-header, .ga-header, .eco-header, .cs-header, .cs-header-wrapper, .ip-header, .ip-header-wrapper, .spec-drawer-header, .ec-page-title';
+export const SECTION_HEADER_SEL = '.section-header, .po-header, .wholesale-header, .features-header, .cg-header, .fe-header, .as-header, .vs-header, .fq-header, .ga-header, .eco-header, .cs-header, .cs-header-wrapper, .ip-header, .ip-header-wrapper, .spec-drawer-header, .ec-page-title, .ec-unified-page-title, .ec-section-title--orbitron';
 
 export function syncSectionHeaderTyping(el) {
     if (!el) return;
@@ -461,9 +490,7 @@ export function syncSectionHeaderTyping(el) {
         const totalDur = Math.round(baseDur + charDur);
 
         secHeader.style.setProperty('--header-line-dur', `${totalDur}ms`);
-        if (delayMs > 0) {
-            secHeader.style.setProperty('--header-line-del', `${Math.round(delayMs)}ms`);
-        }
+        secHeader.style.setProperty('--header-line-del', `${Math.round(delayMs || 0)}ms`);
         secHeader.classList.add(DX_ANIM.TYPING);
     }
 }
@@ -532,6 +559,7 @@ export function ensureElementsUpToTarget(target) {
 export function cleanupTypedDOM(typeEl) {
     if (!typeEl || typeEl._cleanedUp) return;
     typeEl._cleanedUp = true;
+    typeEl._unpacked = false;
     typeEl._tLayer = null;
 
     if (typeEl._safetyTimer) {
@@ -581,10 +609,12 @@ export function cleanupTypedDOM(typeEl) {
     const stMeters = typeEl.querySelectorAll ? typeEl.querySelectorAll(':is(dx-s, t-s) :is(dx-odometer, ui-odometer, dx-number, ui-number, dx-counter, ui-counter)') : [];
     for (let i = 0; i < stMeters.length; i++) {
         const m = stMeters[i];
-        if (typeof m.makeStatic === 'function') m.makeStatic();
-        else {
-            m.classList?.add('data-static');
-            m.setAttribute?.('data-static', 'true');
+        if (!m.classList?.contains('data-static') || !m.hasAttribute?.('data-static')) {
+            if (typeof m.makeStatic === 'function') m.makeStatic();
+            else {
+                if (!m.classList?.contains('data-static')) m.classList?.add('data-static');
+                if (!m.hasAttribute?.('data-static')) m.setAttribute?.('data-static', 'true');
+            }
         }
         // Specific odometer drum cleanup: DO NOT strip .ui-sfx from live DxNumber / DxCounter
         const isOdo = m.tagName === 'DX-ODOMETER' || m.tagName === 'UI-ODOMETER';
@@ -732,6 +762,69 @@ export class DxTyping extends DxBase {
             cleanupTypedDOM(target);
         });
     }
+
+    replay() {
+        this.classList.remove(DX_ANIM.TYPED);
+        this._cleanedUp = false;
+        this._unpacked = false;
+        this._tLayer = null;
+        this._preparedTLayer = null;
+        this._charDone = false;
+        this._lastC = null;
+        const existingTt = this.querySelector(':scope > :is(dx-t, t-t, t)');
+        if (existingTt) existingTt.remove();
+        unpackTemplate(this);
+        this.classList.add(DX_ANIM.TYPING);
+    }
+
+    reset() {
+        this.classList.remove(DX_ANIM.TYPING, DX_ANIM.TYPED);
+        this._cleanedUp = false;
+        this._unpacked = false;
+        this._tLayer = null;
+        this._preparedTLayer = null;
+        this._charDone = false;
+        this._lastC = null;
+        const existingTt = this.querySelector(':scope > :is(dx-t, t-t, t)');
+        if (existingTt) existingTt.remove();
+    }
+}
+
+if (typeof rootWin !== 'undefined' && rootWin) {
+    rootWin.__dxReplayTypewriter = (el) => {
+        if (!el) return;
+        if (typeof el.replay === 'function') {
+            el.replay();
+        } else {
+            el.classList.remove(DX_ANIM.TYPED);
+            el._cleanedUp = false;
+            el._unpacked = false;
+            el._tLayer = null;
+            el._preparedTLayer = null;
+            el._charDone = false;
+            el._lastC = null;
+            const existingTt = el.querySelector(':scope > :is(dx-t, t-t, t)');
+            if (existingTt) existingTt.remove();
+            unpackTemplate(el);
+            el.classList.add(DX_ANIM.TYPING);
+        }
+    };
+    rootWin.__dxResetTypewriter = (el) => {
+        if (!el) return;
+        if (typeof el.reset === 'function') {
+            el.reset();
+        } else {
+            el.classList.remove(DX_ANIM.TYPING, DX_ANIM.TYPED);
+            el._cleanedUp = false;
+            el._unpacked = false;
+            el._tLayer = null;
+            el._preparedTLayer = null;
+            el._charDone = false;
+            el._lastC = null;
+            const existingTt = el.querySelector(':scope > :is(dx-t, t-t, t)');
+            if (existingTt) existingTt.remove();
+        }
+    };
 }
 
 const checkAndObserve = (el, isSubtreeRebootstrap = false) => {

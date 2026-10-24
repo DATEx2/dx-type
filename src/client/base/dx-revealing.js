@@ -40,9 +40,12 @@ export function getNextStaggerDelay(el) {
         lastStaggerTime += currentStaggerStep;
     }
     
+    const maxQueueAttr = (typeof el.getAttribute === 'function') ? el.getAttribute('data-stagger-max') : null;
+    const maxQueue = (maxQueueAttr && !isNaN(parseInt(maxQueueAttr, 10))) ? parseInt(maxQueueAttr, 10) : ((rootWin && typeof rootWin.__dxStaggerMax === 'number') ? rootWin.__dxStaggerMax : MAX_STAGGER_QUEUE_MS);
+
     // Clamp to avoid extreme queues if many elements arrive
-    if (lastStaggerTime - now > MAX_STAGGER_QUEUE_MS) {
-        lastStaggerTime = now + MAX_STAGGER_QUEUE_MS;
+    if (lastStaggerTime - now > maxQueue) {
+        lastStaggerTime = now + maxQueue;
     }
 
     const baseDelayStr = el.getAttribute('delay') ?? el.getAttribute('d');
@@ -58,8 +61,8 @@ export function resetStaggerTimeline() {
 
 // ─── finishReveal — called on animationend for reveal components ─────────────
 export function finishReveal(el, e) {
-    if (!el) return;
-    if (e && e.target && e.target !== el) return;
+    if (!el) return false;
+    if (e && e.target && e.target !== el) return false;
     if (e && e.animationName &&
         e.animationName !== 'dx-reveal-sda' &&
         e.animationName !== 'reveal-sda' &&
@@ -69,7 +72,7 @@ export function finishReveal(el, e) {
         e.animationName !== 'dx-reveal-diffuse' &&
         e.animationName !== DX_ANIM.KF_REVEAL_IN &&
         e.animationName !== DX_ANIM.KF_REVEAL_SDA &&
-        e.animationName !== DX_ANIM.KF_REVEAL_FADE) return;
+        e.animationName !== DX_ANIM.KF_REVEAL_FADE) return false;
     if (typeof e?.stopPropagation === 'function') e.stopPropagation();
 
     el._animStarted = true;
@@ -82,6 +85,7 @@ export function finishReveal(el, e) {
     } else {
         DxRevealing.prototype.markRevealed.call(el);
     }
+    return true;
 }
 
 // ─── startReveal — called on animationstart for SDA sensor ───────────────────
@@ -105,7 +109,7 @@ export function startReveal(el, e) {
 // ─── Base Class DxRevealing ──────────────────────────────────────────────────
 export class DxRevealing extends DxBase {
     static get observedAttributes() {
-        return ['delay', 'd', 'duration', 't', 'paused'];
+        return ['delay', 'd', 'duration', 't', 'paused', 'cis', 'h'];
     }
 
     constructor() {
@@ -134,6 +138,10 @@ export class DxRevealing extends DxBase {
         const duration = this.getAttribute('duration') ?? this.getAttribute('t');
         if (duration !== null) {
             this.style.setProperty('--t', String(parseInt(duration, 10) || 0));
+        }
+        const cis = this.getAttribute('cis') ?? this.getAttribute('h');
+        if (cis !== null) {
+            this.style.setProperty('--dx-cis', cis);
         }
     }
 
@@ -202,6 +210,7 @@ export class DxRevealing extends DxBase {
                 const onStart = (e) => {
                     if (e && e.target && e.target !== this) return;
                     if (e && e.animationName &&
+                        e.animationName !== 'dx-diffuse-optics' &&
                         e.animationName !== 'dx-reveal-sda' &&
                         e.animationName !== 'reveal-sda' &&
                         e.animationName !== 'reveal-in' &&

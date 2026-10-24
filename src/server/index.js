@@ -17,15 +17,17 @@ export function formatNumber(val, type = 'int', comma = ',', prefix = '', suffix
     } else if (type === 'int' || type.startsWith('int-') || type.startsWith('number-')) {
         const intVal = Math.round(num);
         const str = intVal.toString();
+        const hasAttachedAffix = Boolean((prefix && !prefix.endsWith(' ')) || (suffix && !suffix.startsWith(' ')));
         // Thousands separator
-        formatted = str.replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
+        formatted = (hasAttachedAffix || type.includes('compact') || type.includes('year'))
+            ? str
+            : str.replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
     } else {
         formatted = num.toString().replace('.', comma);
     }
 
-    const pfx = prefix ? `${prefix}${prefix.endsWith(' ') ? '' : ' '}` : '';
-    const noLeadingSpace = /^[%°"”″’'VvAaWw€$£]|\//.test(suffix);
-    const sfx = suffix ? `${(suffix.startsWith(' ') || noLeadingSpace) ? '' : ' '}${suffix}` : '';
+    const pfx = prefix || '';
+    const sfx = suffix || '';
     return `${pfx}${formatted}${sfx}`;
 }
 
@@ -144,7 +146,13 @@ export function generateRibbonHtml(numericValue, type = 'int', comma = ',', pref
                             : 0;
                         if (sd !== 0) { allZero = false; break; }
                     }
-                    if (allZero) drumValues[0] = ' ';
+                    if (allZero) {
+                        if (drumValues.length === 1) {
+                            drumValues = [' ', 0];
+                        } else {
+                            drumValues[0] = ' ';
+                        }
+                    }
                 }
             }
 
@@ -161,10 +169,11 @@ export function generateRibbonHtml(numericValue, type = 'int', comma = ',', pref
         }
     }
 
-    const pfxHtml = prefixText ? `<span class="ui-pfx">${prefixText}${prefix.endsWith(' ') ? '' : ' '}</span>` : '';
-    const hasExplicitSpace = suffix.startsWith(' ');
-    const noSfxSpace = /^[%°"”″’'VvAaWw€$£]|\//.test(suffixText);
-    const sfxSpace = (hasExplicitSpace || !noSfxSpace) ? (suffixText ? ' ' : '') : '';
+    const prefixHasSpace = (numberPartMatch?.[1] || '').endsWith(' ') || Boolean(prefix && prefix.endsWith(' '));
+    const prefixSpace = prefixHasSpace ? ' ' : '';
+    const pfxHtml = prefixText ? `<span class="ui-pfx">${prefixText}${prefixSpace}</span>` : '';
+    const hasExplicitSpace = (suffixText ? (numberPartMatch?.[5] || '') : '').startsWith(' ') || Boolean(suffix && suffix.startsWith(' '));
+    const sfxSpace = hasExplicitSpace ? (suffixText ? ' ' : '') : '';
     const sfxHtml = suffixText ? `<span class="ui-sfx">${sfxSpace}${suffixText}</span>` : '';
 
     return `${pfxHtml}<b>${digitsHtml}</b>${sfxHtml}`;
@@ -273,6 +282,10 @@ function encodeW(entries) {
  */
 export function tokenize(html, options = {}) {
     if (!html) return { html: '', cleanText: '', totalUnits: 0, speed: 40, duration: 0, delay: 0, style: '' };
+
+    if (/[\u{1D400}-\u{1D7FF}]/u.test(html)) {
+        html = html.replace(/[\u{1D400}-\u{1D7FF}]+/gu, (m) => m.normalize('NFKD'));
+    }
 
     const duration = Number(options.duration ?? options.t ?? options.time ?? 580);
     const delay = Number(options.delay ?? options.d ?? 0);
@@ -475,7 +488,7 @@ export function tokenize(html, options = {}) {
                     }
 
                     const subWords = (part.includes('-') && part.length > 1 && !/^-+$/.test(part))
-                        ? (part.match(/[^-]+-?/g) || [part])
+                        ? (part.match(/-*[^-]+-?|-+/g) || [part])
                         : [part];
 
                     for (let sIdx = 0; sIdx < subWords.length; sIdx++) {
@@ -486,8 +499,16 @@ export function tokenize(html, options = {}) {
                         const wordChars = splitChars(subWord);
                         const punctChars = splitChars(subPunct);
 
-                        const isDateWord = /^DATE(?:x2)?(?:-|$)/i.test(subWord);
-                        if (isDateWord && wordChars.length > 0 && wordChars[0] === 'D') {
+                        const isDateWord = /^DATE/i.test(subWord);
+                        if (isDateWord && wordChars.length >= 4 && wordChars[0] === 'D' && wordChars[1] === 'A' && wordChars[2] === 'T' && wordChars[3] === 'E') {
+                            wordChars[0] = '\u{1D5D7}';
+                            wordChars[1] = '\u{E004}';
+                            wordChars[2] = '\u{E005}';
+                            wordChars[3] = '\u{E006}';
+                            if (wordChars.length > 4 && wordChars[4] === 'X' && /\d/.test(wordChars[5])) {
+                                wordChars[4] = 'x';
+                            }
+                        } else if (isDateWord && wordChars.length > 0 && wordChars[0] === 'D') {
                             wordChars[0] = '\u{1D5D7}';
                         }
 
@@ -592,14 +613,15 @@ export function ssrDxType(content, options = {}) {
     const stTokens = (stContent === content) ? res : tokenize(stContent, options);
     const sdaStContent = stTokens.compactHtml || stContent;
     const wAttr = stTokens.wAttr ? ` w="${stTokens.wAttr}"` : '';
+    const extraAttrs = options.attrs ? ` ${options.attrs.trim()}` : '';
 
     if (isSda) {
         if (options.compact && wAttr) {
-            return `<${tagName}${classAttr} style="${res.style}"${ariaAttr}><dx-s${wAttr}>${sdaStContent}</dx-s></${tagName}>`;
+            return `<${tagName}${classAttr} style="${res.style}"${ariaAttr}${extraAttrs}><dx-s${wAttr}>${sdaStContent}</dx-s></${tagName}>`;
         }
-        return `<${tagName}${classAttr} style="${res.style}"${ariaAttr}><dx-s${wAttr}>${sdaStContent}</dx-s><template><dx-t aria-hidden="true">${res.html}</dx-t></template></${tagName}>`;
+        return `<${tagName}${classAttr} style="${res.style}"${ariaAttr}${extraAttrs}><dx-s${wAttr}>${sdaStContent}</dx-s><template><dx-t aria-hidden="true">${res.html}</dx-t></template></${tagName}>`;
     }
-    return `<${tagName}${classAttr} style="${res.style}"${ariaAttr}><dx-s${wAttr}>${sdaStContent}</dx-s><dx-t aria-hidden="true">${res.html}</dx-t></${tagName}>`;
+    return `<${tagName}${classAttr} style="${res.style}"${ariaAttr}${extraAttrs}><dx-s${wAttr}>${sdaStContent}</dx-s><dx-t aria-hidden="true">${res.html}</dx-t></${tagName}>`;
 }
 
 /**
@@ -622,9 +644,12 @@ export function ssrDxReveal(content, options = {}) {
         ? `;min-height:${typeof options.minHeight === 'number' ? `${options.minHeight}px` : options.minHeight}`
         : '';
     const styleAttr = ` style="--d:${delay};--t:${duration}${minH}"`;
+    let extraAttrs = options.attrs ? ` ${options.attrs.trim()}` : '';
+    if (options.staggerStep) extraAttrs += ` data-stagger-step="${options.staggerStep}"`;
+    if (options.staggerMax) extraAttrs += ` data-stagger-max="${options.staggerMax}"`;
     const innerHtml = (options.defer || options.template) ? `<template>${content}</template>` : content;
 
-    return `<${tagName}${classAttr}${styleAttr}>${innerHtml}</${tagName}>`;
+    return `<${tagName}${classAttr}${styleAttr}${extraAttrs}>${innerHtml}</${tagName}>`;
 }
 
 /**
