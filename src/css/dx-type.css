@@ -389,7 +389,7 @@ dx-d::before {
 }
 
 /* ─── Odometer animation trigger (embedded in typewriter) ─────────────────── */
-:is(dx-type-sda.dx-typing, dx-type-sda.dx-typed) dx-odometer :is(dx-d, d)::before {
+:is(dx-type.dx-typing, dx-type.dx-typed, dx-type-sda.dx-typing, dx-type-sda.dx-typed) dx-odometer :is(dx-d, d)::before {
     animation: run-odometer
         calc((var(--odo-dur, 1400ms) - (var(--r, 0) * var(--odo-stag, 60ms))) * var(--A, 1))
         cubic-bezier(0.37, 0, 0.63, 1)
@@ -508,7 +508,8 @@ dx-number {
     display: inline !important;
 }
 
-:is(html[dir="rtl"], [dir="rtl"], html[lang|="ar"], :lang(ar)) :is(dx-type, dx-type-sda) g {
+:is(html[dir="rtl"], [dir="rtl"], html[lang|="ar"], :lang(ar)) :is(dx-type, dx-type-sda) g,
+:is(html[dir="rtl"], [dir="rtl"], html[lang|="ar"], :lang(ar)) :is(dx-odometer, ui-odometer, dx-number, ui-number, dx-counter, ui-counter) {
     direction: ltr !important;
     unicode-bidi: isolate !important;
 }
