@@ -503,6 +503,28 @@ export const SECTION_HEADER_SEL = '.section-header, .po-header, .wholesale-heade
 
 export function syncSectionHeaderTyping(el) {
     if (!el) return;
+    const heroBtn = el.closest?.('button');
+    if (heroBtn) {
+        let dur = el.style?.getPropertyValue?.('--t') || el.getAttribute?.('duration') || el.getAttribute?.('t');
+        let del = el.style?.getPropertyValue?.('--d') || el.getAttribute?.('delay') || el.getAttribute?.('d');
+        if (!dur) {
+            const m = el.getAttribute?.('style')?.match(/--t:\s*([\d.]+)/);
+            if (m) dur = m[1];
+        }
+        if (!del) {
+            const m = el.getAttribute?.('style')?.match(/--d:\s*([\d.]+)/);
+            if (m) del = m[1];
+        }
+        const dVal = del ? parseFloat(del) : 0;
+        const tVal = dur ? parseFloat(dur) : 240;
+        heroBtn.style.setProperty('--d', String(Math.round(dVal)));
+        heroBtn.style.setProperty('--t', String(Math.round(tVal)));
+        if (el.classList?.contains(DX_ANIM.TYPED)) {
+            heroBtn.classList.add(DX_ANIM.TYPED, 'is-typed');
+        } else {
+            heroBtn.classList.add(DX_ANIM.TYPING, 'is-typing');
+        }
+    }
     const secHeader = el.closest?.(SECTION_HEADER_SEL);
     if (secHeader && !secHeader.classList.contains(DX_ANIM.TYPING) && !secHeader.classList.contains(DX_ANIM.TYPED)) {
         let dur = el.style?.getPropertyValue?.('--t');
@@ -673,6 +695,8 @@ export function cleanupTypedDOM(typeEl) {
         }
     }
 
+    const heroBtn = typeEl.closest?.('button');
+    if (heroBtn) heroBtn.classList.add(DX_ANIM.TYPED, 'is-typed');
     typeEl.removeAttribute('aria-label');
 }
 
@@ -784,6 +808,8 @@ export class DxTyping extends DxBase {
             this.classList.remove(DX_ANIM.TYPING);
             this.classList.add(DX_ANIM.TYPED);
         }
+        const heroBtn = this.closest?.('button');
+        if (heroBtn) heroBtn.classList.add(DX_ANIM.TYPED, 'is-typed');
         const secHeader = this.closest?.(SECTION_HEADER_SEL);
         if (secHeader) {
             const pending = Array.from(secHeader.querySelectorAll(':is(dx-type, dx-type-sda, .type-sda)')).some(c => c !== this && !c.classList.contains(DX_ANIM.TYPED));

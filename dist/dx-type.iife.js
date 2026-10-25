@@ -1366,6 +1366,28 @@ var DxType = (() => {
   var SECTION_HEADER_SEL = ".section-header, .po-header, .wholesale-header, .features-header, .cg-header, .fe-header, .as-header, .vs-header, .fq-header, .ga-header, .eco-header, .cs-header, .cs-header-wrapper, .ip-header, .ip-header-wrapper, .spec-drawer-header, .ec-page-title, .ec-unified-page-title, .ec-section-title--orbitron";
   function syncSectionHeaderTyping(el2) {
     if (!el2) return;
+    const heroBtn = el2.closest?.("button");
+    if (heroBtn) {
+      let dur = el2.style?.getPropertyValue?.("--t") || el2.getAttribute?.("duration") || el2.getAttribute?.("t");
+      let del = el2.style?.getPropertyValue?.("--d") || el2.getAttribute?.("delay") || el2.getAttribute?.("d");
+      if (!dur) {
+        const m = el2.getAttribute?.("style")?.match(/--t:\s*([\d.]+)/);
+        if (m) dur = m[1];
+      }
+      if (!del) {
+        const m = el2.getAttribute?.("style")?.match(/--d:\s*([\d.]+)/);
+        if (m) del = m[1];
+      }
+      const dVal = del ? parseFloat(del) : 0;
+      const tVal = dur ? parseFloat(dur) : 240;
+      heroBtn.style.setProperty("--d", String(Math.round(dVal)));
+      heroBtn.style.setProperty("--t", String(Math.round(tVal)));
+      if (el2.classList?.contains(DX_ANIM.TYPED)) {
+        heroBtn.classList.add(DX_ANIM.TYPED, "is-typed");
+      } else {
+        heroBtn.classList.add(DX_ANIM.TYPING, "is-typing");
+      }
+    }
     const secHeader = el2.closest?.(SECTION_HEADER_SEL);
     if (secHeader && !secHeader.classList.contains(DX_ANIM.TYPING) && !secHeader.classList.contains(DX_ANIM.TYPED)) {
       let dur = el2.style?.getPropertyValue?.("--t");
@@ -1504,6 +1526,8 @@ var DxType = (() => {
         }
       }
     }
+    const heroBtn = typeEl.closest?.("button");
+    if (heroBtn) heroBtn.classList.add(DX_ANIM.TYPED, "is-typed");
     typeEl.removeAttribute("aria-label");
   }
   function onTypewriterEnd(cEl, event) {
@@ -1593,6 +1617,8 @@ var DxType = (() => {
         this.classList.remove(DX_ANIM.TYPING);
         this.classList.add(DX_ANIM.TYPED);
       }
+      const heroBtn = this.closest?.("button");
+      if (heroBtn) heroBtn.classList.add(DX_ANIM.TYPED, "is-typed");
       const secHeader = this.closest?.(SECTION_HEADER_SEL);
       if (secHeader) {
         const pending = Array.from(secHeader.querySelectorAll(":is(dx-type, dx-type-sda, .type-sda)")).some((c) => c !== this && !c.classList.contains(DX_ANIM.TYPED));
@@ -2008,7 +2034,10 @@ var DxType = (() => {
         };
         const isHeader = !!el2.closest?.(SECTION_HEADER_SEL);
         const parentRev = el2.closest?.(REVEAL_PARENT_SEL);
-        const parentHasPendingDelay = parentRev && !parentRev.isRevealed && !parentRev.classList.contains(DX_ANIM.REVEALED) && !parentRev._animStarted && (!parentRev.classList.contains(DX_ANIM.REVEALING) || typeof AnimationEvent !== "undefined" && parseFloat(parentRev.style?.getPropertyValue("--d") || parentRev.getAttribute?.("delay") || parentRev.getAttribute?.("d") || 0) > 0);
+        const parentDelay = parentRev ? parseFloat(parentRev.style?.getPropertyValue("--d") || parentRev.getAttribute?.("delay") || parentRev.getAttribute?.("d") || 0) : 0;
+        const ownDelay = parseFloat(el2.style?.getPropertyValue("--d") || el2.getAttribute?.("delay") || el2.getAttribute?.("d") || 0);
+        const parentIsPaused = !!(parentRev && (parentRev.isPaused || parentRev.classList?.contains("dx-paused") || parentRev.hasAttribute?.("paused")));
+        const parentHasPendingDelay = parentRev && !parentRev.isRevealed && !parentRev.classList.contains(DX_ANIM.REVEALED) && !parentRev._animStarted && (parentIsPaused || typeof AnimationEvent !== "undefined" && parentDelay > 0 && ownDelay < parentDelay || !parentRev.classList.contains(DX_ANIM.REVEALING) && !(parentDelay > 0 && ownDelay >= parentDelay));
         if (!isHeader && parentRev && parentHasPendingDelay) {
           const onParentStart = (e) => {
             if (e && e.target && e.target !== parentRev) return;
@@ -2020,9 +2049,10 @@ var DxType = (() => {
           parentRev.addEventListener("animationend", onParentStart);
           return;
         }
-        const dVal = parseFloat(el2.style?.getPropertyValue("--d") || el2.getAttribute?.("delay") || el2.getAttribute?.("d") || 0);
+        const dVal = ownDelay;
+        const hasUnpackedT = !!el2.querySelector(":scope > dx-t");
         const isBrowser = typeof requestAnimationFrame === "function" && typeof navigator !== "undefined" && !/jsdom/i.test(navigator.userAgent || "");
-        if (dVal >= 100 && !isReducedMotionActive() && isBrowser) {
+        if (!hasUnpackedT && dVal >= 100 && !isReducedMotionActive() && isBrowser) {
           _typingStaggerQueue.push(triggerTyping);
           if (!_typingStaggerRaf) {
             _typingStaggerRaf = requestAnimationFrame(_flushTypingStagger);
@@ -2113,7 +2143,10 @@ var DxType = (() => {
         };
         const isHeader = !!el2.closest?.(SECTION_HEADER_SEL);
         const parentRev = el2.closest?.(REVEAL_PARENT_SEL2);
-        const parentHasPendingDelay = parentRev && !parentRev.isRevealed && !parentRev.classList.contains(DX_ANIM.REVEALED) && !parentRev._animStarted && (!parentRev.classList.contains(DX_ANIM.REVEALING) || typeof AnimationEvent !== "undefined" && parseFloat(parentRev.style?.getPropertyValue("--d") || parentRev.getAttribute?.("delay") || parentRev.getAttribute?.("d") || 0) > 0);
+        const parentDelay = parentRev ? parseFloat(parentRev.style?.getPropertyValue("--d") || parentRev.getAttribute?.("delay") || parentRev.getAttribute?.("d") || 0) : 0;
+        const ownDelay = parseFloat(el2.style?.getPropertyValue("--d") || el2.getAttribute?.("delay") || el2.getAttribute?.("d") || 0);
+        const parentIsPaused = !!(parentRev && (parentRev.isPaused || parentRev.classList?.contains("dx-paused") || parentRev.hasAttribute?.("paused")));
+        const parentHasPendingDelay = parentRev && !parentRev.isRevealed && !parentRev.classList.contains(DX_ANIM.REVEALED) && !parentRev._animStarted && (parentIsPaused || typeof AnimationEvent !== "undefined" && parentDelay > 0 && ownDelay < parentDelay || !parentRev.classList.contains(DX_ANIM.REVEALING) && !(parentDelay > 0 && ownDelay >= parentDelay));
         if (!isHeader && parentRev && parentHasPendingDelay) {
           const onParentStart = (e) => {
             if (e && e.target && e.target !== parentRev) return;

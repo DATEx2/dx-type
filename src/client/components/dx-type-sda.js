@@ -91,9 +91,13 @@ export class DxTypeSda extends DxTyping {
 
             const isHeader = !!el.closest?.(SECTION_HEADER_SEL);
             const parentRev = el.closest?.(REVEAL_PARENT_SEL);
+            const parentDelay = parentRev ? parseFloat(parentRev.style?.getPropertyValue('--d') || parentRev.getAttribute?.('delay') || parentRev.getAttribute?.('d') || 0) : 0;
+            const ownDelay = parseFloat(el.style?.getPropertyValue('--d') || el.getAttribute?.('delay') || el.getAttribute?.('d') || 0);
+            const parentIsPaused = !!(parentRev && (parentRev.isPaused || parentRev.classList?.contains('dx-paused') || parentRev.hasAttribute?.('paused')));
             const parentHasPendingDelay = parentRev && !parentRev.isRevealed && !parentRev.classList.contains(DX_ANIM.REVEALED) && !parentRev._animStarted && (
-                !parentRev.classList.contains(DX_ANIM.REVEALING) ||
-                (typeof AnimationEvent !== 'undefined' && (parseFloat(parentRev.style?.getPropertyValue('--d') || parentRev.getAttribute?.('delay') || parentRev.getAttribute?.('d') || 0) > 0))
+                parentIsPaused ||
+                (typeof AnimationEvent !== 'undefined' && parentDelay > 0 && ownDelay < parentDelay) ||
+                (!parentRev.classList.contains(DX_ANIM.REVEALING) && !(parentDelay > 0 && ownDelay >= parentDelay))
             );
             if (!isHeader && parentRev && parentHasPendingDelay) {
                 // If parent reveal container hasn't started yet or is in its delay phase, wait for animationstart/animationend on parentRev itself
