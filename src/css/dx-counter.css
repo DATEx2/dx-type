@@ -48,24 +48,11 @@ dx-counter,
     white-space: nowrap !important;
     color: inherit !important;
     -webkit-text-fill-color: currentColor !important;
-}
-
-/* Counters inside unrevealed parents remain at initial state */
-:is(dx-reveal-sda, .reveal-sda, dx-reveal, .reveal):not(.dx-revealed):not(.dx-revealing):not(.revealed):not(.revealing) dx-counter:not([data-static]),
-:is(dx-reveal-sda, .reveal-sda, dx-reveal, .reveal):not(.dx-revealed):not(.dx-revealing):not(.revealed):not(.revealing) dx-counter:not([data-static]) :is(.dx-b, .dx-m, .dx-k, .dx-u, .dx-dec) {
     --dxc-b: 0;
     --dxc-m: 0;
     --dxc-k: 0;
     --dxc-u: 0;
     --dxc-dec: 0;
-}
-
-/* Counters inside unrevealed Action Bar remain at initial state */
-.action-bar-wrapper:not(.showing-action-bar):not(.show-action-bar) dx-counter:not([data-static]),
-.action-bar-wrapper:not(.showing-action-bar):not(.show-action-bar) dx-counter:not([data-static]) :is(.dx-b, .dx-m, .dx-k, .dx-u, .dx-dec),
-.action-bar:not(.showing-action-bar):not(.show-action-bar) dx-counter:not([data-static]),
-.action-bar:not(.showing-action-bar):not(.show-action-bar) dx-counter:not([data-static]) :is(.dx-b, .dx-m, .dx-k, .dx-u, .dx-dec) {
-    --dxc-b: 0; --dxc-m: 0; --dxc-k: 0; --dxc-u: 0; --dxc-dec: 0;
 }
 
 /* Animație trigger declarativă din CSS la 1/3 din cursa Action Bar-ului.
@@ -81,6 +68,11 @@ dx-counter,
 
 .show-action-bar dx-counter {
     animation: none !important;
+}
+
+.showing-action-bar dx-counter,
+.showing-action-bar .action-bar dx-counter {
+    animation: dxc-trigger 1ms linear var(--d, 467ms) both !important;
 }
 
 /* <dx-s> is ALWAYS invisible visually, but preserved in DOM for SEO, screen readers and Ctrl+F */

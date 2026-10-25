@@ -113,6 +113,7 @@ export class DxRevealSda extends DxRevealing {
             });
             if (!rootWin?.__dxHasScrolled) return;
             el.querySelectorAll?.('dx-type, dx-type-sda')?.forEach(child => {
+                if (child.classList?.contains('es-review-part-2') || (typeof child.hasAttribute === 'function' && child.hasAttribute('data-manual'))) return;
                 if (child.closest?.(REVEAL_CONTAINER_SEL) === el && !child.isTyped && !isElementHidden(child)) {
                     queueIdleUnpack(child, (c) => unpackTemplate(c), true);
                 }
@@ -134,8 +135,9 @@ export class DxRevealSda extends DxRevealing {
         super._startRevealing();
         if (!this._animStarted) {
             this.querySelectorAll?.('dx-type, dx-type-sda')?.forEach(child => {
+                if (child.classList?.contains('es-review-part-2') || (typeof child.hasAttribute === 'function' && child.hasAttribute('data-manual'))) return;
                 if (child.closest?.(REVEAL_CONTAINER_SEL) === this && !child.isTyped && !child._unpacked && !isElementHidden(child)) {
-                    queueIdleUnpack(child, (c) => prepareTemplateContent(c));
+                    queueIdleUnpack(child, (c) => prepareTemplateContent(c), true);
                 }
             });
         }

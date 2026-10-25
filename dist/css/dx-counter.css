@@ -30,19 +30,6 @@ dx-counter,
   white-space: nowrap !important;
   color: inherit !important;
   -webkit-text-fill-color: currentColor !important;
-}
-:is(dx-reveal-sda, .reveal-sda, dx-reveal, .reveal):not(.dx-revealed):not(.dx-revealing):not(.revealed):not(.revealing) dx-counter:not([data-static]),
-:is(dx-reveal-sda, .reveal-sda, dx-reveal, .reveal):not(.dx-revealed):not(.dx-revealing):not(.revealed):not(.revealing) dx-counter:not([data-static]) :is(.dx-b, .dx-m, .dx-k, .dx-u, .dx-dec) {
-  --dxc-b: 0;
-  --dxc-m: 0;
-  --dxc-k: 0;
-  --dxc-u: 0;
-  --dxc-dec: 0;
-}
-.action-bar-wrapper:not(.showing-action-bar):not(.show-action-bar) dx-counter:not([data-static]),
-.action-bar-wrapper:not(.showing-action-bar):not(.show-action-bar) dx-counter:not([data-static]) :is(.dx-b, .dx-m, .dx-k, .dx-u, .dx-dec),
-.action-bar:not(.showing-action-bar):not(.show-action-bar) dx-counter:not([data-static]),
-.action-bar:not(.showing-action-bar):not(.show-action-bar) dx-counter:not([data-static]) :is(.dx-b, .dx-m, .dx-k, .dx-u, .dx-dec) {
   --dxc-b: 0;
   --dxc-m: 0;
   --dxc-k: 0;
@@ -62,6 +49,10 @@ dx-counter,
 }
 .show-action-bar dx-counter {
   animation: none !important;
+}
+.showing-action-bar dx-counter,
+.showing-action-bar .action-bar dx-counter {
+  animation: dxc-trigger 1ms linear var(--d, 467ms) both !important;
 }
 dx-counter > dx-s,
 dx-counter > dx-s * {

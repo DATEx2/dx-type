@@ -35,6 +35,12 @@ export default function testServerTokenizer() {
     assert(staticLayerMatch && !staticLayerMatch[1].includes('<b>'), 'Static layer must NOT have <b> drums inside <dx-odometer>');
     assert(odoTw.includes('aria-label="90% Longevity Mode"'), 'Aria label must be clean without duplicated characters');
 
+    // 2c. ssrDxType with embedded <dx-odometer> followed by hyphen
+    const hyphenOdoTw = ssrDxType('<dx-odometer class="auto-n tw-embed" percent="220" suffix="VAC">220VAC</dx-odometer>-UK', { isSda: true });
+    assert(hyphenOdoTw.includes('aria-label="220VAC-UK"'), 'Aria label must preserve hyphen: 220VAC-UK');
+    assert(hyphenOdoTw.includes('220VAC</dx-odometer>-UK'), 'Static text layer must preserve hyphen');
+    assert(hyphenOdoTw.includes('>-<') && hyphenOdoTw.includes('>U<') && hyphenOdoTw.includes('>K<'), 'Animated layer must tokenize hyphen character');
+
     // 3. Tokenize with embedded <dx-number>
     const mixed = tokenize('Battery <dx-number percent="48">48</dx-number>V power');
     assert(mixed.html.includes('<dx-c class="c-ui-num"'), 'Should wrap <dx-number> in virtual typewriter slot');
@@ -59,4 +65,17 @@ export default function testServerTokenizer() {
 
     // 7. Empty input
     assert(tokenize('').html === '', 'Empty input should return empty string');
+
+    // 8. Brand parity: DATE, DATEx2, DATEx2WD all get brand D and glyphs (same mold / din acelasi aluat)
+    const tDate = tokenize('DATE');
+    const tDateX2 = tokenize('DATEx2');
+    const tDateX2WD = tokenize('DATEx2WD');
+    assert(tDate.html.includes('>\u{1D5D7}</dx-c><dx-c style="animation-delay:145ms">\u{E004}</dx-c><dx-c style="animation-delay:290ms">\u{E005}</dx-c><dx-c style="animation-delay:435ms" data-last="true" onanimationend="return onTypewriterEnd(this, event)">\u{E006}</dx-c>'), 'DATE must use brand glyphs');
+    assert(tDateX2.html.includes('>\u{1D5D7}</dx-c>') && tDateX2.html.includes('>\u{E004}</dx-c>') && tDateX2.html.includes('>x</dx-c><dx-c style="animation-delay:483ms" data-last="true" onanimationend="return onTypewriterEnd(this, event)">2</dx-c>'), 'DATEx2 must use brand glyphs');
+    assert(tDateX2WD.html.includes('>\u{1D5D7}</dx-c>') && tDateX2WD.html.includes('>\u{E004}</dx-c>') && tDateX2WD.html.includes('>x</dx-c><dx-c style="animation-delay:363ms">2</dx-c><dx-c style="animation-delay:435ms">W</dx-c><dx-c style="animation-delay:508ms" data-last="true" onanimationend="return onTypewriterEnd(this, event)">D</dx-c>'), 'DATEx2WD must use brand glyphs identically to DATE');
+
+    // 9. Math Unicode Bold characters normalization to brand glyphs
+    const tMath = tokenize('(𝐃𝐀𝐓𝐄𝐱𝟐, 𝐃𝐀𝐓𝐄𝐱𝟐𝐖𝐃)');
+    assert(tMath.cleanText.includes('(DATEx2, DATEx2WD)'), 'Math Unicode characters must normalize in cleanText');
+    assert(tMath.html.includes('>\u{1D5D7}</dx-c>'), 'Math Unicode DATE must be substituted by brand glyphs');
 }

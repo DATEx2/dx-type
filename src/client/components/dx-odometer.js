@@ -53,15 +53,15 @@ export class DxOdometer extends DxMeter {
 
         // Inside <dx-s> or <t-s> = static context, nothing to animate
         if (this.closest('dx-s, t-s')) {
-            this.classList.add('data-static');
+            if (!this.classList.contains('data-static')) this.classList.add('data-static');
             this._animDone = true;
             return;
         }
 
         // Already static (SSR marked) or reduced motion preferred: direct cleanup & immediate return
         if (this.classList.contains('data-static') || isReduced) {
-            this.classList.add('data-static');
-            this.makeStatic();
+            if (!this.classList.contains('data-static')) this.classList.add('data-static');
+            if (typeof this.hasAttribute !== 'function' || !this.hasAttribute('data-static')) this.makeStatic();
             this._animDone = true;
 
             // Direct DOM cleanup: purge drum ribbons if present from SSR
@@ -89,9 +89,9 @@ export class DxOdometer extends DxMeter {
         const dataO = this.getAttribute('data-o');
         if (dataO && !this.querySelector('dx-d')) {
             this.unpackDataO(dataO);
+        } else {
+            expandOdometerDrums(this);
         }
-
-        expandOdometerDrums(this);
 
         if (this._initialized) return;
         this._initialized = true;
@@ -106,6 +106,9 @@ export class DxOdometer extends DxMeter {
 
         const twEmbed = this.classList.contains('tw-embed') || !!this.closest('dx-type, dx-type-sda, .type, .type-sda, ui-type, ui-type-sda');
         if (twEmbed) {
+            if (this.querySelector('dx-d[data-seq], .odometer-ribbon-inner')) {
+                return;
+            }
             const checkEmbedReady = () => {
                 if (!this.isConnected || this._animDone) return;
                 expandOdometerDrums(this);
@@ -171,8 +174,8 @@ export class DxOdometer extends DxMeter {
 
         if (this._digitsDone >= this._digitCount) {
             this._animDone = true;
-            const twEmbed = this.classList.contains('tw-embed') || !!this.closest('dx-type, dx-type-sda, .type, .type-sda, ui-type, ui-type-sda');
-            if (!twEmbed) {
+            const parentTw = this.closest('dx-type, dx-type-sda, .type, .type-sda, ui-type, ui-type-sda');
+            if (!parentTw) {
                 this.makeStatic();
             } else {
                 onTypewriterEnd(this);

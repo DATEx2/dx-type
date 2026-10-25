@@ -84,4 +84,25 @@ export default function testWBytecode() {
     assert(tHtml.length > 0, 'buildTypingLayer should produce HTML for French text');
     assert(tHtml.replace(/<[^>]+>/g, '') === frText, 'buildTypingLayer stripped HTML should equal frText');
     assert(totalChars > 0, 'buildTypingLayer should count total characters');
+
+    // 12. Arabic cursive text & BiDi mixed runs: contiguous Arabic letters stay grouped in single <dx-c>
+    const arText = 'ورشة إصلاح لا مثيل لها.';
+    const arTokenized = tokenize(arText, { duration: 450, delay: 0 });
+    assert(arTokenized.wAttr === '45244', `Arabic wAttr should be "45244", got "${arTokenized.wAttr}"`);
+    assert(arTokenized.html.includes('>ورشة</dx-c>'), 'Arabic word "ورشة" must be grouped in a single <dx-c>');
+    assert(arTokenized.html.includes('>إصلاح</dx-c>'), 'Arabic word "إصلاح" must be grouped in a single <dx-c>');
+    assert(arTokenized.html.includes('>لا</dx-c>'), 'Arabic ligature "لا" must be grouped in a single <dx-c>');
+    assert(arTokenized.html.includes('>لها</dx-c><dx-c'), 'Arabic word "لها" and trailing period "." must be cleanly separated');
+
+    const mockArTs = {
+        getAttribute(name) {
+            return name === 'w' ? arTokenized.wAttr : null;
+        },
+        childNodes: [{ nodeType: 3, data: arText }]
+    };
+    const { tHtml: arTHtml } = buildTypingLayer(mockArTs, 0, 0, 20);
+    assert(arTHtml.includes('>ورشة</dx-c>'), 'buildTypingLayer must group "ورشة" into a single <dx-c>');
+    assert(arTHtml.includes('>إصلاح</dx-c>'), 'buildTypingLayer must group "إصلاح" into a single <dx-c>');
+    assert(arTHtml.includes('>لا</dx-c>'), 'buildTypingLayer must group "لا" into a single <dx-c>');
+    assert(arTHtml.includes('>لها</dx-c><dx-c style='), 'buildTypingLayer must group "لها" and keep "." as its own <dx-c>');
 }

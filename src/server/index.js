@@ -248,8 +248,33 @@ function wrapHyphenatedWords(html) {
     }).join('');
 }
 
+const RTL_CURSIVE_CHAR_RE = /[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\uFB50-\uFDFF\uFE70-\uFEFF]/;
+
 function splitChars(str) {
     return [...str];
+}
+
+function groupCursiveRuns(chars) {
+    const units = [];
+    let idx = 0;
+    while (idx < chars.length) {
+        const ch = chars[idx];
+        if (RTL_CURSIVE_CHAR_RE.test(ch)) {
+            let run = ch;
+            let len = 1;
+            idx++;
+            while (idx < chars.length && RTL_CURSIVE_CHAR_RE.test(chars[idx])) {
+                run += chars[idx];
+                len++;
+                idx++;
+            }
+            units.push({ text: run, len });
+        } else {
+            units.push({ text: ch, len: 1 });
+            idx++;
+        }
+    }
+    return units;
 }
 
 /**
@@ -512,8 +537,16 @@ export function tokenize(html, options = {}) {
                             wordChars[0] = '\u{1D5D7}';
                         }
 
-                        const cTags = wordChars.map((ch) => makeCharTag(ch, charIdx++)).join('');
-                        const pTags = punctChars.map((ch) => makeCharTag(ch, charIdx++)).join('');
+                        const cTags = groupCursiveRuns(wordChars).map((u) => {
+                            const tag = makeCharTag(u.text, charIdx);
+                            charIdx += u.len;
+                            return tag;
+                        }).join('');
+                        const pTags = groupCursiveRuns(punctChars).map((u) => {
+                            const tag = makeCharTag(u.text, charIdx);
+                            charIdx += u.len;
+                            return tag;
+                        }).join('');
 
                         const wClass = (subWord.includes('-') || subPunct.includes('-')) ? ' class="word"' : '';
                         result += `<dx-w${wClass}>${cTags}${pTags}</dx-w>`;

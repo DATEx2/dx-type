@@ -8,13 +8,33 @@
 // used_by: src/client/index.js
 
 import { DxTyping, unpackTemplate, prepareTemplateContent, cleanupTypedDOM, isElementHidden, syncSectionHeaderTyping, SECTION_HEADER_SEL } from '../base/dx-typing.js';
-import { defCustomElement, isReducedMotionActive } from '../base/dx-base.js';
+import { defCustomElement, isReducedMotionActive, rootWin } from '../base/dx-base.js';
 import { DX_ANIM, observeIO, unobserveIO, observeLookaheadIO, unobserveLookaheadIO, queueIdleUnpack, removeFromIdleQueue } from '../base/dx-scheduler.js';
 
 const REVEAL_PARENT_SEL = 'dx-reveal-sda, dx-reveal, .reveal-sda, .reveal, ui-reveal-sda, ui-reveal';
 
+const _typingStaggerQueue = [];
+let _typingStaggerRaf = 0;
+let _typedThisFrame = false;
+function _flushTypingStagger() {
+    _typingStaggerRaf = 0;
+    if (_typedThisFrame) {
+        _typedThisFrame = false;
+        if (_typingStaggerQueue.length > 0 && typeof requestAnimationFrame === 'function') {
+            _typingStaggerRaf = requestAnimationFrame(_flushTypingStagger);
+        }
+        return;
+    }
+    const fn = _typingStaggerQueue.shift();
+    if (fn) fn();
+    if (_typingStaggerQueue.length > 0 && typeof requestAnimationFrame === 'function') {
+        _typingStaggerRaf = requestAnimationFrame(_flushTypingStagger);
+    }
+}
+
 export class DxType extends DxTyping {
     connectedCallback() {
+        this._isSdaConnected = true;
         if (this.isTyped) {
             cleanupTypedDOM(this);
             const secHeader = this.closest?.(SECTION_HEADER_SEL);
@@ -25,10 +45,13 @@ export class DxType extends DxTyping {
         this._syncTimingAttributes();
 
         // 1. Preemptive JIT Lookahead Unpack (+500px or idle queue)
-        if (this.querySelector(':scope > template') || this.querySelector(':scope > dx-s[w]')) {
+        if (!this.querySelector(':scope > dx-t') && (this.querySelector(':scope > template') || this.querySelector(':scope > dx-s[w]'))) {
             observeLookaheadIO(this, (el) => {
-                removeFromIdleQueue(el);
-                unpackTemplate(el);
+                if (isElementHidden(el)) return false;
+                queueIdleUnpack(el, (t) => {
+                    if (rootWin?.__dxHasScrolled) unpackTemplate(t);
+                    else prepareTemplateContent(t);
+                });
             });
             queueIdleUnpack(this, (el) => {
                 prepareTemplateContent(el);
@@ -42,7 +65,7 @@ export class DxType extends DxTyping {
             el._inViewport = true;
 
             const triggerTyping = () => {
-                if (el.isTyped || el.classList.contains(DX_ANIM.TYPED)) return;
+                if (el.isConnected === false || el.isTyped || el.classList.contains(DX_ANIM.TYPED)) return;
                 removeFromIdleQueue(el);
                 unobserveLookaheadIO(el);
 
@@ -77,6 +100,22 @@ export class DxType extends DxTyping {
                 return;
             }
 
+            const dVal = parseFloat(el.style?.getPropertyValue('--d') || el.getAttribute?.('delay') || el.getAttribute?.('d') || 0);
+            const isBrowser = typeof requestAnimationFrame === 'function' && typeof navigator !== 'undefined' && !/jsdom/i.test(navigator.userAgent || '');
+            if (dVal >= 100 && !isReducedMotionActive() && isBrowser) {
+                _typingStaggerQueue.push(triggerTyping);
+                if (!_typingStaggerRaf) {
+                    _typingStaggerRaf = requestAnimationFrame(_flushTypingStagger);
+                }
+                return;
+            }
+
+            if (isBrowser) {
+                _typedThisFrame = true;
+                if (!_typingStaggerRaf) {
+                    _typingStaggerRaf = requestAnimationFrame(_flushTypingStagger);
+                }
+            }
             triggerTyping();
         });
     }

@@ -10,6 +10,8 @@ import { generateRibbonHtml, expandOdometerDrums, parseNumParts } from './dx-met
 // Fixed Character Duration Baseline: 225ms (H1 Hero) or 170ms (H3 Hero)
 export const DX_CHAR_DURATION = 225;
 
+const RTL_CURSIVE_CHAR_RE = /[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\uFB50-\uFDFF\uFE70-\uFEFF]/;
+
 // ─── HEX_LUT — Zero-parseInt hex nibble lookup ─────────────────────────────
 export const HEX_LUT = new Uint8Array(128);
 for (let i = 0; i < 10; i++) HEX_LUT[48 + i] = i;       // '0'-'9'
@@ -74,8 +76,25 @@ export function buildTypingLayer(ts, delay, offset, speed) {
                     const curWordStr = chars.slice(ci, ci + len).join('');
                     const isDateWord = /^DATE(?:x2)?(?:-|$)/i.test(curWordStr);
                     const isStandardDate = isDateWord && curWordStr.startsWith('DATE');
-                    for (let c = 0; c < len && ci < chars.length; c++, ci++) {
+                    let c = 0;
+                    while (c < len && ci < chars.length) {
                         let curCh = chars[ci];
+                        if (RTL_CURSIVE_CHAR_RE.test(curCh)) {
+                            let run = curCh;
+                            let runLen = 1;
+                            c++;
+                            ci++;
+                            while (c < len && ci < chars.length && RTL_CURSIVE_CHAR_RE.test(chars[ci])) {
+                                run += chars[ci];
+                                runLen++;
+                                c++;
+                                ci++;
+                            }
+                            const d = Math.round(delay + (offset + charIdx) * speed);
+                            charIdx += runLen;
+                            tHtml += `<dx-c style="animation-delay:${d}ms">${run}</dx-c>`;
+                            continue;
+                        }
                         if (isStandardDate && c === 0 && curCh === 'D') {
                             curCh = '\u{1D5D7}';
                         } else if (isStandardDate && c === 1 && curCh === 'A') {
@@ -90,6 +109,8 @@ export function buildTypingLayer(ts, delay, offset, speed) {
                         const d = Math.round(delay + (offset + charIdx++) * speed);
                         const cls = (curCh === '\u00B7' || curCh === '\u2022') ? ' class="bullet-dot"' : '';
                         tHtml += `<dx-c${cls} style="animation-delay:${d}ms">${curCh}</dx-c>`;
+                        c++;
+                        ci++;
                     }
                     tHtml += '</dx-w>';
                 }
@@ -275,11 +296,27 @@ export function prepareTemplateContent(el) {
                             if (text) {
                                 const chars = [...text];
                                 let inner = '';
-                                for (let j = 0; j < chars.length; j++) {
+                                let j = 0;
+                                while (j < chars.length) {
                                     const ch = chars[j];
-                                    const exactDelay = Math.round(delay + (offset + charIdx++) * speed);
-                                    const cClass = (ch === '\u00B7' || ch === '\u2022') ? ' class="bullet-dot"' : '';
-                                    inner += `<dx-c${cClass} style="animation-delay:${exactDelay}ms">${ch}</dx-c>`;
+                                    if (RTL_CURSIVE_CHAR_RE.test(ch)) {
+                                        let run = ch;
+                                        let runLen = 1;
+                                        j++;
+                                        while (j < chars.length && RTL_CURSIVE_CHAR_RE.test(chars[j])) {
+                                            run += chars[j];
+                                            runLen++;
+                                            j++;
+                                        }
+                                        const exactDelay = Math.round(delay + (offset + charIdx) * speed);
+                                        charIdx += runLen;
+                                        inner += `<dx-c style="animation-delay:${exactDelay}ms">${run}</dx-c>`;
+                                    } else {
+                                        const exactDelay = Math.round(delay + (offset + charIdx++) * speed);
+                                        const cClass = (ch === '\u00B7' || ch === '\u2022') ? ' class="bullet-dot"' : '';
+                                        inner += `<dx-c${cClass} style="animation-delay:${exactDelay}ms">${ch}</dx-c>`;
+                                        j++;
+                                    }
                                 }
                                 tw.innerHTML = inner;
                             }

@@ -47,7 +47,7 @@ export class DxTypeSda extends DxTyping {
     }
 
     _observeSelf() {
-        if (this._isObservedSelf || this.isTyped) return;
+        if (this._isObservedSelf || this.isTyped || this._manualControl || this.classList?.contains('es-review-part-2') || (typeof this.hasAttribute === 'function' && this.hasAttribute('data-manual'))) return;
         this._isObservedSelf = true;
 
         // 1. Preemptive JIT Lookahead Unpack (+500px or idle queue)

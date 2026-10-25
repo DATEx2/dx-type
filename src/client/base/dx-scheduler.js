@@ -134,6 +134,7 @@ export function formatMarginValue(v) {
 }
 
 export function setSdaGaps(top = '0%', bottom = '0%') {
+    if (_sdaTopGap === top && _sdaBottomGap === bottom) return;
     _sdaTopGap = top;
     _sdaBottomGap = bottom;
     if (ioInstance) {
@@ -153,8 +154,15 @@ export function getSdaGaps() {
     const winBottom = rootWin?.sdaBottomGap ?? rootWin?.__dxTypeConfig?.sdaBottomGap;
 
     let defaultBottom = _sdaBottomGap;
-    if (typeof rootWin !== 'undefined' && rootWin?.innerHeight && rootWin.innerHeight < 500) {
-        defaultBottom = '-40px';
+    if (isCheckoutOrCart) {
+        defaultBottom = '0px';
+    } else if (winBottom === undefined && typeof rootWin !== 'undefined') {
+        const isShort = (typeof rootWin.matchMedia === 'function')
+            ? rootWin.matchMedia('(height < 500px)').matches
+            : Boolean(rootWin?.innerHeight && rootWin.innerHeight < 500);
+        if (isShort) {
+            defaultBottom = '-40px';
+        }
     }
 
     return {
@@ -186,6 +194,8 @@ if (rootWin && typeof rootWin.matchMedia === 'function') {
     } catch (_) {}
 }
 
+const _isJsdomEnv = typeof navigator !== 'undefined' && /jsdom/i.test(navigator.userAgent || '');
+
 function ioLookaheadHandler(entries) {
     for (let i = 0; i < entries.length; i++) {
         const entry = entries[i];
@@ -207,7 +217,7 @@ export function getLookaheadIO() {
     if (typeof IO === 'function') {
         ioLookaheadInstance = new IO(ioLookaheadHandler, {
             root: null,
-            rootMargin: '0px 0px 500px 0px',
+            rootMargin: '500px 0px 500px 0px',
             threshold: 0
         });
     }
@@ -313,51 +323,86 @@ export function unobserveIO(el) {
 const idleQueue = [];
 const idleQueueMap = new Map();
 let isIdleScheduled = false;
+let isPriorityScheduled = false;
+let currentIdleHandle = null;
 
 const scheduleIdle = (typeof window !== 'undefined' && window.requestIdleCallback)
-    ? (cb => window.requestIdleCallback(cb, { timeout: 1000 }))
-    : (cb => setTimeout(() => cb({ timeRemaining: () => 15, didTimeout: false }), 50));
+    ? ((cb, timeout = 40) => window.requestIdleCallback(cb, { timeout }))
+    : (cb => setTimeout(() => cb({ timeRemaining: () => 15, didTimeout: false }), 16));
 
-function processNextIdle() {
-    let item = null;
+function scheduleNextIdleSlice() {
+    const hasPriorityHead = idleQueue.length > 0 && Boolean(idleQueue[0]?.priority);
+    isIdleScheduled = true;
+    isPriorityScheduled = hasPriorityHead;
+    const baseTimeout = hasPriorityHead ? 16 : 40;
+    currentIdleHandle = scheduleIdle(processNextIdle, baseTimeout);
+}
+
+function processNextIdle(deadline) {
+    currentIdleHandle = null;
+    isPriorityScheduled = false;
+    let processed = 0;
     while (idleQueue.length > 0) {
-        const candidate = idleQueue.shift();
-        if (candidate && !candidate.cancelled && candidate.el) {
-            idleQueueMap.delete(candidate.el);
-            item = candidate;
-            break;
+        let item = null;
+        while (idleQueue.length > 0) {
+            const candidate = idleQueue.shift();
+            if (candidate && !candidate.cancelled && candidate.el) {
+                idleQueueMap.delete(candidate.el);
+                item = candidate;
+                break;
+            }
         }
-    }
-    if (!item) {
-        isIdleScheduled = false;
-        return;
-    }
-    try {
-        item.callback(item.el);
-    } catch (e) {
-        console.error('[dx-type] Idle unpack failed:', e);
+        if (!item) break;
+        try {
+            item.callback(item.el);
+        } catch (e) {
+            console.error('[dx-type] Idle unpack failed:', e);
+        }
+        processed++;
+        const rem = deadline && typeof deadline.timeRemaining === 'function' ? deadline.timeRemaining() : 0;
+        if (!item.priority && !deadline?.didTimeout && rem <= 2) break;
+        const maxBatch = 1;
+        if (processed >= maxBatch || (!item.priority && !deadline?.didTimeout && rem <= 4)) break;
     }
     if (idleQueue.length > 0) {
-        scheduleIdle(processNextIdle);
+        scheduleNextIdleSlice();
     } else {
         isIdleScheduled = false;
     }
 }
 
-export function queueIdleUnpack(el, callback) {
+export function queueIdleUnpack(el, callback, priority = false) {
     if (!el) return;
     // Prevent duplicate entries in O(1); update callback if already queued
     const existing = idleQueueMap.get(el);
     if (existing && !existing.cancelled) {
         existing.callback = callback;
+        if (priority && !existing.priority) {
+            existing.cancelled = true;
+            const promoted = { el, callback, cancelled: false, priority: true };
+            idleQueueMap.set(el, promoted);
+            idleQueue.unshift(promoted);
+            if (isIdleScheduled && !isPriorityScheduled && currentIdleHandle !== null && typeof window !== 'undefined' && typeof window.cancelIdleCallback === 'function') {
+                window.cancelIdleCallback(currentIdleHandle);
+                scheduleNextIdleSlice();
+            }
+        }
         return;
     }
-    const item = { el, callback, cancelled: false };
+    const item = { el, callback, cancelled: false, priority: !!priority };
     idleQueueMap.set(el, item);
-    idleQueue.push(item);
+    if (priority) {
+        idleQueue.unshift(item);
+        if (isIdleScheduled && !isPriorityScheduled && currentIdleHandle !== null && typeof window !== 'undefined' && typeof window.cancelIdleCallback === 'function') {
+            window.cancelIdleCallback(currentIdleHandle);
+            scheduleNextIdleSlice();
+            return;
+        }
+    } else {
+        idleQueue.push(item);
+    }
     if (!isIdleScheduled) {
-        isIdleScheduled = true;
-        scheduleIdle(processNextIdle);
+        scheduleNextIdleSlice();
     }
 }
 
@@ -380,7 +425,13 @@ function processNextIdleCleanup(deadline) {
         isCleanupIdleScheduled = false;
         return;
     }
-    while (idleCleanupQueue.length > 0 && (!deadline || deadline.timeRemaining() > 2 || deadline.didTimeout)) {
+    // When under pressure (didTimeout or busy frame), process strictly 1 item to avoid scroll frame jank.
+    // When real idle time is available (> 3ms), process up to 4 items in a batch.
+    const isUnderPressure = !deadline || deadline.didTimeout || deadline.timeRemaining() <= 3;
+    const maxItems = isUnderPressure ? 1 : 4;
+    let processed = 0;
+
+    while (idleCleanupQueue.length > 0 && processed < maxItems) {
         const item = idleCleanupQueue.shift();
         if (item && !item.cancelled && item.el) {
             idleCleanupMap.delete(item.el);
@@ -389,8 +440,13 @@ function processNextIdleCleanup(deadline) {
             } catch (e) {
                 console.error('[dx-type] Idle cleanup failed:', e);
             }
+            processed++;
+        }
+        if (deadline && !deadline.didTimeout && deadline.timeRemaining() <= 2) {
+            break;
         }
     }
+
     if (idleCleanupQueue.length > 0) {
         scheduleIdle(processNextIdleCleanup);
     } else {

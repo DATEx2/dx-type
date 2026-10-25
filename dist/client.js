@@ -841,6 +841,7 @@ if (rootWin2) {
 
 // src/client/base/dx-typing.js
 var DX_CHAR_DURATION = 225;
+var RTL_CURSIVE_CHAR_RE = /[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\uFB50-\uFDFF\uFE70-\uFEFF]/;
 var HEX_LUT = new Uint8Array(128);
 for (let i = 0; i < 10; i++) HEX_LUT[48 + i] = i;
 for (let i = 0; i < 6; i++) HEX_LUT[65 + i] = 10 + i;
@@ -896,8 +897,25 @@ function buildTypingLayer(ts, delay, offset, speed) {
           const curWordStr = chars.slice(ci, ci + len).join("");
           const isDateWord = /^DATE(?:x2)?(?:-|$)/i.test(curWordStr);
           const isStandardDate = isDateWord && curWordStr.startsWith("DATE");
-          for (let c = 0; c < len && ci < chars.length; c++, ci++) {
+          let c = 0;
+          while (c < len && ci < chars.length) {
             let curCh = chars[ci];
+            if (RTL_CURSIVE_CHAR_RE.test(curCh)) {
+              let run = curCh;
+              let runLen = 1;
+              c++;
+              ci++;
+              while (c < len && ci < chars.length && RTL_CURSIVE_CHAR_RE.test(chars[ci])) {
+                run += chars[ci];
+                runLen++;
+                c++;
+                ci++;
+              }
+              const d2 = Math.round(delay + (offset + charIdx) * speed);
+              charIdx += runLen;
+              tHtml += `<dx-c style="animation-delay:${d2}ms">${run}</dx-c>`;
+              continue;
+            }
             if (isStandardDate && c === 0 && curCh === "D") {
               curCh = "\u{1D5D7}";
             } else if (isStandardDate && c === 1 && curCh === "A") {
@@ -912,6 +930,8 @@ function buildTypingLayer(ts, delay, offset, speed) {
             const d = Math.round(delay + (offset + charIdx++) * speed);
             const cls = curCh === "\xB7" || curCh === "\u2022" ? ' class="bullet-dot"' : "";
             tHtml += `<dx-c${cls} style="animation-delay:${d}ms">${curCh}</dx-c>`;
+            c++;
+            ci++;
           }
           tHtml += "</dx-w>";
         }
@@ -1074,11 +1094,27 @@ function prepareTemplateContent(el2) {
               if (text) {
                 const chars = [...text];
                 let inner = "";
-                for (let j = 0; j < chars.length; j++) {
+                let j = 0;
+                while (j < chars.length) {
                   const ch = chars[j];
-                  const exactDelay = Math.round(delay + (offset + charIdx++) * speed);
-                  const cClass = ch === "\xB7" || ch === "\u2022" ? ' class="bullet-dot"' : "";
-                  inner += `<dx-c${cClass} style="animation-delay:${exactDelay}ms">${ch}</dx-c>`;
+                  if (RTL_CURSIVE_CHAR_RE.test(ch)) {
+                    let run = ch;
+                    let runLen = 1;
+                    j++;
+                    while (j < chars.length && RTL_CURSIVE_CHAR_RE.test(chars[j])) {
+                      run += chars[j];
+                      runLen++;
+                      j++;
+                    }
+                    const exactDelay = Math.round(delay + (offset + charIdx) * speed);
+                    charIdx += runLen;
+                    inner += `<dx-c style="animation-delay:${exactDelay}ms">${run}</dx-c>`;
+                  } else {
+                    const exactDelay = Math.round(delay + (offset + charIdx++) * speed);
+                    const cClass = ch === "\xB7" || ch === "\u2022" ? ' class="bullet-dot"' : "";
+                    inner += `<dx-c${cClass} style="animation-delay:${exactDelay}ms">${ch}</dx-c>`;
+                    j++;
+                  }
                 }
                 tw.innerHTML = inner;
               }
@@ -1630,7 +1666,8 @@ function getNextStaggerDelay(el2) {
   const stepAttr = typeof el2.getAttribute === "function" ? el2.getAttribute("data-stagger-step") || el2.getAttribute("data-step") : null;
   const customStep = stepAttr ? parseInt(stepAttr, 10) : null;
   const initialStep = customStep && !isNaN(customStep) ? customStep : rootWin2 && typeof rootWin2.__dxStaggerStep === "number" ? rootWin2.__dxStaggerStep : STAGGER_INITIAL_STEP_MS;
-  const minStep = rootWin2 && typeof rootWin2.__dxStaggerMinStep === "number" ? rootWin2.__dxStaggerMinStep : STAGGER_MIN_STEP_MS;
+  const defaultMinStep = rootWin2 && typeof rootWin2.__dxStaggerMinStep === "number" ? rootWin2.__dxStaggerMinStep : STAGGER_MIN_STEP_MS;
+  const minStep = customStep && !isNaN(customStep) ? Math.min(defaultMinStep, customStep) : defaultMinStep;
   const now = typeof performance !== "undefined" && performance.now ? performance.now() : Date.now();
   let scheduledTime;
   if (lastStaggerTime <= now) {
@@ -1795,13 +1832,13 @@ var DxRevealing = class extends DxBase {
       clearTimeout(this._childTriggerTimer);
       this._childTriggerTimer = null;
     }
+    if (typeof this._triggerChildren === "function") {
+      this._triggerChildren();
+    }
     this.classList.remove("reveal-sda", "reveal", DX_ANIM.REVEALING);
     this.classList.add(DX_ANIM.REVEALED);
     if (typeof rootWin2?.__datex2TriggerPendingUiNumbers === "function") {
       rootWin2.__datex2TriggerPendingUiNumbers(this);
-    }
-    if (typeof this._triggerChildren === "function") {
-      this._triggerChildren();
     }
     this._triggerNestedReveals();
   }
@@ -1955,7 +1992,7 @@ var DxTypeSda = class extends DxTyping {
     this._observeSelf();
   }
   _observeSelf() {
-    if (this._isObservedSelf || this.isTyped) return;
+    if (this._isObservedSelf || this.isTyped || this._manualControl || this.classList?.contains("es-review-part-2") || typeof this.hasAttribute === "function" && this.hasAttribute("data-manual")) return;
     this._isObservedSelf = true;
     if (this.querySelector(":scope > template") || this.querySelector(":scope > dx-s[w]")) {
       observeLookaheadIO(this, (el2) => {
@@ -2101,6 +2138,7 @@ var DxRevealSda = class extends DxRevealing {
       });
       if (!rootWin2?.__dxHasScrolled) return;
       el2.querySelectorAll?.("dx-type, dx-type-sda")?.forEach((child) => {
+        if (child.classList?.contains("es-review-part-2") || typeof child.hasAttribute === "function" && child.hasAttribute("data-manual")) return;
         if (child.closest?.(REVEAL_CONTAINER_SEL) === el2 && !child.isTyped && !isElementHidden(child)) {
           queueIdleUnpack(child, (c) => unpackTemplate(c), true);
         }
@@ -2119,8 +2157,9 @@ var DxRevealSda = class extends DxRevealing {
     super._startRevealing();
     if (!this._animStarted) {
       this.querySelectorAll?.("dx-type, dx-type-sda")?.forEach((child) => {
+        if (child.classList?.contains("es-review-part-2") || typeof child.hasAttribute === "function" && child.hasAttribute("data-manual")) return;
         if (child.closest?.(REVEAL_CONTAINER_SEL) === this && !child.isTyped && !child._unpacked && !isElementHidden(child)) {
-          queueIdleUnpack(child, (c) => prepareTemplateContent(c));
+          queueIdleUnpack(child, (c) => prepareTemplateContent(c), true);
         }
       });
     }
@@ -3634,8 +3673,31 @@ function ssrDxOdometer(numericValue, options = {}) {
   const ribbonHtml = generateRibbonHtml2(numericValue, type, comma, safePrefix, safeSuffix, options.start);
   return `<dx-odometer${classAttr}${typeAttr} percent="${cleanPercent}"${prefixAttr}${suffixAttr}${commaAttr} aria-label="${ariaLabel}" aria-hidden="true"><dx-s>${formattedText}</dx-s>${ribbonHtml}</dx-odometer>`;
 }
+var RTL_CURSIVE_CHAR_RE2 = /[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\uFB50-\uFDFF\uFE70-\uFEFF]/;
 function splitChars(str) {
   return [...str];
+}
+function groupCursiveRuns(chars) {
+  const units = [];
+  let idx = 0;
+  while (idx < chars.length) {
+    const ch = chars[idx];
+    if (RTL_CURSIVE_CHAR_RE2.test(ch)) {
+      let run = ch;
+      let len = 1;
+      idx++;
+      while (idx < chars.length && RTL_CURSIVE_CHAR_RE2.test(chars[idx])) {
+        run += chars[idx];
+        len++;
+        idx++;
+      }
+      units.push({ text: run, len });
+    } else {
+      units.push({ text: ch, len: 1 });
+      idx++;
+    }
+  }
+  return units;
 }
 function encodeW(entries) {
   let w = "";
@@ -3861,8 +3923,16 @@ function tokenize(html, options = {}) {
             } else if (isDateWord && wordChars.length > 0 && wordChars[0] === "D") {
               wordChars[0] = "\u{1D5D7}";
             }
-            const cTags = wordChars.map((ch) => makeCharTag(ch, charIdx++)).join("");
-            const pTags = punctChars.map((ch) => makeCharTag(ch, charIdx++)).join("");
+            const cTags = groupCursiveRuns(wordChars).map((u) => {
+              const tag = makeCharTag(u.text, charIdx);
+              charIdx += u.len;
+              return tag;
+            }).join("");
+            const pTags = groupCursiveRuns(punctChars).map((u) => {
+              const tag = makeCharTag(u.text, charIdx);
+              charIdx += u.len;
+              return tag;
+            }).join("");
             const wClass = subWord.includes("-") || subPunct.includes("-") ? ' class="word"' : "";
             result += `<dx-w${wClass}>${cTags}${pTags}</dx-w>`;
             const totalLen = [...subWord + subPunct].length;

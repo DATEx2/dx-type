@@ -102,7 +102,10 @@ export class DxCounter extends DxNumber {
             this.render();
         } else if (this.hasAttribute && this.hasAttribute('start') && this.getAttribute('start') !== '') {
             const startVal = parseFloat(this.getAttribute('start')) || 0;
-            this._updateCounterVars(startVal);
+            this._value = startVal;
+            if (typeof navigator === 'undefined' || /jsdom/i.test(navigator.userAgent || '')) {
+                this._updateCounterVars(startVal);
+            }
         }
         super.init();
     }
@@ -344,49 +347,53 @@ export class DxCounter extends DxNumber {
         const radix = cfg.comma !== '' ? (cfg.comma || ',') : ',';
         const hasDec = cfg.comma !== '' && cfg.type !== 'int' && (c.dec > 0 || (cfg.type && cfg.type.includes('number')));
 
+        const setSegText = (el, str) => {
+            const fc = el.firstChild;
+            if (fc && fc.nodeType === 3 && fc === el.lastChild) {
+                if (fc.nodeValue !== str) fc.nodeValue = str;
+            } else if (el.textContent !== str) {
+                el.textContent = str;
+            }
+        };
+
         if (this._elB) {
-            const bStr = hasB ? String(c.b) : '';
-            if (this._elB.textContent !== bStr) this._elB.textContent = bStr;
+            setSegText(this._elB, hasB ? String(c.b) : '');
         }
         if (this._elM) {
-            const mStr = hasM ? (hasB ? String(c.m).padStart(3, '0') : String(c.m)) : '';
-            if (this._elM.textContent !== mStr) this._elM.textContent = mStr;
+            setSegText(this._elM, hasM ? (hasB ? String(c.m).padStart(3, '0') : String(c.m)) : '');
         }
         if (this._elK) {
-            const kStr = hasK ? (hasM ? String(c.k).padStart(3, '0') : String(c.k)) : '';
-            if (this._elK.textContent !== kStr) this._elK.textContent = kStr;
+            setSegText(this._elK, hasK ? (hasM ? String(c.k).padStart(3, '0') : String(c.k)) : '');
         }
         if (this._elU) {
-            const uStr = hasK ? String(c.u).padStart(3, '0') : String(c.u);
-            if (this._elU.textContent !== uStr) this._elU.textContent = uStr;
+            setSegText(this._elU, hasK ? String(c.u).padStart(3, '0') : String(c.u));
         }
         if (this._elDec) {
             const is1Dec = cfg.type && (cfg.type.includes('number-1dec') || cfg.type.includes('float-1dec'));
             const decVal = is1Dec ? Math.round(c.dec / 10) : String(c.dec).padStart(2, '0');
-            const decStr = hasDec ? `${radix}${decVal}` : '';
-            if (this._elDec.textContent !== decStr) this._elDec.textContent = decStr;
+            setSegText(this._elDec, hasDec ? `${radix}${decVal}` : '');
         }
 
         // Only toggle display when segment presence actually changes (Zero Forced Reflow / Layout Thrashing)
         if (hasB !== this._lastHasB) {
-            if (this._elB) this._elB.style.display = hasB ? 'inline' : 'none';
+            if (this._elB) { const h = this._elB.style.display === 'none'; if (hasB && h) this._elB.style.display = 'inline'; else if (!hasB && !h) this._elB.style.display = 'none'; }
             this._lastHasB = hasB;
         }
         if (hasM !== this._lastHasM) {
-            if (this._elM) this._elM.style.display = hasM ? 'inline' : 'none';
+            if (this._elM) { const h = this._elM.style.display === 'none'; if (hasM && h) this._elM.style.display = 'inline'; else if (!hasM && !h) this._elM.style.display = 'none'; }
             this._lastHasM = hasM;
         }
         if (hasK !== this._lastHasK) {
-            if (this._elK) this._elK.style.display = hasK ? 'inline' : 'none';
+            if (this._elK) { const h = this._elK.style.display === 'none'; if (hasK && h) this._elK.style.display = 'inline'; else if (!hasK && !h) this._elK.style.display = 'none'; }
             this._lastHasK = hasK;
         }
         if (hasDec !== this._lastHasDec) {
-            if (this._elDec) this._elDec.style.display = hasDec ? 'inline' : 'none';
+            if (this._elDec) { const h = this._elDec.style.display === 'none'; if (hasDec && h) this._elDec.style.display = 'inline'; else if (!hasDec && !h) this._elDec.style.display = 'none'; }
             this._lastHasDec = hasDec;
         }
 
         // Child elements (_elB, _elM, _elK, _elU, _elDec) display values via .textContent.
-        // We write --dxc-* custom properties on children ONLY on final state or if Houdini mode is active.
+        // We write --dxc-* custom properties on children and root ONLY on final state, when child spans are absent, or if Houdini mode is active.
         if (isFinal || DxCounter.supportsHoudini) {
             if (this._elB?.style) this._elB.style.setProperty('--dxc-b', (hasB ? String(c.b) : '0'));
             if (this._elM?.style) this._elM.style.setProperty('--dxc-m', (hasM ? String(c.m) : '0'));
@@ -395,8 +402,8 @@ export class DxCounter extends DxNumber {
             if (this._elDec?.style) this._elDec.style.setProperty('--dxc-dec', String(c.dec));
         }
 
-        // On the counter root element itself, keep --dxc-* updated when segment values change
-        if (this.style && typeof this.style.setProperty === 'function') {
+        // On the counter root element itself, update --dxc-* on final state, Houdini mode, or headless/non-DOM fallback (!this._elU)
+        if ((isFinal || !this._elU || DxCounter.supportsHoudini) && this.style && typeof this.style.setProperty === 'function') {
             if (c.b !== this._lastB) { this.style.setProperty('--dxc-b', String(c.b)); this._lastB = c.b; }
             if (c.m !== this._lastM) { this.style.setProperty('--dxc-m', String(c.m)); this._lastM = c.m; }
             if (c.k !== this._lastK) { this.style.setProperty('--dxc-k', String(c.k)); this._lastK = c.k; }
@@ -417,11 +424,8 @@ export class DxCounter extends DxNumber {
 
         if (elapsed >= duration) {
             this._value = targetValue;
-            this.setAttribute('percent', this._value);
             this.makeStatic();
-            this.classList.remove('ui-number-running');
             this._updateCounterVars(targetValue, true);
-            this.setAccessibility(targetValue);
             unregisterRAF(this);
             this._animDone = true;
             const twEmbed = this.classList.contains('tw-embed') || !!(typeof this.closest === 'function' && this.closest(TYPE_PARENT_SEL));
@@ -437,7 +441,7 @@ export class DxCounter extends DxNumber {
     }
 
     animateTo(targetValue, duration) {
-        if (typeof this.removeAttribute === 'function') this.removeAttribute('data-static');
+        if (typeof this.removeAttribute === 'function' && this.hasAttribute('data-static')) this.removeAttribute('data-static');
         this._targetValue = targetValue;
         this._animStartValue = (this._value !== undefined && !isNaN(this._value)) ? this._value : 0;
         this._animDuration = duration;
@@ -447,7 +451,6 @@ export class DxCounter extends DxNumber {
         this._lastHasM = null;
         this._lastHasK = null;
         this._lastHasDec = null;
-        this.classList.add('ui-number-running');
         this._updateCounterVars(this._animStartValue, false);
         registerRAF(this);
     }
@@ -462,7 +465,8 @@ export class DxCounter extends DxNumber {
 
         const st = this.querySelector('dx-s');
         if (st) {
-            st.textContent = this.formatValue(this._value);
+            const formatted = this.formatValue(this._value);
+            if (st.textContent !== formatted) st.textContent = formatted;
         }
         const num = this.querySelector('.dx-num');
         if (num) {
@@ -485,9 +489,12 @@ export class DxCounter extends DxNumber {
         this._targetValue = parsedValue;
 
         const startVal = (this._value !== undefined && !isNaN(this._value)) ? this._value : 0;
+        const valChangedFromAttr = this.getAttribute('percent') !== String(parsedValue);
 
         if (this._initialized && startVal === parsedValue && !this._pendingVal) {
-            this.setAccessibility(parsedValue);
+            if (valChangedFromAttr || !this.getAttribute('aria-label')) {
+                this.setAccessibility(parsedValue);
+            }
             return this;
         }
 
@@ -498,27 +505,29 @@ export class DxCounter extends DxNumber {
 
         if (!ready && animDuration > 0) {
             this._pendingVal = { targetValue: parsedValue, duration: animDuration };
-            this.setAttribute('percent', parsedValue);
-            this.setAccessibility(parsedValue);
+            if (valChangedFromAttr) this.setAttribute('percent', parsedValue);
+            if (valChangedFromAttr || !this.getAttribute('aria-label')) this.setAccessibility(parsedValue);
             return this;
         }
 
         this._animationStarted = true;
         this._pendingVal = null;
-        this.setAttribute('percent', parsedValue);
-        this.setAccessibility(parsedValue);
+        if (valChangedFromAttr) this.setAttribute('percent', parsedValue);
+        if (valChangedFromAttr || !this.getAttribute('aria-label')) this.setAccessibility(parsedValue);
 
-        // Update static <dx-s>
+        // Update static <dx-s> only when value differs
         const st = this.querySelector('dx-s');
-        if (st) st.textContent = this.formatValue(parsedValue);
+        if (st && valChangedFromAttr) {
+            const formatted = this.formatValue(parsedValue);
+            if (st.textContent !== formatted) st.textContent = formatted;
+        }
 
         if (isReduced || animDuration === 0) {
             unregisterRAF(this);
-            this.classList.remove('ui-number-running');
             this._value = parsedValue;
             this._updateCounterVars(parsedValue, true);
             this.makeStatic();
-            this.setAccessibility(parsedValue);
+            if (valChangedFromAttr || !this.getAttribute('aria-label')) this.setAccessibility(parsedValue);
             this._animDone = true;
             const twEmbed = this.classList.contains('tw-embed') || !!(typeof this.closest === 'function' && this.closest(TYPE_PARENT_SEL));
             if (twEmbed) {
@@ -540,11 +549,10 @@ export class DxCounter extends DxNumber {
             this.animateTo(parsedValue, animDuration);
         } else {
             unregisterRAF(this);
-            this.classList.remove('ui-number-running');
             this._value = parsedValue;
             this._updateCounterVars(parsedValue, true);
             this.makeStatic();
-            this.setAccessibility(parsedValue);
+            if (valChangedFromAttr || !this.getAttribute('aria-label')) this.setAccessibility(parsedValue);
         }
         return this;
     }

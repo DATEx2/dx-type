@@ -113,16 +113,21 @@ export class DxNumber extends DxMeter {
         const parentActionBar = this.closest('.action-bar, .action-bar-wrapper');
 
         if (parentActionBar) {
-            const isAbShowing = !!this.closest('.show-action-bar, .showing-action-bar')
-                || (typeof document !== 'undefined' && document.body && (document.body.classList.contains('show-action-bar') || document.body.classList.contains('showing-action-bar')));
+            const isWrapperShowing = !!this.closest('.showing-action-bar')
+                || (typeof document !== 'undefined' && document.body && document.body.classList.contains('showing-action-bar'));
+            const isAbShowing = isWrapperShowing
+                || !!this.closest('.show-action-bar')
+                || (typeof document !== 'undefined' && document.body && document.body.classList.contains('show-action-bar'));
             if (!isAbShowing) {
                 return false;
             }
             this._inViewport = true;
-            const isAbShown = !!this.closest('.show-action-bar')
-                || (typeof document !== 'undefined' && document.body && document.body.classList.contains('show-action-bar'));
-            if (isAbShown) {
-                this._parentReady = true;
+            if (!isWrapperShowing) {
+                const isAbShown = !!this.closest('.show-action-bar')
+                    || (typeof document !== 'undefined' && document.body && document.body.classList.contains('show-action-bar'));
+                if (isAbShown) {
+                    this._parentReady = true;
+                }
             }
             return Boolean(this._parentReady);
         }
@@ -262,22 +267,30 @@ export class DxNumber extends DxMeter {
 
         if (parentActionBar) {
             this._inViewport = true;
-            const isAbShown = (parentActionBar.classList && parentActionBar.classList.contains('show-action-bar'))
-                || (typeof document !== 'undefined' && document.body && document.body.classList.contains('show-action-bar'));
+            const abWrapper = typeof this.closest === 'function' ? this.closest('.action-bar-wrapper') : null;
+            const isWrapperShowing = Boolean(
+                (abWrapper && abWrapper.classList && abWrapper.classList.contains('showing-action-bar')) ||
+                (parentActionBar.classList && parentActionBar.classList.contains('showing-action-bar'))
+            );
+            const isAbShown = !isWrapperShowing && (
+                (parentActionBar.classList && parentActionBar.classList.contains('show-action-bar'))
+                || (abWrapper && abWrapper.classList && abWrapper.classList.contains('show-action-bar'))
+                || (typeof document !== 'undefined' && document.body && document.body.classList.contains('show-action-bar'))
+            );
             if (isAbShown) {
                 this._parentReady = true;
                 this._checkAndTrigger(true);
             } else {
                 const onAbTrigger = (e) => {
-                    if (!e || !e.animationName || e.animationName === 'dxc-trigger' || e.animationName === 'actionbar-slide-up') {
+                    if (!e || !e.animationName || e.animationName === 'dxc-trigger' || e.animationName === 'actionbar-slide-up' || (animTarget && (e.target === animTarget || e.currentTarget === animTarget))) {
                         this._parentReady = true;
                         this._checkAndTrigger(true);
                     }
                 };
                 this.addEventListener('animationstart', onAbTrigger, { once: true });
-                parentActionBar.addEventListener('animationstart', onAbTrigger, { once: true });
-                parentActionBar.addEventListener('animationend', onAbTrigger, { once: true });
-                parentActionBar.addEventListener('transitionend', onAbTrigger, { once: true });
+                const animTarget = abWrapper || parentActionBar;
+                animTarget.addEventListener('animationend', onAbTrigger, { once: true });
+                animTarget.addEventListener('transitionend', onAbTrigger, { once: true });
             }
         } else {
             observeIO(this, () => {
@@ -311,19 +324,13 @@ export class DxNumber extends DxMeter {
                 this._parentReady = true;
             } else {
                 const onParentAnim = () => {
+                    if (this._parentReady) return;
                     this._parentReady = true;
                     this._checkAndTrigger();
                 };
                 parentReveal.addEventListener('animationstart', onParentAnim, { once: true });
-                parentReveal.addEventListener('transitionstart', onParentAnim, { once: true });
-                parentReveal.addEventListener('animationend', onParentAnim, { once: true });
-                const choiceParent = typeof this.closest === 'function' ? this.closest('.form-control--checkbox-button, .details-product-option') : null;
-                if (choiceParent && choiceParent !== parentReveal) {
-                    choiceParent.addEventListener('animationstart', onParentAnim, { once: true });
-                    choiceParent.addEventListener('transitionstart', onParentAnim, { once: true });
-                }
             }
-        } else {
+        } else if (!parentActionBar) {
             this._parentReady = true;
         }
 
@@ -334,7 +341,6 @@ export class DxNumber extends DxMeter {
         if (this._timeoutId) { clearTimeout(this._timeoutId); this._timeoutId = null; }
         if (this._twDelayId) { clearTimeout(this._twDelayId); this._twDelayId = null; }
         unregisterRAF(this);
-        this.classList.remove('ui-number-running');
     }
 
     val(newValue, duration) {
@@ -343,10 +349,13 @@ export class DxNumber extends DxMeter {
 
         const parsedValue = parseFloat(newValue) || 0;
         this._targetValue = parsedValue;
+        const valChangedFromAttr = this.getAttribute('percent') !== String(parsedValue);
 
         if (this._initialized && this._value === parsedValue && !this._pendingVal) {
             this.render();
-            this.setAccessibility(parsedValue);
+            if (valChangedFromAttr || !this.getAttribute('aria-label')) {
+                this.setAccessibility(parsedValue);
+            }
             return this;
         }
 
@@ -358,8 +367,8 @@ export class DxNumber extends DxMeter {
         // If not yet ready to animate (e.g. element off-screen or Action Bar sliding up), defer execution
         if (!ready && animDuration > 0) {
             this._pendingVal = { targetValue: parsedValue, duration: animDuration };
-            this.setAttribute('percent', parsedValue);
-            this.setAccessibility(parsedValue);
+            if (valChangedFromAttr) this.setAttribute('percent', parsedValue);
+            if (valChangedFromAttr || !this.getAttribute('aria-label')) this.setAccessibility(parsedValue);
             return this;
         }
 
@@ -367,17 +376,16 @@ export class DxNumber extends DxMeter {
         this._pendingVal = null;
 
         if (animDuration > 0 && this._value !== parsedValue) {
-            this.setAttribute('percent', parsedValue);
-            this.setAccessibility(parsedValue);
+            if (valChangedFromAttr) this.setAttribute('percent', parsedValue);
+            if (valChangedFromAttr || !this.getAttribute('aria-label')) this.setAccessibility(parsedValue);
             this.animateTo(parsedValue, animDuration);
         } else {
             unregisterRAF(this);
-            this.classList.remove('ui-number-running');
             this._value = parsedValue;
-            this.setAttribute('percent', this._value);
+            if (valChangedFromAttr) this.setAttribute('percent', this._value);
             this.makeStatic();
             this.render();
-            this.setAccessibility(parsedValue);
+            if (valChangedFromAttr || !this.getAttribute('aria-label')) this.setAccessibility(parsedValue);
             this._animDone = true;
             const twEmbed = this.classList.contains('tw-embed') || !!(typeof this.closest === 'function' && this.closest(TYPE_PARENT_SEL));
             if (twEmbed) {
@@ -388,13 +396,15 @@ export class DxNumber extends DxMeter {
     }
 
     animateTo(targetValue, duration) {
-        if (typeof this.removeAttribute === 'function') this.removeAttribute('data-static');
-        if (this.classList && typeof this.classList.remove === 'function') this.classList.remove('data-static');
+        if (typeof this.removeAttribute === 'function' && this.hasAttribute('data-static')) this.removeAttribute('data-static');
+        if (this.classList && typeof this.classList.remove === 'function' && this.classList.contains('data-static')) this.classList.remove('data-static');
         this._targetValue = targetValue;
         this._animStartValue = (this._value !== undefined && !isNaN(this._value)) ? this._value : 0;
         this._animDuration = duration;
         this._animStartTime = null;
-        this.classList.add('ui-number-running');
+        this._lastFormattedStr = null;
+        const tp = parseNumParts(this.formatValue(targetValue));
+        this._targetDigitsLen = tp.digits.length;
         this.render();
         registerRAF(this);
     }
@@ -411,11 +421,12 @@ export class DxNumber extends DxMeter {
 
         if (elapsed >= duration) {
             this._value = targetValue;
-            this.setAttribute('percent', this._value);
             this.makeStatic();
-            this.classList.remove('ui-number-running');
-            this.render();
-            this.setAccessibility(targetValue);
+            if (this._numTextNode) {
+                this._updateFrameDisplay(targetValue);
+            } else {
+                this.render();
+            }
             unregisterRAF(this);
             this._animDone = true;
             const twEmbed = this.classList.contains('tw-embed') || !!(typeof this.closest === 'function' && this.closest(TYPE_PARENT_SEL));
@@ -433,15 +444,22 @@ export class DxNumber extends DxMeter {
     _updateFrameDisplay(targetVal) {
         // hide-zero fast path — use cached TextNode, avoid innerHTML
         if ((this.hasAttribute('hide-zero') || this.hasAttribute('empty-zero')) && (this._value === 0 || Math.abs(this._value) < 0.0001)) {
-            if (this._numTextNode) this._numTextNode.nodeValue = '';
-            if (this._padTextNode) this._padTextNode.nodeValue = '';
+            if (this._numTextNode && this._numTextNode.nodeValue !== '') this._numTextNode.nodeValue = '';
+            if (this._padTextNode && this._padTextNode.nodeValue !== '') this._padTextNode.nodeValue = '';
+            this._lastFormattedStr = '';
             return;
         }
 
         // Must have cached TextNode from render() — if missing, do full render once
         if (!this._numTextNode) { this.render(); return; }
 
-        const p = parseNumParts(this.formatValue(this._value));
+        const formatted = this.formatValue(this._value);
+        if (formatted === this._lastFormattedStr && this._value !== targetVal) {
+            return;
+        }
+        this._lastFormattedStr = formatted;
+
+        const p = parseNumParts(formatted);
         const numText = `${p.digits}${p.radix}${p.decimals}`;
 
         // Update number text via nodeValue (NO layout invalidation)
@@ -451,12 +469,12 @@ export class DxNumber extends DxMeter {
 
         // Update pad prefix (leading zeros) via nodeValue
         if (this._padTextNode) {
-            const effectiveTarget = (targetVal !== undefined && !isNaN(targetVal)) ? targetVal : this.getNumericValue();
             let padPrefix = '';
+            const effectiveTarget = (targetVal !== undefined && !isNaN(targetVal)) ? targetVal : this.getNumericValue();
             if (effectiveTarget !== undefined && !isNaN(effectiveTarget) && this._value !== effectiveTarget) {
-                const tp = parseNumParts(this.formatValue(effectiveTarget));
-                if (tp.digits.length > p.digits.length) {
-                    padPrefix = tp.digits.slice(0, tp.digits.length - p.digits.length).replace(/\d/g, '0');
+                const targetLen = this._targetDigitsLen !== undefined ? this._targetDigitsLen : parseNumParts(this.formatValue(effectiveTarget)).digits.length;
+                if (targetLen > p.digits.length) {
+                    padPrefix = '0'.repeat(targetLen - p.digits.length);
                 }
             }
             if (this._padTextNode.nodeValue !== padPrefix) {
@@ -643,8 +661,7 @@ export class DxNumber extends DxMeter {
         if (this._twDelayId) clearTimeout(this._twDelayId);
         if (this._timeoutId) clearTimeout(this._timeoutId);
         this._animationStarted = false;
-        this.classList.remove('ui-number-running');
-        this.removeAttribute('data-static');
+        if (this.hasAttribute('data-static')) this.removeAttribute('data-static');
         const startVal = parseFloat(this.getAttribute('start')) || 0;
         this._value = startVal;
         this.render();

@@ -47,6 +47,12 @@ dx-reveal-sda,
     font-variant-ligatures: none !important;
   }
 }
+:is(html[dir=rtl], [dir=rtl], :lang(ar)) :is(dx-type, dx-type-sda) {
+  &,
+  & :is(dx-s, dx-t, dx-w, dx-c) {
+    font-variant-ligatures: normal !important;
+  }
+}
 dx-check,
 :host(dx-check) {
   --dx-check-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='currentColor'%3E%3Cpath fill-rule='evenodd' d='M16.704 4.153a.75.75 0 0 1 .143 1.052l-8 10.5a.75.75 0 0 1-1.127.075l-4.5-4.5a.75.75 0 0 1 1.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 0 1 1.05-.143Z' clip-rule='evenodd'/%3E%3C/svg%3E");
@@ -64,7 +70,7 @@ li > :is(dx-type, dx-type-sda) dx-check {
   left: -1.25rem !important;
   top: 0.22em !important;
 }
-:is(html:not(.dark-mode), .light-mode) dx-check {
+:is(html.light-mode, .light-mode) dx-check {
   background-color: var(--brand-green-primary, #199534) !important;
 }
 dx-type,
@@ -177,6 +183,8 @@ dx-reveal,
 dx-reveal-sda {
   display: block;
   contain: layout style !important;
+  content-visibility: auto;
+  contain-intrinsic-size: auto var(--dx-cis, 550px);
   width: 100%;
   opacity: 0;
   transform: translateY(15px);
@@ -185,6 +193,8 @@ dx-reveal-sda {
     display: inline-block !important;
     vertical-align: baseline !important;
     width: auto !important;
+    content-visibility: visible !important;
+    contain-intrinsic-size: auto none !important;
   }
   &.dx-revealed {
     animation: none !important;
@@ -193,9 +203,13 @@ dx-reveal-sda {
     transform: none !important;
     will-change: auto !important;
     contain: layout style !important;
+    content-visibility: auto;
+    contain-intrinsic-size: auto var(--dx-cis, 550px);
   }
   &.inline.dx-revealed {
     contain: style !important;
+    content-visibility: visible !important;
+    contain-intrinsic-size: auto none !important;
   }
 }
 dx-odometer,
@@ -438,6 +452,10 @@ dx-number {
     -webkit-backface-visibility: hidden;
   }
 }
+:is(html[dir=rtl], [dir=rtl]) :is(dx-t, dx-type > dx-t, dx-type-sda > dx-t) :is(dx-w, s),
+:is(html[dir=rtl], [dir=rtl]) :is(dx-t, dx-type > dx-t, dx-type-sda > dx-t) :is(dx-w, s) > dx-c:not(.c-ui-num) {
+  display: inline !important;
+}
 :is(dx-s, s-t, dx-type > dx-s, dx-type-sda > dx-s) {
   &,
   & :is(dx-w, dx-c, dx-odometer, ui-odometer, b, strong, span, a, i, em, mark, i.c-ui-num) {
@@ -496,38 +514,50 @@ dx-number {
     transform: translateY(0);
   }
 }
+@keyframes dx-diffuse-optics {
+  0% {
+    opacity: 0;
+    filter: blur(4px);
+  }
+  100% {
+    opacity: 1;
+    filter: blur(0);
+  }
+}
+@keyframes dx-reveal-diffuse {
+  0% {
+    transform: translate3d(0, 8px, 0);
+  }
+  100% {
+    transform: translate3d(0, 0, 0);
+  }
+}
 @keyframes dx-reveal-sda {
   0% {
     opacity: 0;
-    transform: translateY(14px);
+    transform: translate3d(0, 8px, 0);
     filter: blur(4px);
   }
   20% {
     opacity: 0.85;
-    transform: translateY(3px);
+    transform: translate3d(0, 2px, 0);
     filter: blur(0);
   }
   100% {
     opacity: 1;
-    transform: translateY(0);
+    transform: translate3d(0, 0, 0);
     filter: blur(0);
   }
 }
 @keyframes dx-image-diffuse {
   0% {
     opacity: 0;
-    filter: blur(12px);
-    transform: scale(0.96);
-  }
-  30% {
-    opacity: 0.7;
-    filter: blur(8px);
+    filter: blur(4px);
     transform: scale(0.98);
   }
-  70% {
-    opacity: 0.95;
-    filter: blur(2.5px);
-    transform: scale(1);
+  50% {
+    opacity: 0.85;
+    filter: blur(1px);
   }
   100% {
     opacity: 1;
@@ -553,38 +583,48 @@ dx-number {
   backface-visibility: hidden;
   -webkit-backface-visibility: hidden;
 }
-:is(dx-reveal-sda.dx-revealing, dx-reveal-sda[data-static]):not(.dx-revealed):not(.dx-paused) {
+:is(dx-reveal-sda.dx-revealing, dx-reveal-sda[data-static]) {
   will-change:
     transform,
     opacity,
     filter;
-  animation: dx-reveal-sda calc(var(--t, 480) * var(--A, 1) * 1ms) cubic-bezier(0.22, 1, 0.36, 1) calc(var(--d, 0) * var(--A, 1) * 1ms) both !important;
+  backface-visibility: hidden;
+  animation: dx-diffuse-optics calc(200 * var(--A, 1) * 1ms) ease-out calc(var(--d, 0) * var(--A, 1) * 1ms) both, dx-reveal-diffuse calc(var(--t, 360) * var(--A, 1) * 1ms) cubic-bezier(0.16, 1, 0.3, 1) calc(var(--d, 0) * var(--A, 1) * 1ms) both !important;
 }
-:is(#hero, .hero-header, .hero-content-wrapper, .hero-container, product-hero, .ga__gallery, .ga__main-container, .ga__thumbs-container) dx-reveal-sda.dx-revealing:not(.dx-revealed):not(.dx-paused),
-dx-reveal-sda:is(.hero-specs-separator, .hero-btn-container-left, .hero-btn-container-right, .ga__thumb-overlay).dx-revealing:not(.dx-revealed):not(.dx-paused) {
+:is(#hero, .hero-header, .hero-content-wrapper, .hero-container, product-hero, .ga__gallery, .ga__main-container, .ga__thumbs-container) dx-reveal-sda.dx-revealing,
+dx-reveal-sda:is(.hero-specs-separator, .hero-btn-container-left, .hero-btn-container-right, .ga__thumb-overlay).dx-revealing {
   animation: reveal-in calc(var(--t, 500) * var(--A, 1) * 1ms) ease-out calc(var(--d, 0) * var(--A, 1) * 1ms) both !important;
 }
 dx-reveal-sda.dx-paused {
   animation: none !important;
   opacity: 0;
 }
-dx-reveal-sda:not(.dx-revealed):not(.dx-revealing) :is(img, picture img, .card-image-wrapper img, .feature-card-sprite) {
+:is(dx-reveal-sda, dx-reveal, .reveal-sda, .reveal) :is(dx-reveal-sda, dx-reveal, .reveal-sda, .reveal) {
+  animation: none !important;
+  animation-name: none !important;
+  animation-timeline: none !important;
+  filter: none !important;
+  opacity: 1 !important;
+  transform: none !important;
+  will-change: auto !important;
+}
+dx-reveal-sda :is(img, picture img, .card-image-wrapper img, .feature-card-sprite) {
+  filter: none !important;
+  animation: none !important;
+  opacity: 1 !important;
+  transform: none !important;
+  will-change: auto !important;
+}
+dx-reveal-sda.dx-paused :is(img, picture img, .card-image-wrapper img, .feature-card-sprite) {
+  animation: none !important;
   opacity: 0;
-  filter: blur(12px);
-  transform: scale(0.96);
 }
-dx-reveal-sda:is(.dx-revealing, [data-static]):not(.dx-revealed):not(.dx-paused) :is(img, picture img, .card-image-wrapper img, .feature-card-sprite) {
-  will-change:
-    transform,
-    opacity,
-    filter;
-  animation: dx-image-diffuse calc(var(--t, 480) * var(--A, 1) * 1ms) cubic-bezier(0.22, 1, 0.36, 1) calc(var(--d, 0) * var(--A, 1) * 1ms) both !important;
-}
-dx-reveal-sda.dx-revealed :is(img, picture img, .card-image-wrapper img, .feature-card-sprite) {
-  opacity: 1;
-  filter: none;
-  transform: none;
-  will-change: auto;
+:is(dx-reveal-sda.diffuse, dx-reveal-sda.diffusion) :is(img, picture img, .card-image-wrapper img, .feature-card-sprite) {
+  filter: none !important;
+  animation: none !important;
+  opacity: 1 !important;
+  transform: none !important;
+  will-change: auto !important;
 }
 dx-odometer.data-static,
 .dx-typed dx-odometer {
@@ -637,6 +677,9 @@ dx-odometer.data-static dx-s,
   align-items: baseline !important;
   vertical-align: baseline !important;
   will-change: auto !important;
+}
+:is(html[dir=rtl], [dir=rtl]) :is(dx-type-sda, dx-type, .dx-typed).dx-typed :is(dx-w, w, s, dx-type-sda dx-w, dx-type-sda s, dx-type dx-w, dx-type s) > :is(dx-c, span, b, strong, a, i, em, mark) {
+  display: inline !important;
 }
 :is(dx-type-sda, dx-type, .dx-typed).dx-typed dx-check {
   animation: none !important;

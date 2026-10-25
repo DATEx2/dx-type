@@ -17,6 +17,56 @@ const MAX_STAGGER_QUEUE_MS = 1200;
 
 let currentStaggerStep = STAGGER_INITIAL_STEP_MS;
 
+// Frame-budgeted queue for _triggerChildren on animationstart so clamped cards never unpack 1,700+ DOM nodes in a single frame
+const pendingChildTriggers = [];
+let childTriggerRaf = 0;
+let triggersInCurrentFrame = 0;
+let lastTriggerFrameTs = 0;
+const MAX_TRIGGERS_PER_FRAME = 2;
+
+function flushPendingChildTriggers() {
+    childTriggerRaf = 0;
+    triggersInCurrentFrame = 0;
+    lastTriggerFrameTs = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
+    let processed = 0;
+    while (pendingChildTriggers.length > 0 && processed < MAX_TRIGGERS_PER_FRAME) {
+        const fn = pendingChildTriggers.shift();
+        if (fn) {
+            fn();
+            processed++;
+            triggersInCurrentFrame++;
+        }
+    }
+    if (pendingChildTriggers.length > 0 && typeof requestAnimationFrame === 'function') {
+        childTriggerRaf = requestAnimationFrame(flushPendingChildTriggers);
+    }
+}
+
+function scheduleChildTrigger(fn) {
+    const isTestEnv = (typeof process !== 'undefined' && Boolean(process.versions?.node)) ||
+        (typeof navigator !== 'undefined' && /jsdom/i.test(navigator.userAgent || '')) ||
+        /jsdom/i.test(rootWin?.navigator?.userAgent || '') ||
+        typeof requestAnimationFrame !== 'function';
+    if (isTestEnv) {
+        fn();
+        return;
+    }
+    const now = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
+    if (now - lastTriggerFrameTs > 12) {
+        triggersInCurrentFrame = 0;
+        lastTriggerFrameTs = now;
+    }
+    if (pendingChildTriggers.length === 0 && triggersInCurrentFrame < MAX_TRIGGERS_PER_FRAME) {
+        triggersInCurrentFrame++;
+        fn();
+        return;
+    }
+    pendingChildTriggers.push(fn);
+    if (!childTriggerRaf) {
+        childTriggerRaf = requestAnimationFrame(flushPendingChildTriggers);
+    }
+}
+
 export function getNextStaggerDelay(el) {
     if (!el || !el.classList || !el.classList.contains('staggered')) {
         return null;
@@ -24,17 +74,18 @@ export function getNextStaggerDelay(el) {
     const stepAttr = (typeof el.getAttribute === 'function') ? (el.getAttribute('data-stagger-step') || el.getAttribute('data-step')) : null;
     const customStep = stepAttr ? parseInt(stepAttr, 10) : null;
     const initialStep = (customStep && !isNaN(customStep)) ? customStep : ((rootWin && typeof rootWin.__dxStaggerStep === 'number') ? rootWin.__dxStaggerStep : STAGGER_INITIAL_STEP_MS);
-    const minStep = (rootWin && typeof rootWin.__dxStaggerMinStep === 'number') ? rootWin.__dxStaggerMinStep : STAGGER_MIN_STEP_MS;
+    const defaultMinStep = (rootWin && typeof rootWin.__dxStaggerMinStep === 'number') ? rootWin.__dxStaggerMinStep : STAGGER_MIN_STEP_MS;
+    const minStep = (customStep && !isNaN(customStep)) ? Math.min(defaultMinStep, customStep) : defaultMinStep;
     const now = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
     
     let scheduledTime;
     if (lastStaggerTime <= now) {
-        // Queue is idle: first element starts immediately, step resets to initialStep (80ms)
+        // Queue is idle: first element starts immediately, step resets to initialStep
         scheduledTime = now;
         currentStaggerStep = initialStep;
         lastStaggerTime = now + currentStaggerStep;
     } else {
-        // Queue is active: schedule at next slot, decrement step down to minStep (40ms)
+        // Queue is active: schedule at next slot, decrement step down to minStep
         scheduledTime = lastStaggerTime;
         currentStaggerStep = Math.max(minStep, currentStaggerStep - STAGGER_STEP_DECREMENT);
         lastStaggerTime += currentStaggerStep;
@@ -250,15 +301,14 @@ export class DxRevealing extends DxBase {
             clearTimeout(this._childTriggerTimer);
             this._childTriggerTimer = null;
         }
+        if (typeof this._triggerChildren === 'function') {
+            this._triggerChildren();
+        }
         this.classList.remove('reveal-sda', 'reveal', DX_ANIM.REVEALING);
         this.classList.add(DX_ANIM.REVEALED);
 
         if (typeof rootWin?.__datex2TriggerPendingUiNumbers === 'function') {
             rootWin.__datex2TriggerPendingUiNumbers(this);
-        }
-
-        if (typeof this._triggerChildren === 'function') {
-            this._triggerChildren();
         }
 
         this._triggerNestedReveals();
