@@ -47,7 +47,7 @@ dx-reveal-sda,
     font-variant-ligatures: none !important;
   }
 }
-:is(html[dir=rtl], [dir=rtl], :lang(ar)) :is(dx-type, dx-type-sda) {
+:is(html[dir=rtl], [dir=rtl], html[lang|=ar], :lang(ar)) :is(dx-type, dx-type-sda) {
   &,
   & :is(dx-s, dx-t, dx-w, dx-c) {
     font-variant-ligatures: normal !important;
@@ -452,9 +452,13 @@ dx-number {
     -webkit-backface-visibility: hidden;
   }
 }
-:is(html[dir=rtl], [dir=rtl]) :is(dx-t, dx-type > dx-t, dx-type-sda > dx-t) :is(dx-w, s),
-:is(html[dir=rtl], [dir=rtl]) :is(dx-t, dx-type > dx-t, dx-type-sda > dx-t) :is(dx-w, s) > dx-c:not(.c-ui-num) {
+:is(html[dir=rtl], [dir=rtl], html[lang|=ar], :lang(ar)) :is(dx-t, dx-type > dx-t, dx-type-sda > dx-t) :is(dx-w, s),
+:is(html[dir=rtl], [dir=rtl], html[lang|=ar], :lang(ar)) :is(dx-t, dx-type > dx-t, dx-type-sda > dx-t) :is(dx-w, s) > dx-c:not(.c-ui-num) {
   display: inline !important;
+}
+:is(html[dir=rtl], [dir=rtl], html[lang|=ar], :lang(ar)) :is(dx-type, dx-type-sda) g {
+  direction: ltr !important;
+  unicode-bidi: isolate !important;
 }
 :is(dx-s, s-t, dx-type > dx-s, dx-type-sda > dx-s) {
   &,
@@ -678,7 +682,7 @@ dx-odometer.data-static dx-s,
   vertical-align: baseline !important;
   will-change: auto !important;
 }
-:is(html[dir=rtl], [dir=rtl]) :is(dx-type-sda, dx-type, .dx-typed).dx-typed :is(dx-w, w, s, dx-type-sda dx-w, dx-type-sda s, dx-type dx-w, dx-type s) > :is(dx-c, span, b, strong, a, i, em, mark) {
+:is(html[dir=rtl], [dir=rtl], html[lang|=ar], :lang(ar)) :is(dx-type-sda, dx-type, .dx-typed).dx-typed :is(dx-w, w, s, dx-type-sda dx-w, dx-type-sda s, dx-type dx-w, dx-type s) > :is(dx-c, span, b, strong, a, i, em, mark) {
   display: inline !important;
 }
 :is(dx-type-sda, dx-type, .dx-typed).dx-typed dx-check {

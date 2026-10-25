@@ -58,7 +58,7 @@ dx-reveal-sda,
     }
 }
 
-:is(html[dir="rtl"], [dir="rtl"], :lang(ar)) :is(dx-type, dx-type-sda) {
+:is(html[dir="rtl"], [dir="rtl"], html[lang|="ar"], :lang(ar)) :is(dx-type, dx-type-sda) {
     &,
     & :is(dx-s, dx-t, dx-w, dx-c) {
         font-variant-ligatures: normal !important;
@@ -503,9 +503,14 @@ dx-number {
 }
 
 /* ─── 4b. RTL / BiDi Native Inline Flow & Cursive Shaping Parity ──────────── */
-:is(html[dir="rtl"], [dir="rtl"]) :is(dx-t, dx-type > dx-t, dx-type-sda > dx-t) :is(dx-w, s),
-:is(html[dir="rtl"], [dir="rtl"]) :is(dx-t, dx-type > dx-t, dx-type-sda > dx-t) :is(dx-w, s) > dx-c:not(.c-ui-num) {
+:is(html[dir="rtl"], [dir="rtl"], html[lang|="ar"], :lang(ar)) :is(dx-t, dx-type > dx-t, dx-type-sda > dx-t) :is(dx-w, s),
+:is(html[dir="rtl"], [dir="rtl"], html[lang|="ar"], :lang(ar)) :is(dx-t, dx-type > dx-t, dx-type-sda > dx-t) :is(dx-w, s) > dx-c:not(.c-ui-num) {
     display: inline !important;
+}
+
+:is(html[dir="rtl"], [dir="rtl"], html[lang|="ar"], :lang(ar)) :is(dx-type, dx-type-sda) g {
+    direction: ltr !important;
+    unicode-bidi: isolate !important;
 }
 
 /* ─── Static Source Layer (<dx-s> / <s-t>) — 100% Static, 0 GPU Layers ───── */
@@ -761,7 +766,7 @@ dx-odometer.data-static dx-s,
     will-change: auto !important;
 }
 
-:is(html[dir="rtl"], [dir="rtl"]) :is(dx-type-sda, dx-type, .dx-typed).dx-typed :is(dx-w, w, s, dx-type-sda dx-w, dx-type-sda s, dx-type dx-w, dx-type s) > :is(dx-c, span, b, strong, a, i, em, mark) {
+:is(html[dir="rtl"], [dir="rtl"], html[lang|="ar"], :lang(ar)) :is(dx-type-sda, dx-type, .dx-typed).dx-typed :is(dx-w, w, s, dx-type-sda dx-w, dx-type-sda s, dx-type dx-w, dx-type s) > :is(dx-c, span, b, strong, a, i, em, mark) {
     display: inline !important;
 }
 
