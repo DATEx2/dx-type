@@ -182,11 +182,21 @@ export class DxMeter extends DxBase {
     }
 
     getFormatConfig() {
+        let pfx = this.getAttribute('prefix');
+        let sfx = this.getAttribute('suffix');
+        if (pfx === null && sfx === null) {
+            const raw = this.getAttribute('value') || this.getAttribute('percent') || this.textContent || '';
+            if (raw) {
+                const parts = parseNumParts(raw);
+                if (parts.pfx) pfx = parts.pfx + parts.pfxSpace;
+                if (parts.sfx) sfx = parts.sfxSpace + parts.sfx;
+            }
+        }
         return {
             type: this.getAttribute('type') || 'int',
             comma: this.getAttribute('comma') || ',',
-            prefix: this.getAttribute('prefix') || '',
-            suffix: this.getAttribute('suffix') || ''
+            prefix: pfx || '',
+            suffix: sfx || ''
         };
     }
 

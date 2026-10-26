@@ -65,6 +65,7 @@ export class DxOdometer extends DxMeter {
             this._animDone = true;
 
             // Direct DOM cleanup: purge drum ribbons if present from SSR
+            const prevText = this.textContent.trim();
             const drumB = this.querySelector('b');
             if (drumB) drumB.remove();
             const pfx = this.querySelector('.ui-pfx');
@@ -75,8 +76,9 @@ export class DxOdometer extends DxMeter {
             const innerDxS = this.querySelector(':scope > :is(dx-s, t-s)');
             if (innerDxS) {
                 this.textContent = innerDxS.textContent || '';
-            } else if (!this.textContent.trim() && typeof this.getStaticHTML === 'function') {
-                this.innerHTML = this.getStaticHTML();
+            } else {
+                const staticHtml = (typeof this.getStaticHTML === 'function') ? this.getStaticHTML() : '';
+                this.innerHTML = staticHtml || prevText;
             }
 
             const twEmbed = this.classList.contains('tw-embed') || !!this.closest(TYPE_PARENT_SEL);

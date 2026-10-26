@@ -52,12 +52,28 @@ const pendingIoQueue = new Set();
 const pendingLookaheadQueue = new Set();
 
 const isCheckoutOrCart = (typeof location !== 'undefined') && /(?:^|\/)(?:checkout|cart|account)(?:\/|$)/i.test(location.pathname || '');
-const isProductPage = !isCheckoutOrCart && (typeof location !== 'undefined') && /^\/(?:[a-z]{2}\/)?products?\//i.test(location.pathname || '');
-if (isProductPage && rootWin && !rootWin.__dxScrollRestored && !rootWin.__sdaReadyPerformanceTime && typeof rootWin.IntersectionObserver === 'function') {
+const isCategoryOrCatalogUrl = (typeof location !== 'undefined') && /^\/(?:[a-z]{2}\/)?products?\/?$/i.test(location.pathname || '');
+const isProductPage = !isCheckoutOrCart && !isCategoryOrCatalogUrl && (typeof location !== 'undefined') && /^\/(?:[a-z]{2}\/)?products?\//i.test(location.pathname || '');
+
+function isNonProductCategoryDom() {
+    if (typeof document === 'undefined') return false;
+    if (document.querySelector('link[href*="DATEx2.category"], script[src*="DATEx2.category"], .category-page, .page-type-CATEGORY')) {
+        return true;
+    }
+    if (document.readyState !== 'loading' && !document.querySelector('#tile-product-details, .product-details, .page-type-PRODUCT, link[href*="DATEx2.product"], script[src*="DATEx2.product"]')) {
+        return true;
+    }
+    return false;
+}
+
+if (isProductPage && !isNonProductCategoryDom() && rootWin && !rootWin.__dxScrollRestored && !rootWin.__sdaReadyPerformanceTime && typeof rootWin.IntersectionObserver === 'function') {
     isScrollGated = true;
 }
 
 export function isScrollRestored() {
+    if (isScrollGated && isNonProductCategoryDom()) {
+        flushScrollGate();
+    }
     return !isScrollGated;
 }
 
@@ -124,6 +140,18 @@ if (rootWin && typeof rootWin.addEventListener === 'function') {
     };
     rootWin.addEventListener('sda-ready', onReady, { once: true });
     rootWin.addEventListener('type-ready', onReady, { once: true });
+    if (typeof document !== 'undefined') {
+        const checkCatOnReady = () => {
+            if (isScrollGated && isNonProductCategoryDom()) {
+                flushScrollGate();
+            }
+        };
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', checkCatOnReady, { once: true });
+        } else {
+            checkCatOnReady();
+        }
+    }
 }
 
 export function formatMarginValue(v) {

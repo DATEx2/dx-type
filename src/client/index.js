@@ -5,7 +5,7 @@
 // Base classes & lifecycle functions
 export { DxBase, rootWin, isReducedMotionActive } from './base/dx-base.js';
 export { DX_ANIM, getIO, observeIO, unobserveIO, getLookaheadIO, observeLookaheadIO, unobserveLookaheadIO, queueIdleUnpack, removeFromIdleQueue, queueIdleCleanup, flushIdleCleanup, registerRAF, unregisterRAF, onAllAnimationsEnd, setSdaGaps, getSdaGaps, gateIOUntil, flushScrollGate, isScrollRestored } from './base/dx-scheduler.js';
-export { DxTyping, unpackTemplate, prepareTemplateContent, observeTypewriter, mountTypewriter, ensureElementsUpToTarget, onTypewriterEnd, cleanupTypedDOM, bootstrapTypewriterObserver, getTypewriterObserver, buildTypingLayer, HEX_LUT, syncSectionHeaderTyping, SECTION_HEADER_SEL, DX_CHAR_DURATION } from './base/dx-typing.js';
+export { DxTyping, unpackTemplate, prepareTemplateContent, observeTypewriter, mountTypewriter, ensureElementsUpToTarget, onTypewriterEnd, cleanupTypedDOM, bootstrapTypewriterObserver, getTypewriterObserver, buildTypingLayer, HEX_LUT, syncSectionHeaderTyping, SECTION_HEADER_SEL, DX_CHAR_DURATION, lockTypewriterGoogleTranslate, unlockTypewriterGoogleTranslate } from './base/dx-typing.js';
 export { DxRevealing, finishReveal, startReveal, getNextStaggerDelay, resetStaggerTimeline } from './base/dx-revealing.js';
 export { DxMeter, uiNum, formatNumber, generateRibbonHtml, generateDataO, expandOdometerDrums } from './base/dx-meter.js';
 

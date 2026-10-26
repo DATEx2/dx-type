@@ -7,7 +7,7 @@
 // exports: DxTypeSda
 // used_by: src/client/index.js
 
-import { DxTyping, unpackTemplate, prepareTemplateContent, cleanupTypedDOM, isElementHidden, syncSectionHeaderTyping, SECTION_HEADER_SEL } from '../base/dx-typing.js';
+import { DxTyping, unpackTemplate, prepareTemplateContent, cleanupTypedDOM, isElementHidden, syncSectionHeaderTyping, SECTION_HEADER_SEL, lockTypewriterGoogleTranslate } from '../base/dx-typing.js';
 import { defCustomElement, isReducedMotionActive, rootWin } from '../base/dx-base.js';
 import { DX_ANIM, observeIO, unobserveIO, observeLookaheadIO, unobserveLookaheadIO, queueIdleUnpack, removeFromIdleQueue } from '../base/dx-scheduler.js';
 
@@ -24,6 +24,7 @@ export class DxTypeSda extends DxTyping {
         }
 
         this._syncTimingAttributes();
+        lockTypewriterGoogleTranslate(this);
 
         const inDrawer = this.closest?.('.spec-drawer, [role="dialog"].spec-drawer');
         if (inDrawer) {

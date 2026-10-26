@@ -7,7 +7,7 @@
 // exports: DxType
 // used_by: src/client/index.js
 
-import { DxTyping, unpackTemplate, prepareTemplateContent, cleanupTypedDOM, isElementHidden, syncSectionHeaderTyping, SECTION_HEADER_SEL } from '../base/dx-typing.js';
+import { DxTyping, unpackTemplate, prepareTemplateContent, cleanupTypedDOM, isElementHidden, syncSectionHeaderTyping, SECTION_HEADER_SEL, lockTypewriterGoogleTranslate } from '../base/dx-typing.js';
 import { defCustomElement, isReducedMotionActive, rootWin } from '../base/dx-base.js';
 import { DX_ANIM, observeIO, unobserveIO, observeLookaheadIO, unobserveLookaheadIO, queueIdleUnpack, removeFromIdleQueue } from '../base/dx-scheduler.js';
 
@@ -43,6 +43,7 @@ export class DxType extends DxTyping {
         }
 
         this._syncTimingAttributes();
+        lockTypewriterGoogleTranslate(this);
 
         // 1. Preemptive JIT Lookahead Unpack (+500px or idle queue)
         if (!this.querySelector(':scope > dx-t') && (this.querySelector(':scope > template') || this.querySelector(':scope > dx-s[w]'))) {

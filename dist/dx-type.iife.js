@@ -56,6 +56,7 @@ var DxType = (() => {
     getTypewriterObserver: () => getTypewriterObserver,
     isReducedMotionActive: () => isReducedMotionActive,
     isScrollRestored: () => isScrollRestored,
+    lockTypewriterGoogleTranslate: () => lockTypewriterGoogleTranslate,
     mountTypewriter: () => mountTypewriter,
     observeIO: () => observeIO,
     observeLookaheadIO: () => observeLookaheadIO,
@@ -77,6 +78,7 @@ var DxType = (() => {
     syncSectionHeaderTyping: () => syncSectionHeaderTyping,
     tokenize: () => tokenize,
     uiNum: () => uiNum,
+    unlockTypewriterGoogleTranslate: () => unlockTypewriterGoogleTranslate,
     unobserveIO: () => unobserveIO,
     unobserveLookaheadIO: () => unobserveLookaheadIO,
     unpackTemplate: () => unpackTemplate,
@@ -118,11 +120,25 @@ var DxType = (() => {
   var pendingIoQueue = /* @__PURE__ */ new Set();
   var pendingLookaheadQueue = /* @__PURE__ */ new Set();
   var isCheckoutOrCart = typeof location !== "undefined" && /(?:^|\/)(?:checkout|cart|account)(?:\/|$)/i.test(location.pathname || "");
-  var isProductPage = !isCheckoutOrCart && typeof location !== "undefined" && /^\/(?:[a-z]{2}\/)?products?\//i.test(location.pathname || "");
-  if (isProductPage && rootWin && !rootWin.__dxScrollRestored && !rootWin.__sdaReadyPerformanceTime && typeof rootWin.IntersectionObserver === "function") {
+  var isCategoryOrCatalogUrl = typeof location !== "undefined" && /^\/(?:[a-z]{2}\/)?products?\/?$/i.test(location.pathname || "");
+  var isProductPage = !isCheckoutOrCart && !isCategoryOrCatalogUrl && typeof location !== "undefined" && /^\/(?:[a-z]{2}\/)?products?\//i.test(location.pathname || "");
+  function isNonProductCategoryDom() {
+    if (typeof document === "undefined") return false;
+    if (document.querySelector('link[href*="DATEx2.category"], script[src*="DATEx2.category"], .category-page, .page-type-CATEGORY')) {
+      return true;
+    }
+    if (document.readyState !== "loading" && !document.querySelector('#tile-product-details, .product-details, .page-type-PRODUCT, link[href*="DATEx2.product"], script[src*="DATEx2.product"]')) {
+      return true;
+    }
+    return false;
+  }
+  if (isProductPage && !isNonProductCategoryDom() && rootWin && !rootWin.__dxScrollRestored && !rootWin.__sdaReadyPerformanceTime && typeof rootWin.IntersectionObserver === "function") {
     isScrollGated = true;
   }
   function isScrollRestored() {
+    if (isScrollGated && isNonProductCategoryDom()) {
+      flushScrollGate();
+    }
     return !isScrollGated;
   }
   function flushScrollGate() {
@@ -185,6 +201,18 @@ var DxType = (() => {
     };
     rootWin.addEventListener("sda-ready", onReady, { once: true });
     rootWin.addEventListener("type-ready", onReady, { once: true });
+    if (typeof document !== "undefined") {
+      const checkCatOnReady = () => {
+        if (isScrollGated && isNonProductCategoryDom()) {
+          flushScrollGate();
+        }
+      };
+      if (document.readyState === "loading") {
+        document.addEventListener("DOMContentLoaded", checkCatOnReady, { once: true });
+      } else {
+        checkCatOnReady();
+      }
+    }
   }
   function formatMarginValue(v) {
     if (!v || v === "0" || v === "0%" || v === "0px" || v === 0) return "0px";
@@ -715,11 +743,21 @@ var DxType = (() => {
       return isNaN(parsed) ? 0 : parsed;
     }
     getFormatConfig() {
+      let pfx = this.getAttribute("prefix");
+      let sfx = this.getAttribute("suffix");
+      if (pfx === null && sfx === null) {
+        const raw = this.getAttribute("value") || this.getAttribute("percent") || this.textContent || "";
+        if (raw) {
+          const parts = parseNumParts(raw);
+          if (parts.pfx) pfx = parts.pfx + parts.pfxSpace;
+          if (parts.sfx) sfx = parts.sfxSpace + parts.sfx;
+        }
+      }
       return {
         type: this.getAttribute("type") || "int",
         comma: this.getAttribute("comma") || ",",
-        prefix: this.getAttribute("prefix") || "",
-        suffix: this.getAttribute("suffix") || ""
+        prefix: pfx || "",
+        suffix: sfx || ""
       };
     }
     formatValue(val) {
@@ -934,6 +972,100 @@ var DxType = (() => {
   function getTypewriterObserver(win) {
     return getIO(win);
   }
+  function lockTypewriterGoogleTranslate(el2) {
+    if (!el2 || el2.classList && typeof el2.classList.contains === "function" && el2.classList.contains(DX_ANIM.TYPED)) return;
+    if (typeof el2.setAttribute === "function" && !el2.hasAttribute("translate")) {
+      el2.setAttribute("translate", "no");
+    }
+    if (typeof el2.classList?.add === "function" && !el2.classList.contains("notranslate")) {
+      el2.classList.add("notranslate");
+    }
+    const sLayer = typeof el2.querySelector === "function" ? el2.querySelector(":scope > :is(dx-s, t-s, s-t)") : null;
+    if (sLayer) {
+      if (typeof sLayer.setAttribute === "function" && !sLayer.hasAttribute("translate")) {
+        sLayer.setAttribute("translate", "no");
+      }
+      if (typeof sLayer.classList?.add === "function" && !sLayer.classList.contains("notranslate")) {
+        sLayer.classList.add("notranslate");
+      }
+    }
+  }
+  var ATOMIC_NOTRANSLATE_TAGS = /* @__PURE__ */ new Set([
+    "DX-ODOMETER",
+    "UI-ODOMETER",
+    "DX-NUMBER",
+    "UI-NUMBER",
+    "DX-COUNTER",
+    "UI-COUNTER",
+    "DX-N",
+    "DX-C",
+    "G",
+    "CODE",
+    "KBD",
+    "SAMP",
+    "VAR"
+  ]);
+  function protectBoundarySpacesForGoogleTranslate(container) {
+    if (!container || !container.childNodes) return;
+    const doc = container.ownerDocument || (typeof document !== "undefined" ? document : null);
+    if (!doc) return;
+    const children = Array.from(container.childNodes);
+    for (let i = 0; i < children.length; i++) {
+      const node = children[i];
+      if (node.nodeType === 1) {
+        const tag = (node.tagName || "").toUpperCase();
+        if (ATOMIC_NOTRANSLATE_TAGS.has(tag) || node.getAttribute?.("translate") === "no" || node.classList?.contains("notranslate")) {
+          if (typeof node.setAttribute === "function" && !node.hasAttribute("translate")) {
+            node.setAttribute("translate", "no");
+          }
+          if (node.classList && !node.classList.contains("notranslate")) {
+            node.classList.add("notranslate");
+          }
+        } else {
+          protectBoundarySpacesForGoogleTranslate(node);
+        }
+      } else if (node.nodeType === 3) {
+        const text = node.nodeValue || "";
+        if (!text || !/\S/.test(text)) continue;
+        const prevEl = node.previousSibling && node.previousSibling.nodeType === 1 ? node.previousSibling : null;
+        const nextEl = node.nextSibling && node.nextSibling.nodeType === 1 ? node.nextSibling : null;
+        const hasPrevEl = !!(prevEl && !prevEl.classList?.contains("dx-gt-sp"));
+        const hasNextEl = !!(nextEl && !nextEl.classList?.contains("dx-gt-sp"));
+        const leadMatch = hasPrevEl ? text.match(/^[ \t\u00A0]+/) : null;
+        const trailMatch = hasNextEl ? text.match(/[ \t\u00A0]+$/) : null;
+        if (!leadMatch && !trailMatch) continue;
+        const leadLen = leadMatch ? leadMatch[0].length : 0;
+        const trailLen = trailMatch ? trailMatch[0].length : 0;
+        if (leadLen + trailLen >= text.length) continue;
+        node.nodeValue = text.slice(leadLen, text.length - trailLen);
+        if (leadLen > 0) {
+          const sp = doc.createElement("span");
+          sp.className = "dx-gt-sp notranslate";
+          sp.setAttribute("translate", "no");
+          sp.textContent = " ";
+          container.insertBefore(sp, node);
+        }
+        if (trailLen > 0) {
+          const sp = doc.createElement("span");
+          sp.className = "dx-gt-sp notranslate";
+          sp.setAttribute("translate", "no");
+          sp.textContent = " ";
+          container.insertBefore(sp, node.nextSibling);
+        }
+      }
+    }
+  }
+  function unlockTypewriterGoogleTranslate(el2) {
+    if (!el2) return;
+    if (typeof el2.removeAttribute === "function") el2.removeAttribute("translate");
+    if (typeof el2.classList?.remove === "function") el2.classList.remove("notranslate");
+    const sLayer = typeof el2.querySelector === "function" ? el2.querySelector(":scope > :is(dx-s, t-s, s-t)") : null;
+    if (sLayer) {
+      protectBoundarySpacesForGoogleTranslate(sLayer);
+      if (typeof sLayer.removeAttribute === "function") sLayer.removeAttribute("translate");
+      if (typeof sLayer.classList?.remove === "function") sLayer.classList.remove("notranslate");
+    }
+  }
   function buildTypingLayer(ts, delay, offset, speed) {
     let tHtml = "";
     let charIdx = 0;
@@ -1069,6 +1201,7 @@ var DxType = (() => {
     if (el2.classList && el2.classList.contains(DX_ANIM.TYPED)) return false;
     const elTag = (el2.tagName || "").toUpperCase();
     if (elTag === "DX-REVEAL-SDA" || elTag === "UI-REVEAL-SDA" || elTag === "DX-REVEAL" || elTag === "UI-REVEAL") return false;
+    lockTypewriterGoogleTranslate(el2);
     const tpl = el2.querySelector(":scope > template");
     if (!tpl) {
       if (el2._preparedTLayer) return true;
@@ -1087,6 +1220,8 @@ var DxType = (() => {
           if (doc) {
             const tLayer2 = doc.createElement("dx-t");
             tLayer2.setAttribute("aria-hidden", "true");
+            tLayer2.setAttribute("translate", "no");
+            tLayer2.classList.add("notranslate");
             tLayer2.innerHTML = tHtml;
             const allTC = tLayer2.querySelectorAll("dx-c");
             if (allTC.length > 0) {
@@ -1145,6 +1280,8 @@ var DxType = (() => {
       }
     }
     if (tLayer) {
+      if (typeof tLayer.setAttribute === "function") tLayer.setAttribute("translate", "no");
+      if (typeof tLayer.classList?.add === "function") tLayer.classList.add("notranslate");
       const hasExistingC = tLayer.querySelector(":is(dx-c, t-c)");
       if (!hasExistingC) {
         const nodes = tLayer.childNodes;
@@ -1264,6 +1401,7 @@ var DxType = (() => {
       cleanupTypedDOM(el2);
       return false;
     }
+    lockTypewriterGoogleTranslate(el2);
     if (el2._unpacked && el2._tLayer && el2._tLayer.parentNode === el2) {
       return true;
     }
@@ -1282,6 +1420,8 @@ var DxType = (() => {
       const tt = el2.querySelector(":scope > :is(dx-t, t-t, t)");
       if (tt) {
         tt.setAttribute("aria-hidden", "true");
+        tt.setAttribute("translate", "no");
+        if (tt.classList) tt.classList.add("notranslate");
         el2._tLayer = tt;
         el2._unpacked = true;
         attachLayerStopStorm(tt);
@@ -1315,6 +1455,8 @@ var DxType = (() => {
       const tt = el2.querySelector(":scope > :is(dx-t, t-t, t)");
       if (tt) {
         tt.setAttribute("aria-hidden", "true");
+        tt.setAttribute("translate", "no");
+        if (tt.classList) tt.classList.add("notranslate");
         el2._tLayer = tt;
         el2._unpacked = true;
         attachLayerStopStorm(tt);
@@ -1337,6 +1479,8 @@ var DxType = (() => {
         if (raw) el2.setAttribute("aria-label", raw);
       }
       directTt.setAttribute("aria-hidden", "true");
+      directTt.setAttribute("translate", "no");
+      if (directTt.classList) directTt.classList.add("notranslate");
       el2._tLayer = directTt;
       el2._unpacked = true;
       attachLayerStopStorm(directTt);
@@ -1418,6 +1562,7 @@ var DxType = (() => {
   function observeTypewriter(el2) {
     if (!el2) return;
     if (el2.classList && el2.classList.contains(DX_ANIM.TYPED)) return;
+    lockTypewriterGoogleTranslate(el2);
     observeLookaheadIO(el2, (targetEl) => {
       if (isElementHidden(targetEl)) return;
       queueIdleUnpack(targetEl, (t) => {
@@ -1510,10 +1655,8 @@ var DxType = (() => {
       }
       const isOdo = m.tagName === "DX-ODOMETER" || m.tagName === "UI-ODOMETER";
       if (isOdo) {
-        const innerDxS = m.querySelector ? m.querySelector(":scope > :is(dx-s, t-s, s-t)") : null;
-        if (innerDxS) {
-          m.textContent = innerDxS.textContent || "";
-        } else if (m.querySelector && (m.querySelector("b") || m.querySelector(".ui-sfx"))) {
+        const prevText = m.textContent.trim();
+        if (m.querySelector && (m.querySelector("b") || m.querySelector(".ui-sfx"))) {
           const drumB = m.querySelector("b");
           if (drumB) drumB.remove();
           const sfx = m.querySelector(".ui-sfx");
@@ -1521,14 +1664,19 @@ var DxType = (() => {
           const pfx = m.querySelector(".ui-pfx");
           if (pfx) pfx.remove();
         }
-        if (typeof m.getStaticHTML === "function" && !m.textContent.trim()) {
-          m.innerHTML = m.getStaticHTML();
+        const innerDxS = m.querySelector ? m.querySelector(":scope > :is(dx-s, t-s, s-t)") : null;
+        if (innerDxS) {
+          m.textContent = innerDxS.textContent || "";
+        } else {
+          const staticHtml = typeof m.getStaticHTML === "function" ? m.getStaticHTML() : "";
+          m.innerHTML = staticHtml || prevText;
         }
       }
     }
     const heroBtn = typeEl.closest?.("button");
     if (heroBtn) heroBtn.classList.add(DX_ANIM.TYPED, "is-typed");
     typeEl.removeAttribute("aria-label");
+    unlockTypewriterGoogleTranslate(typeEl);
   }
   function onTypewriterEnd(cEl, event) {
     if (event) {
@@ -1642,6 +1790,7 @@ var DxType = (() => {
       this._preparedTLayer = null;
       this._charDone = false;
       this._lastC = null;
+      lockTypewriterGoogleTranslate(this);
       const existingTt = this.querySelector(":scope > :is(dx-t, t-t, t)");
       if (existingTt) existingTt.remove();
       unpackTemplate(this);
@@ -1655,6 +1804,7 @@ var DxType = (() => {
       this._preparedTLayer = null;
       this._charDone = false;
       this._lastC = null;
+      lockTypewriterGoogleTranslate(this);
       const existingTt = this.querySelector(":scope > :is(dx-t, t-t, t)");
       if (existingTt) existingTt.remove();
     }
@@ -2002,6 +2152,7 @@ var DxType = (() => {
         return;
       }
       this._syncTimingAttributes();
+      lockTypewriterGoogleTranslate(this);
       if (!this.querySelector(":scope > dx-t") && (this.querySelector(":scope > template") || this.querySelector(":scope > dx-s[w]"))) {
         observeLookaheadIO(this, (el2) => {
           if (isElementHidden(el2)) return false;
@@ -2089,6 +2240,7 @@ var DxType = (() => {
         return;
       }
       this._syncTimingAttributes();
+      lockTypewriterGoogleTranslate(this);
       const inDrawer = this.closest?.('.spec-drawer, [role="dialog"].spec-drawer');
       if (inDrawer) {
         this._managedBySpecDrawer = true;
@@ -2965,6 +3117,7 @@ var DxType = (() => {
         if (!this.classList.contains("data-static")) this.classList.add("data-static");
         if (typeof this.hasAttribute !== "function" || !this.hasAttribute("data-static")) this.makeStatic();
         this._animDone = true;
+        const prevText = this.textContent.trim();
         const drumB = this.querySelector("b");
         if (drumB) drumB.remove();
         const pfx = this.querySelector(".ui-pfx");
@@ -2974,8 +3127,9 @@ var DxType = (() => {
         const innerDxS = this.querySelector(":scope > :is(dx-s, t-s)");
         if (innerDxS) {
           this.textContent = innerDxS.textContent || "";
-        } else if (!this.textContent.trim() && typeof this.getStaticHTML === "function") {
-          this.innerHTML = this.getStaticHTML();
+        } else {
+          const staticHtml = typeof this.getStaticHTML === "function" ? this.getStaticHTML() : "";
+          this.innerHTML = staticHtml || prevText;
         }
         const twEmbed2 = this.classList.contains("tw-embed") || !!this.closest(TYPE_PARENT_SEL2);
         if (twEmbed2) {

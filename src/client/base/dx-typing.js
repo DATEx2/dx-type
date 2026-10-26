@@ -22,6 +22,103 @@ export function getTypewriterObserver(win) {
     return getIO(win);
 }
 
+// ─── Google Translate Protection Guard during Typewriter Animation ───────────
+// Prevents Google Translate from injecting <font> tags or mutating text nodes
+// before and during typing animation (guaranteeing 0px CLS in original language).
+// Unlocked exclusively inside cleanupTypedDOM() after <dx-t> is removed.
+export function lockTypewriterGoogleTranslate(el) {
+    if (!el || (el.classList && typeof el.classList.contains === 'function' && el.classList.contains(DX_ANIM.TYPED))) return;
+    if (typeof el.setAttribute === 'function' && !el.hasAttribute('translate')) {
+        el.setAttribute('translate', 'no');
+    }
+    if (typeof el.classList?.add === 'function' && !el.classList.contains('notranslate')) {
+        el.classList.add('notranslate');
+    }
+    const sLayer = typeof el.querySelector === 'function' ? el.querySelector(':scope > :is(dx-s, t-s, s-t)') : null;
+    if (sLayer) {
+        if (typeof sLayer.setAttribute === 'function' && !sLayer.hasAttribute('translate')) {
+            sLayer.setAttribute('translate', 'no');
+        }
+        if (typeof sLayer.classList?.add === 'function' && !sLayer.classList.contains('notranslate')) {
+            sLayer.classList.add('notranslate');
+        }
+    }
+}
+
+const ATOMIC_NOTRANSLATE_TAGS = new Set([
+    'DX-ODOMETER', 'UI-ODOMETER', 'DX-NUMBER', 'UI-NUMBER',
+    'DX-COUNTER', 'UI-COUNTER', 'DX-N', 'DX-C', 'G', 'CODE', 'KBD', 'SAMP', 'VAR'
+]);
+
+function protectBoundarySpacesForGoogleTranslate(container) {
+    if (!container || !container.childNodes) return;
+    const doc = container.ownerDocument || (typeof document !== 'undefined' ? document : null);
+    if (!doc) return;
+
+    const children = Array.from(container.childNodes);
+    for (let i = 0; i < children.length; i++) {
+        const node = children[i];
+        if (node.nodeType === 1) {
+            const tag = (node.tagName || '').toUpperCase();
+            if (ATOMIC_NOTRANSLATE_TAGS.has(tag) || node.getAttribute?.('translate') === 'no' || node.classList?.contains('notranslate')) {
+                if (typeof node.setAttribute === 'function' && !node.hasAttribute('translate')) {
+                    node.setAttribute('translate', 'no');
+                }
+                if (node.classList && !node.classList.contains('notranslate')) {
+                    node.classList.add('notranslate');
+                }
+            } else {
+                protectBoundarySpacesForGoogleTranslate(node);
+            }
+        } else if (node.nodeType === 3) {
+            const text = node.nodeValue || '';
+            if (!text || !/\S/.test(text)) continue;
+
+            const prevEl = node.previousSibling && node.previousSibling.nodeType === 1 ? node.previousSibling : null;
+            const nextEl = node.nextSibling && node.nextSibling.nodeType === 1 ? node.nextSibling : null;
+            const hasPrevEl = !!(prevEl && !prevEl.classList?.contains('dx-gt-sp'));
+            const hasNextEl = !!(nextEl && !nextEl.classList?.contains('dx-gt-sp'));
+            const leadMatch = hasPrevEl ? text.match(/^[ \t\u00A0]+/) : null;
+            const trailMatch = hasNextEl ? text.match(/[ \t\u00A0]+$/) : null;
+
+            if (!leadMatch && !trailMatch) continue;
+
+            const leadLen = leadMatch ? leadMatch[0].length : 0;
+            const trailLen = trailMatch ? trailMatch[0].length : 0;
+            if (leadLen + trailLen >= text.length) continue;
+
+            node.nodeValue = text.slice(leadLen, text.length - trailLen);
+
+            if (leadLen > 0) {
+                const sp = doc.createElement('span');
+                sp.className = 'dx-gt-sp notranslate';
+                sp.setAttribute('translate', 'no');
+                sp.textContent = ' ';
+                container.insertBefore(sp, node);
+            }
+            if (trailLen > 0) {
+                const sp = doc.createElement('span');
+                sp.className = 'dx-gt-sp notranslate';
+                sp.setAttribute('translate', 'no');
+                sp.textContent = ' ';
+                container.insertBefore(sp, node.nextSibling);
+            }
+        }
+    }
+}
+
+export function unlockTypewriterGoogleTranslate(el) {
+    if (!el) return;
+    if (typeof el.removeAttribute === 'function') el.removeAttribute('translate');
+    if (typeof el.classList?.remove === 'function') el.classList.remove('notranslate');
+    const sLayer = typeof el.querySelector === 'function' ? el.querySelector(':scope > :is(dx-s, t-s, s-t)') : null;
+    if (sLayer) {
+        protectBoundarySpacesForGoogleTranslate(sLayer);
+        if (typeof sLayer.removeAttribute === 'function') sLayer.removeAttribute('translate');
+        if (typeof sLayer.classList?.remove === 'function') sLayer.classList.remove('notranslate');
+    }
+}
+
 // ─── Build <dx-t> layer from <dx-s> using w="..." bytecode + childNodes tree walk ─
 export function buildTypingLayer(ts, delay, offset, speed) {
     let tHtml = '';
@@ -169,6 +266,8 @@ export function prepareTemplateContent(el) {
     const elTag = (el.tagName || '').toUpperCase();
     if (elTag === 'DX-REVEAL-SDA' || elTag === 'UI-REVEAL-SDA' || elTag === 'DX-REVEAL' || elTag === 'UI-REVEAL') return false;
 
+    lockTypewriterGoogleTranslate(el);
+
     const tpl = el.querySelector(':scope > template');
 
     // ─── Bytecode path: only if NO <template> exists on element ───
@@ -190,6 +289,8 @@ export function prepareTemplateContent(el) {
                 if (doc) {
                     const tLayer = doc.createElement('dx-t');
                     tLayer.setAttribute('aria-hidden', 'true');
+                    tLayer.setAttribute('translate', 'no');
+                    tLayer.classList.add('notranslate');
                     tLayer.innerHTML = tHtml;
 
                     // Mark data-last on final <dx-c>
@@ -261,6 +362,8 @@ export function prepareTemplateContent(el) {
     }
 
     if (tLayer) {
+        if (typeof tLayer.setAttribute === 'function') tLayer.setAttribute('translate', 'no');
+        if (typeof tLayer.classList?.add === 'function') tLayer.classList.add('notranslate');
         const hasExistingC = tLayer.querySelector(':is(dx-c, t-c)');
         if (!hasExistingC) {
             const nodes = tLayer.childNodes;
@@ -391,6 +494,8 @@ export function unpackTemplate(el) {
         return false;
     }
 
+    lockTypewriterGoogleTranslate(el);
+
     if (el._unpacked && el._tLayer && el._tLayer.parentNode === el) {
         return true;
     }
@@ -411,6 +516,8 @@ export function unpackTemplate(el) {
         const tt = el.querySelector(':scope > :is(dx-t, t-t, t)');
         if (tt) {
             tt.setAttribute('aria-hidden', 'true');
+            tt.setAttribute('translate', 'no');
+            if (tt.classList) tt.classList.add('notranslate');
             el._tLayer = tt;
             el._unpacked = true;
             attachLayerStopStorm(tt);
@@ -446,6 +553,8 @@ export function unpackTemplate(el) {
         const tt = el.querySelector(':scope > :is(dx-t, t-t, t)');
         if (tt) {
             tt.setAttribute('aria-hidden', 'true');
+            tt.setAttribute('translate', 'no');
+            if (tt.classList) tt.classList.add('notranslate');
             el._tLayer = tt;
             el._unpacked = true;
             attachLayerStopStorm(tt);
@@ -470,6 +579,8 @@ export function unpackTemplate(el) {
             if (raw) el.setAttribute('aria-label', raw);
         }
         directTt.setAttribute('aria-hidden', 'true');
+        directTt.setAttribute('translate', 'no');
+        if (directTt.classList) directTt.classList.add('notranslate');
         el._tLayer = directTt;
         el._unpacked = true;
         attachLayerStopStorm(directTt);
@@ -558,6 +669,7 @@ export function syncSectionHeaderTyping(el) {
 export function observeTypewriter(el) {
     if (!el) return;
     if (el.classList && el.classList.contains(DX_ANIM.TYPED)) return;
+    lockTypewriterGoogleTranslate(el);
 
     // Stage 1: Preemptive Lookahead Unpack (+500px off-the-scroll in background on idle)
     observeLookaheadIO(el, (targetEl) => {
@@ -678,10 +790,8 @@ export function cleanupTypedDOM(typeEl) {
         // Specific odometer drum cleanup: DO NOT strip .ui-sfx from live DxNumber / DxCounter
         const isOdo = m.tagName === 'DX-ODOMETER' || m.tagName === 'UI-ODOMETER';
         if (isOdo) {
-            const innerDxS = m.querySelector ? m.querySelector(':scope > :is(dx-s, t-s, s-t)') : null;
-            if (innerDxS) {
-                m.textContent = innerDxS.textContent || '';
-            } else if (m.querySelector && (m.querySelector('b') || m.querySelector('.ui-sfx'))) {
+            const prevText = m.textContent.trim();
+            if (m.querySelector && (m.querySelector('b') || m.querySelector('.ui-sfx'))) {
                 const drumB = m.querySelector('b');
                 if (drumB) drumB.remove();
                 const sfx = m.querySelector('.ui-sfx');
@@ -689,8 +799,12 @@ export function cleanupTypedDOM(typeEl) {
                 const pfx = m.querySelector('.ui-pfx');
                 if (pfx) pfx.remove();
             }
-            if (typeof m.getStaticHTML === 'function' && !m.textContent.trim()) {
-                m.innerHTML = m.getStaticHTML();
+            const innerDxS = m.querySelector ? m.querySelector(':scope > :is(dx-s, t-s, s-t)') : null;
+            if (innerDxS) {
+                m.textContent = innerDxS.textContent || '';
+            } else {
+                const staticHtml = (typeof m.getStaticHTML === 'function') ? m.getStaticHTML() : '';
+                m.innerHTML = staticHtml || prevText;
             }
         }
     }
@@ -698,6 +812,7 @@ export function cleanupTypedDOM(typeEl) {
     const heroBtn = typeEl.closest?.('button');
     if (heroBtn) heroBtn.classList.add(DX_ANIM.TYPED, 'is-typed');
     typeEl.removeAttribute('aria-label');
+    unlockTypewriterGoogleTranslate(typeEl);
 }
 
 // ─── onTypewriterEnd — called when last <dx-c> finishes animating or odometer completes ───
@@ -834,6 +949,7 @@ export class DxTyping extends DxBase {
         this._preparedTLayer = null;
         this._charDone = false;
         this._lastC = null;
+        lockTypewriterGoogleTranslate(this);
         const existingTt = this.querySelector(':scope > :is(dx-t, t-t, t)');
         if (existingTt) existingTt.remove();
         unpackTemplate(this);
@@ -848,6 +964,7 @@ export class DxTyping extends DxBase {
         this._preparedTLayer = null;
         this._charDone = false;
         this._lastC = null;
+        lockTypewriterGoogleTranslate(this);
         const existingTt = this.querySelector(':scope > :is(dx-t, t-t, t)');
         if (existingTt) existingTt.remove();
     }

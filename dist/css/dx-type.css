@@ -108,9 +108,9 @@ dx-type-sda {
     filter: none !important;
     -webkit-filter: none !important;
     box-shadow: none !important;
-    & :is(dx-w, dx-c, dx-odometer, ui-odometer, b, strong, span, a, i, em, mark, i.c-ui-num),
-    & :is(dx-w, dx-c, dx-odometer, ui-odometer, b, strong, span, a, i, em, mark, i.c-ui-num)::before,
-    & :is(dx-w, dx-c, dx-odometer, ui-odometer, b, strong, span, a, i, em, mark, i.c-ui-num)::after {
+    & :is(dx-w, dx-c, dx-odometer, ui-odometer, b, strong, span, a, i, em, mark, font, i.c-ui-num),
+    & :is(dx-w, dx-c, dx-odometer, ui-odometer, b, strong, span, a, i, em, mark, font, i.c-ui-num)::before,
+    & :is(dx-w, dx-c, dx-odometer, ui-odometer, b, strong, span, a, i, em, mark, font, i.c-ui-num)::after {
       color: transparent !important;
       -webkit-text-fill-color: transparent !important;
       text-shadow: none !important;
@@ -215,7 +215,7 @@ dx-reveal-sda {
 dx-odometer,
 ui-odometer {
   & dx-s,
-  & dx-s :is(dx-w, dx-c, b, strong, span, a, i, em, mark, i.c-ui-num) {
+  & dx-s :is(dx-w, dx-c, b, strong, span, a, i, em, mark, font, i.c-ui-num) {
     color: inherit !important;
     -webkit-text-fill-color: currentColor !important;
     opacity: 1 !important;
@@ -456,14 +456,14 @@ dx-number {
 :is(html[dir=rtl], [dir=rtl], html[lang|=ar], :lang(ar)) :is(dx-t, dx-type > dx-t, dx-type-sda > dx-t) :is(dx-w, s) > dx-c:not(.c-ui-num) {
   display: inline !important;
 }
-:is(html[dir=rtl], [dir=rtl], html[lang|=ar], :lang(ar)) :is(dx-type, dx-type-sda) g,
-:is(html[dir=rtl], [dir=rtl], html[lang|=ar], :lang(ar)) :is(dx-odometer, ui-odometer, dx-number, ui-number, dx-counter, ui-counter) {
+:is(html[dir=rtl], [dir=rtl], html[lang|=ar], :lang(ar)) :is(dx-odometer, ui-odometer, dx-number, ui-number, dx-counter, ui-counter),
+:is(html[dir=rtl], [dir=rtl], html[lang|=ar], :lang(ar)) :is(dx-type, dx-type-sda) g {
   direction: ltr !important;
   unicode-bidi: isolate !important;
 }
 :is(dx-s, s-t, dx-type > dx-s, dx-type-sda > dx-s) {
   &,
-  & :is(dx-w, dx-c, dx-odometer, ui-odometer, b, strong, span, a, i, em, mark, i.c-ui-num) {
+  & :is(dx-w, dx-c, dx-odometer, ui-odometer, b, strong, span, a, i, em, mark, font, i.c-ui-num) {
     will-change: auto !important;
     backface-visibility: visible !important;
     -webkit-backface-visibility: visible !important;
@@ -639,19 +639,19 @@ dx-odometer.data-static,
   contain: style !important;
 }
 dx-odometer.data-static dx-d::before,
-dx-odometer.data-static b,
-dx-odometer.data-static :is(.ui-pfx, .ui-sfx) {
+.dx-typed dx-odometer dx-d::before {
   animation: none !important;
   will-change: auto !important;
   transform: translateY(var(--p, 0%));
+  content: none !important;
   display: none !important;
 }
-.dx-typed dx-odometer dx-d::before,
-.dx-typed dx-odometer b,
-.dx-typed dx-odometer :is(.ui-pfx, .ui-sfx) {
+dx-odometer.data-static > dx-s ~ b,
+dx-odometer.data-static > dx-s ~ :is(.ui-pfx, .ui-sfx),
+.dx-typed dx-odometer > dx-s ~ b,
+.dx-typed dx-odometer > dx-s ~ :is(.ui-pfx, .ui-sfx) {
   animation: none !important;
   will-change: auto !important;
-  transform: translateY(var(--p, 0%));
   display: none !important;
 }
 dx-odometer.data-static dx-s,
@@ -686,6 +686,11 @@ dx-odometer.data-static dx-s,
 :is(html[dir=rtl], [dir=rtl], html[lang|=ar], :lang(ar)) :is(dx-type-sda, dx-type, .dx-typed).dx-typed :is(dx-w, w, s, dx-type-sda dx-w, dx-type-sda s, dx-type dx-w, dx-type s) > :is(dx-c, span, b, strong, a, i, em, mark) {
   display: inline !important;
 }
+:is(html[dir=rtl], [dir=rtl], html[lang|=ar], :lang(ar)) :is(dx-odometer, ui-odometer, dx-number, ui-number, dx-counter, ui-counter),
+:is(html[dir=rtl], [dir=rtl], html[lang|=ar], :lang(ar)) :is(dx-type, dx-type-sda) g {
+  direction: ltr !important;
+  unicode-bidi: isolate !important;
+}
 :is(dx-type-sda, dx-type, .dx-typed).dx-typed dx-check {
   animation: none !important;
   animation-timeline: none !important;
@@ -713,7 +718,7 @@ dx-odometer.data-static dx-s,
 }
 @media (prefers-reduced-motion: reduce) {
   :is(dx-type, dx-type-sda).dx-typed > dx-s,
-  :is(dx-type, dx-type-sda).dx-typed > dx-s :is(dx-w, dx-c, dx-odometer, ui-odometer, b, strong, span, a, i, em, mark, i.c-ui-num) {
+  :is(dx-type, dx-type-sda).dx-typed > dx-s :is(dx-w, dx-c, dx-odometer, ui-odometer, b, strong, span, a, i, em, mark, font, i.c-ui-num) {
     color: inherit !important;
     -webkit-text-fill-color: currentColor !important;
     opacity: 1 !important;
