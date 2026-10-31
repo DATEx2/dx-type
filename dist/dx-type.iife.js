@@ -3428,9 +3428,7 @@ var DxType = (() => {
       } else if (this.hasAttribute && this.hasAttribute("start") && this.getAttribute("start") !== "") {
         const startVal = parseFloat(this.getAttribute("start")) || 0;
         this._value = startVal;
-        if (typeof navigator === "undefined" || /jsdom/i.test(navigator.userAgent || "")) {
-          this._updateCounterVars(startVal);
-        }
+        this._updateCounterVars(startVal);
       }
       super.init();
     }
