@@ -435,6 +435,7 @@ dx-number {
 
     & :is(.ui-pad, .ui-pfx-pad, .dx-pad, .dx-pfx-pad) {
         display: inline !important;
+        float: right !important;
         visibility: hidden !important;
         opacity: 0 !important;
         pointer-events: none !important;

@@ -55,6 +55,14 @@ function protectBoundarySpacesForGoogleTranslate(container) {
     const doc = container.ownerDocument || (typeof document !== 'undefined' ? document : null);
     if (!doc) return;
 
+    const isGoogleTranslateActive = Boolean(
+        doc.documentElement && (
+            doc.documentElement.classList?.contains('translated-ltr') ||
+            doc.documentElement.classList?.contains('translated-rtl') ||
+            (typeof doc.querySelector === 'function' && doc.querySelector('.goog-te-banner-frame, #goog-gt-tt, font[style*="vertical-align"]'))
+        )
+    );
+
     const children = Array.from(container.childNodes);
     for (let i = 0; i < children.length; i++) {
         const node = children[i];
@@ -70,7 +78,7 @@ function protectBoundarySpacesForGoogleTranslate(container) {
             } else {
                 protectBoundarySpacesForGoogleTranslate(node);
             }
-        } else if (node.nodeType === 3) {
+        } else if (node.nodeType === 3 && isGoogleTranslateActive) {
             const text = node.nodeValue || '';
             if (!text || !/\S/.test(text)) continue;
 
@@ -341,6 +349,84 @@ export function prepareTemplateContent(el) {
                 }
             }
         }
+
+        // Dynamic client fallback: element with raw text / no w bytecode
+        let rawTs = el.querySelector(':scope > :is(dx-s, t-s, s-t)');
+        if (!rawTs && !el.querySelector(':scope > :is(dx-t, t-t, t)')) {
+            const rawContent = (el.textContent || '').trim();
+            if (rawContent) {
+                const doc = el.ownerDocument || (typeof document !== 'undefined' ? document : null);
+                if (doc) {
+                    rawTs = doc.createElement('dx-s');
+                    rawTs.setAttribute('translate', 'no');
+                    rawTs.classList.add('notranslate');
+                    while (el.firstChild) {
+                        rawTs.appendChild(el.firstChild);
+                    }
+                    el.appendChild(rawTs);
+                }
+            }
+        }
+
+        if (rawTs && !rawTs.hasAttribute('w') && !el.querySelector(':scope > :is(dx-t, t-t, t)')) {
+            const style = el.getAttribute('style') || '';
+            const dMatch = style.match(/--d:([\d.]+)/);
+            const bMatch = style.match(/--b:([\d.]+)/);
+            const uMatch = style.match(/--u:([\d.]+)/);
+            const tMatch = style.match(/--t:([\d.]+)/);
+            const delay = dMatch ? parseFloat(dMatch[1]) : (parseFloat(el.getAttribute('delay') || el.getAttribute('d')) || 0);
+            const offset = bMatch ? parseFloat(bMatch[1]) : 0;
+            const textStr = (rawTs.textContent || '').trim();
+            const totalChars = textStr.length;
+            const dur = tMatch ? parseFloat(tMatch[1]) : (parseFloat(el.getAttribute('duration') || el.getAttribute('t')) || Math.min(800, Math.max(300, Math.round(totalChars * 30))));
+            const speed = uMatch ? parseFloat(uMatch[1]) : (totalChars > 0 ? (dur / (totalChars + 2)) : 35);
+
+            el.style.setProperty('--d', String(Math.round(delay)));
+            el.style.setProperty('--t', Math.round(dur) + 'ms');
+            el.style.setProperty('--u', speed.toFixed(3) + 'ms');
+            el.style.setProperty('--a', String(totalChars + 2));
+
+            const words = textStr.split(/( +)/);
+            let tHtml = '';
+            let charIdx = 0;
+            for (let w = 0; w < words.length; w++) {
+                const word = words[w];
+                if (!word) continue;
+                if (/^ +$/.test(word)) {
+                    tHtml += word;
+                    charIdx += word.length;
+                } else {
+                    tHtml += '<dx-w>';
+                    const chars = [...word];
+                    for (let c = 0; c < chars.length; c++) {
+                        const ch = chars[c];
+                        const exactDelay = Math.round(delay + (offset + charIdx) * speed);
+                        charIdx++;
+                        const esc = ch === '&' ? '&amp;' : ch === '<' ? '&lt;' : ch === '>' ? '&gt;' : ch;
+                        tHtml += '<dx-c style="animation-delay:' + exactDelay + 'ms">' + esc + '</dx-c>';
+                    }
+                    tHtml += '</dx-w>';
+                }
+            }
+
+            const doc = el.ownerDocument || (typeof document !== 'undefined' ? document : null);
+            if (doc && tHtml) {
+                const tLayer = doc.createElement('dx-t');
+                tLayer.setAttribute('aria-hidden', 'true');
+                tLayer.setAttribute('translate', 'no');
+                tLayer.classList.add('notranslate');
+                tLayer.innerHTML = tHtml;
+
+                const allTC = tLayer.querySelectorAll('dx-c');
+                if (allTC.length > 0) {
+                    const lastTC = allTC[allTC.length - 1];
+                    lastTC.setAttribute('data-last', 'true');
+                    lastTC.classList.add('last-char');
+                }
+                el._preparedTLayer = tLayer;
+                return true;
+            }
+        }
     }
 
     // ─── Path: <template> with pre-built <dx-t> content ───
@@ -532,9 +618,8 @@ export function unpackTemplate(el) {
         return true;
     }
 
-    // Fallback path: w="..." bytecode (no template, dx-t created by prepareTemplateContent)
-    const tsWithW = el.querySelector(':scope > :is(dx-s, t-s, s-t)[w]');
-    if (tsWithW && !el.querySelector(':scope > :is(dx-t, t-t, t)')) {
+    // Fallback path: w="..." bytecode or dynamic raw text / _preparedTLayer (no template)
+    if (!el.querySelector(':scope > :is(dx-t, t-t, t)')) {
         if (!el._preparedTLayer) {
             prepareTemplateContent(el);
         }
@@ -790,21 +875,24 @@ export function cleanupTypedDOM(typeEl) {
         // Specific odometer drum cleanup: DO NOT strip .ui-sfx from live DxNumber / DxCounter
         const isOdo = m.tagName === 'DX-ODOMETER' || m.tagName === 'UI-ODOMETER';
         if (isOdo) {
-            const prevText = m.textContent.trim();
-            if (m.querySelector && (m.querySelector('b') || m.querySelector('.ui-sfx'))) {
-                const drumB = m.querySelector('b');
-                if (drumB) drumB.remove();
-                const sfx = m.querySelector('.ui-sfx');
-                if (sfx) sfx.remove();
-                const pfx = m.querySelector('.ui-pfx');
-                if (pfx) pfx.remove();
-            }
+            const hasDrumOrAffix = Boolean(m.querySelector && (m.querySelector('b') || m.querySelector('.ui-sfx') || m.querySelector('.ui-pfx')));
             const innerDxS = m.querySelector ? m.querySelector(':scope > :is(dx-s, t-s, s-t)') : null;
-            if (innerDxS) {
-                m.textContent = innerDxS.textContent || '';
-            } else {
-                const staticHtml = (typeof m.getStaticHTML === 'function') ? m.getStaticHTML() : '';
-                m.innerHTML = staticHtml || prevText;
+            if (hasDrumOrAffix || innerDxS) {
+                const prevText = m.textContent.trim();
+                if (hasDrumOrAffix) {
+                    const drumB = m.querySelector('b');
+                    if (drumB) drumB.remove();
+                    const sfx = m.querySelector('.ui-sfx');
+                    if (sfx) sfx.remove();
+                    const pfx = m.querySelector('.ui-pfx');
+                    if (pfx) pfx.remove();
+                }
+                if (innerDxS) {
+                    m.textContent = innerDxS.textContent || '';
+                } else {
+                    const staticHtml = (typeof m.getStaticHTML === 'function') ? m.getStaticHTML() : '';
+                    m.innerHTML = staticHtml || prevText;
+                }
             }
         }
     }

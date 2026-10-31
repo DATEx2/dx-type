@@ -34,7 +34,10 @@
 
 dx-counter,
 :host(dx-counter) {
-    display: inline-block !important;
+    display: inline-grid !important;
+    grid-template-columns: 1fr !important;
+    grid-template-rows: 1fr !important;
+    align-items: baseline !important;
     vertical-align: baseline !important;
     position: relative !important;
     contain: layout style !important;
@@ -75,19 +78,28 @@ dx-counter,
     animation: dxc-trigger 1ms linear var(--d, 467ms) both !important;
 }
 
-/* <dx-s> is ALWAYS invisible visually, but preserved in DOM for SEO, screen readers and Ctrl+F */
-dx-counter > dx-s,
-dx-counter > dx-s * {
-    display: none !important;
-    position: absolute !important;
-    width: 0 !important;
-    height: 0 !important;
+/* <dx-s> is ALWAYS invisible visually, but preserved in DOM for SEO, screen readers, Ctrl+F, and 0px CLS width reservation */
+dx-counter > dx-s {
+    grid-column: 1 !important;
+    grid-row: 1 !important;
+    display: inline-block !important;
+    position: relative !important;
+    width: auto !important;
+    height: auto !important;
     padding: 0 !important;
     margin: 0 !important;
-    overflow: hidden !important;
-    clip: rect(0, 0, 0, 0) !important;
+    visibility: hidden !important;
     white-space: nowrap !important;
     border: 0 !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+    user-select: none !important;
+    color: transparent !important;
+    -webkit-text-fill-color: transparent !important;
+}
+
+dx-counter > dx-s * {
+    visibility: hidden !important;
     opacity: 0 !important;
     pointer-events: none !important;
     color: transparent !important;
@@ -96,7 +108,10 @@ dx-counter > dx-s * {
 
 /* .dx-num-wrap is ALWAYS the visible element */
 dx-counter > .dx-num-wrap {
+    grid-column: 1 !important;
+    grid-row: 1 !important;
     display: inline-flex !important;
+    width: 100% !important;
     position: relative !important;
     z-index: 1 !important;
     align-items: baseline !important;
@@ -114,6 +129,10 @@ dx-counter .dx-pfx,
 dx-counter .dx-sfx {
     color: inherit !important;
     -webkit-text-fill-color: currentColor !important;
+}
+
+dx-counter .dx-sfx {
+    margin-left: auto !important;
 }
 
 /* Grupul Miliardelor (b) */

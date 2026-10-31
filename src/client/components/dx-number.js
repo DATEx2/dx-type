@@ -97,6 +97,18 @@ export class DxNumber extends DxMeter {
         }, 0);
     }
 
+    formatValue(val) {
+        const str = super.formatValue(val);
+        if (this._minDigits > 1) {
+            const p = parseNumParts(str);
+            if (p.digits && p.digits.length < this._minDigits) {
+                const padded = p.digits.padStart(this._minDigits, '0');
+                return `${p.pfx}${p.pfxSpace}${padded}${p.radix}${p.decimals}${p.sfxSpace}${p.sfx}`;
+            }
+        }
+        return str;
+    }
+
     getStaticHTML() {
         const valAttr = this.getAttribute('percent') || this.getAttribute('value') || this.textContent;
         const numericValue = parseFloat(valAttr);
@@ -220,6 +232,13 @@ export class DxNumber extends DxMeter {
             ? this._targetValue
             : (parseFloat(this.getAttribute('percent')) || this.getNumericValue() || 0);
         this._targetValue = targetVal;
+
+        if (!this._minDigits && this.textContent) {
+            const initParts = parseNumParts(this.textContent);
+            if (initParts.digits && initParts.digits.length > 1 && initParts.digits.startsWith('0')) {
+                this._minDigits = initParts.digits.length;
+            }
+        }
 
         const hasSsr = typeof this.querySelector === 'function' && Boolean(this.querySelector('.ui-num, .dx-num-wrap'));
         const parentChar = typeof this.closest === 'function' ? this.closest('dx-c') : null;

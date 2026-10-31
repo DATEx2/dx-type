@@ -922,6 +922,9 @@ function protectBoundarySpacesForGoogleTranslate(container) {
   if (!container || !container.childNodes) return;
   const doc = container.ownerDocument || (typeof document !== "undefined" ? document : null);
   if (!doc) return;
+  const isGoogleTranslateActive = Boolean(
+    doc.documentElement && (doc.documentElement.classList?.contains("translated-ltr") || doc.documentElement.classList?.contains("translated-rtl") || typeof doc.querySelector === "function" && doc.querySelector('.goog-te-banner-frame, #goog-gt-tt, font[style*="vertical-align"]'))
+  );
   const children = Array.from(container.childNodes);
   for (let i = 0; i < children.length; i++) {
     const node = children[i];
@@ -937,7 +940,7 @@ function protectBoundarySpacesForGoogleTranslate(container) {
       } else {
         protectBoundarySpacesForGoogleTranslate(node);
       }
-    } else if (node.nodeType === 3) {
+    } else if (node.nodeType === 3 && isGoogleTranslateActive) {
       const text = node.nodeValue || "";
       if (!text || !/\S/.test(text)) continue;
       const prevEl = node.previousSibling && node.previousSibling.nodeType === 1 ? node.previousSibling : null;
@@ -1176,6 +1179,77 @@ function prepareTemplateContent(el2) {
         }
       }
     }
+    let rawTs = el2.querySelector(":scope > :is(dx-s, t-s, s-t)");
+    if (!rawTs && !el2.querySelector(":scope > :is(dx-t, t-t, t)")) {
+      const rawContent = (el2.textContent || "").trim();
+      if (rawContent) {
+        const doc = el2.ownerDocument || (typeof document !== "undefined" ? document : null);
+        if (doc) {
+          rawTs = doc.createElement("dx-s");
+          rawTs.setAttribute("translate", "no");
+          rawTs.classList.add("notranslate");
+          while (el2.firstChild) {
+            rawTs.appendChild(el2.firstChild);
+          }
+          el2.appendChild(rawTs);
+        }
+      }
+    }
+    if (rawTs && !rawTs.hasAttribute("w") && !el2.querySelector(":scope > :is(dx-t, t-t, t)")) {
+      const style = el2.getAttribute("style") || "";
+      const dMatch = style.match(/--d:([\d.]+)/);
+      const bMatch = style.match(/--b:([\d.]+)/);
+      const uMatch = style.match(/--u:([\d.]+)/);
+      const tMatch = style.match(/--t:([\d.]+)/);
+      const delay = dMatch ? parseFloat(dMatch[1]) : parseFloat(el2.getAttribute("delay") || el2.getAttribute("d")) || 0;
+      const offset = bMatch ? parseFloat(bMatch[1]) : 0;
+      const textStr = (rawTs.textContent || "").trim();
+      const totalChars = textStr.length;
+      const dur = tMatch ? parseFloat(tMatch[1]) : parseFloat(el2.getAttribute("duration") || el2.getAttribute("t")) || Math.min(800, Math.max(300, Math.round(totalChars * 30)));
+      const speed = uMatch ? parseFloat(uMatch[1]) : totalChars > 0 ? dur / (totalChars + 2) : 35;
+      el2.style.setProperty("--d", String(Math.round(delay)));
+      el2.style.setProperty("--t", Math.round(dur) + "ms");
+      el2.style.setProperty("--u", speed.toFixed(3) + "ms");
+      el2.style.setProperty("--a", String(totalChars + 2));
+      const words = textStr.split(/( +)/);
+      let tHtml = "";
+      let charIdx = 0;
+      for (let w = 0; w < words.length; w++) {
+        const word = words[w];
+        if (!word) continue;
+        if (/^ +$/.test(word)) {
+          tHtml += word;
+          charIdx += word.length;
+        } else {
+          tHtml += "<dx-w>";
+          const chars = [...word];
+          for (let c = 0; c < chars.length; c++) {
+            const ch = chars[c];
+            const exactDelay = Math.round(delay + (offset + charIdx) * speed);
+            charIdx++;
+            const esc = ch === "&" ? "&amp;" : ch === "<" ? "&lt;" : ch === ">" ? "&gt;" : ch;
+            tHtml += '<dx-c style="animation-delay:' + exactDelay + 'ms">' + esc + "</dx-c>";
+          }
+          tHtml += "</dx-w>";
+        }
+      }
+      const doc = el2.ownerDocument || (typeof document !== "undefined" ? document : null);
+      if (doc && tHtml) {
+        const tLayer2 = doc.createElement("dx-t");
+        tLayer2.setAttribute("aria-hidden", "true");
+        tLayer2.setAttribute("translate", "no");
+        tLayer2.classList.add("notranslate");
+        tLayer2.innerHTML = tHtml;
+        const allTC = tLayer2.querySelectorAll("dx-c");
+        if (allTC.length > 0) {
+          const lastTC = allTC[allTC.length - 1];
+          lastTC.setAttribute("data-last", "true");
+          lastTC.classList.add("last-char");
+        }
+        el2._preparedTLayer = tLayer2;
+        return true;
+      }
+    }
   }
   if (!tpl || !tpl.content) return false;
   if (tpl._prepared) return true;
@@ -1348,8 +1422,7 @@ function unpackTemplate(el2) {
     }
     return true;
   }
-  const tsWithW = el2.querySelector(":scope > :is(dx-s, t-s, s-t)[w]");
-  if (tsWithW && !el2.querySelector(":scope > :is(dx-t, t-t, t)")) {
+  if (!el2.querySelector(":scope > :is(dx-t, t-t, t)")) {
     if (!el2._preparedTLayer) {
       prepareTemplateContent(el2);
     }
@@ -1568,21 +1641,24 @@ function cleanupTypedDOM(typeEl) {
     }
     const isOdo = m.tagName === "DX-ODOMETER" || m.tagName === "UI-ODOMETER";
     if (isOdo) {
-      const prevText = m.textContent.trim();
-      if (m.querySelector && (m.querySelector("b") || m.querySelector(".ui-sfx"))) {
-        const drumB = m.querySelector("b");
-        if (drumB) drumB.remove();
-        const sfx = m.querySelector(".ui-sfx");
-        if (sfx) sfx.remove();
-        const pfx = m.querySelector(".ui-pfx");
-        if (pfx) pfx.remove();
-      }
+      const hasDrumOrAffix = Boolean(m.querySelector && (m.querySelector("b") || m.querySelector(".ui-sfx") || m.querySelector(".ui-pfx")));
       const innerDxS = m.querySelector ? m.querySelector(":scope > :is(dx-s, t-s, s-t)") : null;
-      if (innerDxS) {
-        m.textContent = innerDxS.textContent || "";
-      } else {
-        const staticHtml = typeof m.getStaticHTML === "function" ? m.getStaticHTML() : "";
-        m.innerHTML = staticHtml || prevText;
+      if (hasDrumOrAffix || innerDxS) {
+        const prevText = m.textContent.trim();
+        if (hasDrumOrAffix) {
+          const drumB = m.querySelector("b");
+          if (drumB) drumB.remove();
+          const sfx = m.querySelector(".ui-sfx");
+          if (sfx) sfx.remove();
+          const pfx = m.querySelector(".ui-pfx");
+          if (pfx) pfx.remove();
+        }
+        if (innerDxS) {
+          m.textContent = innerDxS.textContent || "";
+        } else {
+          const staticHtml = typeof m.getStaticHTML === "function" ? m.getStaticHTML() : "";
+          m.innerHTML = staticHtml || prevText;
+        }
       }
     }
   }
@@ -2472,6 +2548,17 @@ var DxNumber = class extends DxMeter {
       }
     }, 0);
   }
+  formatValue(val) {
+    const str = super.formatValue(val);
+    if (this._minDigits > 1) {
+      const p = parseNumParts(str);
+      if (p.digits && p.digits.length < this._minDigits) {
+        const padded = p.digits.padStart(this._minDigits, "0");
+        return `${p.pfx}${p.pfxSpace}${padded}${p.radix}${p.decimals}${p.sfxSpace}${p.sfx}`;
+      }
+    }
+    return str;
+  }
   getStaticHTML() {
     const valAttr = this.getAttribute("percent") || this.getAttribute("value") || this.textContent;
     const numericValue = parseFloat(valAttr);
@@ -2576,6 +2663,12 @@ var DxNumber = class extends DxMeter {
     const isStatic = this.classList && this.classList.contains("data-static") || this.isStatic || inST;
     const targetVal = this._targetValue !== void 0 && !isNaN(this._targetValue) && this._targetValue !== 0 ? this._targetValue : parseFloat(this.getAttribute("percent")) || this.getNumericValue() || 0;
     this._targetValue = targetVal;
+    if (!this._minDigits && this.textContent) {
+      const initParts = parseNumParts(this.textContent);
+      if (initParts.digits && initParts.digits.length > 1 && initParts.digits.startsWith("0")) {
+        this._minDigits = initParts.digits.length;
+      }
+    }
     const hasSsr = typeof this.querySelector === "function" && Boolean(this.querySelector(".ui-num, .dx-num-wrap"));
     const parentChar = typeof this.closest === "function" ? this.closest("dx-c") : null;
     const parentReveal = typeof this.closest === "function" ? this.closest(REVEAL_PARENT_SEL3) : null;
