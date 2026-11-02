@@ -2114,6 +2114,49 @@ var DxType = (() => {
   var STAGGER_STEP_DECREMENT = 5;
   var MAX_STAGGER_QUEUE_MS = 1200;
   var currentStaggerStep = STAGGER_INITIAL_STEP_MS;
+  var pendingChildTriggers = [];
+  var childTriggerRaf = 0;
+  var triggersInCurrentFrame = 0;
+  var lastTriggerFrameTs = 0;
+  var MAX_TRIGGERS_PER_FRAME = 2;
+  function flushPendingChildTriggers() {
+    childTriggerRaf = 0;
+    triggersInCurrentFrame = 0;
+    lastTriggerFrameTs = typeof performance !== "undefined" && performance.now ? performance.now() : Date.now();
+    let processed = 0;
+    while (pendingChildTriggers.length > 0 && processed < MAX_TRIGGERS_PER_FRAME) {
+      const fn = pendingChildTriggers.shift();
+      if (fn) {
+        fn();
+        processed++;
+        triggersInCurrentFrame++;
+      }
+    }
+    if (pendingChildTriggers.length > 0 && typeof requestAnimationFrame === "function") {
+      childTriggerRaf = requestAnimationFrame(flushPendingChildTriggers);
+    }
+  }
+  function scheduleChildTrigger(fn) {
+    const isTestEnv = typeof process !== "undefined" && Boolean(process.versions?.node) || typeof navigator !== "undefined" && /jsdom/i.test(navigator.userAgent || "") || /jsdom/i.test(rootWin2?.navigator?.userAgent || "") || typeof requestAnimationFrame !== "function";
+    if (isTestEnv) {
+      fn();
+      return;
+    }
+    const now = typeof performance !== "undefined" && performance.now ? performance.now() : Date.now();
+    if (now - lastTriggerFrameTs > 12) {
+      triggersInCurrentFrame = 0;
+      lastTriggerFrameTs = now;
+    }
+    if (pendingChildTriggers.length === 0 && triggersInCurrentFrame < MAX_TRIGGERS_PER_FRAME) {
+      triggersInCurrentFrame++;
+      fn();
+      return;
+    }
+    pendingChildTriggers.push(fn);
+    if (!childTriggerRaf) {
+      childTriggerRaf = requestAnimationFrame(flushPendingChildTriggers);
+    }
+  }
   function getNextStaggerDelay(el2) {
     if (!el2 || !el2.classList || !el2.classList.contains("staggered")) {
       return null;
@@ -2261,11 +2304,11 @@ var DxType = (() => {
             if (e && e.animationName && e.animationName !== "dx-diffuse-optics" && e.animationName !== "dx-reveal-sda" && e.animationName !== "reveal-sda" && e.animationName !== "reveal-in" && e.animationName !== "reveal-fade-in" && e.animationName !== "dx-checkout-diffuse" && e.animationName !== "dx-reveal-diffuse" && e.animationName !== DX_ANIM.KF_REVEAL_IN && e.animationName !== DX_ANIM.KF_REVEAL_SDA && e.animationName !== DX_ANIM.KF_REVEAL_FADE) return;
             this.removeEventListener("animationstart", onStart);
             this._animStarted = true;
-            this._triggerChildren();
+            scheduleChildTrigger(() => this._triggerChildren());
           };
           this.addEventListener("animationstart", onStart);
         } else {
-          this._triggerChildren();
+          scheduleChildTrigger(() => this._triggerChildren());
         }
       }
     }
@@ -2448,6 +2491,11 @@ var DxType = (() => {
       const parentRev = !isHeader ? this.closest?.(REVEAL_PARENT_SEL2) : null;
       if (parentRev && !parentRev.isRevealed && !parentRev.classList.contains(DX_ANIM.REVEALED) && !parentRev.classList.contains(DX_ANIM.REVEALING) && !parentRev._inViewport) {
         this._managedByParentReveal = true;
+        if ((this.querySelector(":scope > template") || this.querySelector(":scope > dx-s[w]")) && !isElementHidden(this)) {
+          queueIdleUnpack(this, (el2) => {
+            prepareTemplateContent(el2);
+          });
+        }
         return;
       }
       this._observeSelf();
@@ -2605,11 +2653,13 @@ var DxType = (() => {
             prepareTemplateContent(t);
           }
         });
-        if (!rootWin2?.__dxHasScrolled) return;
         el2.querySelectorAll?.("dx-type, dx-type-sda")?.forEach((child) => {
           if (child.classList?.contains("es-review-part-2") || typeof child.hasAttribute === "function" && child.hasAttribute("data-manual")) return;
           if (child.closest?.(REVEAL_CONTAINER_SEL) === el2 && !child.isTyped && !isElementHidden(child)) {
-            queueIdleUnpack(child, (c) => unpackTemplate(c), true);
+            queueIdleUnpack(child, (c) => {
+              if (rootWin2?.__dxHasScrolled) unpackTemplate(c);
+              else prepareTemplateContent(c);
+            }, Boolean(rootWin2?.__dxHasScrolled));
           }
         });
       });

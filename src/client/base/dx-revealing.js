@@ -273,11 +273,11 @@ export class DxRevealing extends DxBase {
                         e.animationName !== DX_ANIM.KF_REVEAL_FADE) return;
                     this.removeEventListener('animationstart', onStart);
                     this._animStarted = true;
-                    this._triggerChildren();
+                    scheduleChildTrigger(() => this._triggerChildren());
                 };
                 this.addEventListener('animationstart', onStart);
             } else {
-                this._triggerChildren();
+                scheduleChildTrigger(() => this._triggerChildren());
             }
         }
     }

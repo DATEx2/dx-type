@@ -41,6 +41,11 @@ export class DxTypeSda extends DxTyping {
         const parentRev = !isHeader ? this.closest?.(REVEAL_PARENT_SEL) : null;
         if (parentRev && !parentRev.isRevealed && !parentRev.classList.contains(DX_ANIM.REVEALED) && !parentRev.classList.contains(DX_ANIM.REVEALING) && !parentRev._inViewport) {
             this._managedByParentReveal = true;
+            if ((this.querySelector(':scope > template') || this.querySelector(':scope > dx-s[w]')) && !isElementHidden(this)) {
+                queueIdleUnpack(this, (el) => {
+                    prepareTemplateContent(el);
+                });
+            }
             return;
         }
 

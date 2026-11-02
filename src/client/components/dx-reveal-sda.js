@@ -116,11 +116,13 @@ export class DxRevealSda extends DxRevealing {
                     prepareTemplateContent(t);
                 }
             });
-            if (!rootWin?.__dxHasScrolled) return;
             el.querySelectorAll?.('dx-type, dx-type-sda')?.forEach(child => {
                 if (child.classList?.contains('es-review-part-2') || (typeof child.hasAttribute === 'function' && child.hasAttribute('data-manual'))) return;
                 if (child.closest?.(REVEAL_CONTAINER_SEL) === el && !child.isTyped && !isElementHidden(child)) {
-                    queueIdleUnpack(child, (c) => unpackTemplate(c), true);
+                    queueIdleUnpack(child, (c) => {
+                        if (rootWin?.__dxHasScrolled) unpackTemplate(c);
+                        else prepareTemplateContent(c);
+                    }, Boolean(rootWin?.__dxHasScrolled));
                 }
             });
         });
