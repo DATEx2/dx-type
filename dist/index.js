@@ -1114,7 +1114,7 @@ function buildTypingLayer(ts, delay, offset, speed) {
 }
 function prepareTemplateContent(el2) {
   if (!el2 || typeof el2.querySelector !== "function") return false;
-  if (el2.classList && el2.classList.contains(DX_ANIM.TYPED)) return false;
+  if (el2.classList && el2.classList.contains("dx-typed")) return false;
   const elTag = (el2.tagName || "").toUpperCase();
   if (elTag === "DX-REVEAL-SDA" || elTag === "UI-REVEAL-SDA" || elTag === "DX-REVEAL" || elTag === "UI-REVEAL") return false;
   lockTypewriterGoogleTranslate(el2);
@@ -1677,7 +1677,7 @@ function onTypewriterEnd(cEl, event) {
   if (!cEl) return false;
   const parent = cEl.closest("dx-type-sda, dx-type, .type-sda, .type, .TYPE-, ui-type, ui-type-sda");
   if (parent) {
-    if (parent.classList.contains(DX_ANIM.TYPED)) {
+    if (parent.classList.contains(DX_ANIM.TYPED) || parent.classList.contains("dx-typed")) {
       return false;
     }
     if (parent.querySelector(":scope > template")) return false;
@@ -1749,10 +1749,10 @@ var DxTyping = class extends DxBase {
       this._safetyTimer = null;
     }
     if (this.cls) {
-      this.cls({ [DX_ANIM.TYPING]: 0, [DX_ANIM.TYPED]: 1 });
+      this.cls({ [DX_ANIM.TYPING]: 0, [DX_ANIM.TYPED]: 1, "dx-typing": 0, "dx-typed": 1 });
     } else {
-      this.classList.remove(DX_ANIM.TYPING);
-      this.classList.add(DX_ANIM.TYPED);
+      this.classList.remove(DX_ANIM.TYPING, "dx-typing");
+      this.classList.add(DX_ANIM.TYPED, "dx-typed");
     }
     const heroBtn = this.closest?.("button");
     if (heroBtn) heroBtn.classList.add(DX_ANIM.TYPED, "is-typed");

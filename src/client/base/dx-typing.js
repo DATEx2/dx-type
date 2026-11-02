@@ -270,7 +270,7 @@ export function buildTypingLayer(ts, delay, offset, speed) {
 // ─── Prepare template content strictly inside DocumentFragment (<template>.content) ─────
 export function prepareTemplateContent(el) {
     if (!el || typeof el.querySelector !== 'function') return false;
-    if (el.classList && el.classList.contains(DX_ANIM.TYPED)) return false;
+    if (el.classList && el.classList.contains('dx-typed')) return false;
     const elTag = (el.tagName || '').toUpperCase();
     if (elTag === 'DX-REVEAL-SDA' || elTag === 'UI-REVEAL-SDA' || elTag === 'DX-REVEAL' || elTag === 'UI-REVEAL') return false;
 
@@ -916,7 +916,7 @@ export function onTypewriterEnd(cEl, event) {
     // Find parent: support both dx-* tags and legacy class-based selectors
     const parent = cEl.closest('dx-type-sda, dx-type, .type-sda, .type, .TYPE-, ui-type, ui-type-sda');
     if (parent) {
-        if (parent.classList.contains(DX_ANIM.TYPED)) {
+        if (parent.classList.contains(DX_ANIM.TYPED) || parent.classList.contains('dx-typed')) {
             return false;
         }
         if (parent.querySelector(':scope > template')) return false;
@@ -1006,10 +1006,10 @@ export class DxTyping extends DxBase {
             this._safetyTimer = null;
         }
         if (this.cls) {
-            this.cls({ [DX_ANIM.TYPING]: 0, [DX_ANIM.TYPED]: 1 });
+            this.cls({ [DX_ANIM.TYPING]: 0, [DX_ANIM.TYPED]: 1, 'dx-typing': 0, 'dx-typed': 1 });
         } else {
-            this.classList.remove(DX_ANIM.TYPING);
-            this.classList.add(DX_ANIM.TYPED);
+            this.classList.remove(DX_ANIM.TYPING, 'dx-typing');
+            this.classList.add(DX_ANIM.TYPED, 'dx-typed');
         }
         const heroBtn = this.closest?.('button');
         if (heroBtn) heroBtn.classList.add(DX_ANIM.TYPED, 'is-typed');
