@@ -15,7 +15,7 @@ function formatBytes(bytes) {
 }
 
 async function cleanDist() {
-    rmSync(distDir, { recursive: true, force: true });
+    try { rmSync(distDir, { recursive: true, force: true }); } catch (_) {}
     mkdirSync(distCssDir, { recursive: true });
 }
 

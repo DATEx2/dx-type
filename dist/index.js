@@ -1088,8 +1088,7 @@ function buildTypingLayer(ts, delay, offset, speed) {
   let tHtml = "";
   let charIdx = 0;
   function walk(el2) {
-    const wAttr = el2.getAttribute("w");
-    if (!wAttr) return;
+    const wAttr = (typeof el2.getAttribute === "function" ? el2.getAttribute("w") : null) || "";
     let wi = 0;
     for (const child of el2.childNodes) {
       if (child.nodeType === 3) {

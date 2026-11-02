@@ -47,7 +47,8 @@
     },
     "./css": "./dist/css/dx-type.css",
     "./css/min": "./dist/css/dx-type.min.css",
-    "./css/*": "./dist/css/*.css"
+    "./css/*": "./dist/css/*.css",
+    "./dist/*": "./dist/*"
   },
   "files": [
     "dist/",
