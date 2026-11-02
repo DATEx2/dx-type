@@ -78,4 +78,12 @@ export default function testServerTokenizer() {
     const tMath = tokenize('(𝐃𝐀𝐓𝐄𝐱𝟐, 𝐃𝐀𝐓𝐄𝐱𝟐𝐖𝐃)');
     assert(tMath.cleanText.includes('(DATEx2, DATEx2WD)'), 'Math Unicode characters must normalize in cleanText');
     assert(tMath.html.includes('>\u{1D5D7}</dx-c>'), 'Math Unicode DATE must be substituted by brand glyphs');
+
+    // 10. CJK ideograph word segmentation (0px CLS parity with <dx-s> while preserving ASCII runs)
+    const tCjk = tokenize('DATEx2 FRAMEx1-GOLD 可能是世界上最好的204电动自行车');
+    const cjkWMatches = [...tCjk.html.matchAll(/<dx-w[^>]*>([\s\S]*?)<\/dx-w>/g)].map(m => m[1].replace(/<[^>]+>/g, ''));
+    assert(cjkWMatches[1] === 'FRAMEx1-', 'ASCII hyphenated prefix FRAMEx1- must stay intact');
+    assert(cjkWMatches[2] === 'GOLD', 'ASCII word GOLD must stay intact');
+    assert(cjkWMatches[3] === '可' && cjkWMatches[4] === '能', 'CJK ideographs must be segmented into individual <dx-w> units');
+    assert(cjkWMatches.includes('204'), 'Embedded ASCII number 204 inside CJK phrase must stay intact as a single <dx-w>');
 }

@@ -249,6 +249,55 @@ function wrapHyphenatedWords(html) {
 }
 
 const RTL_CURSIVE_CHAR_RE = /[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\uFB50-\uFDFF\uFE70-\uFEFF]/;
+const CJK_CHAR_RE = /[\u2E80-\u9FFF\uF900-\uFAFF\uFE30-\uFE4F\uFF00-\uFFEF]/;
+const CJK_OPEN_PUNCT_RE = /^[\uFF08\u3010\u300A\u201C\u2018\u300C\u300E\u3014\u3008\u3016\u3018\u301A\uFF5F(]$/;
+const CJK_CLOSE_PUNCT_RE = /^[\uFF0C\u3002\uFF01\uFF1F\u3001\uFF1A\uFF1B\uFF09\u3011\u300B\u201D\u2019\u300D\u300F\u3015\u3009\u3017\u3019\u301B\uFF60.,;:!?)]$/;
+
+function segmentSubWords(part) {
+    if (!CJK_CHAR_RE.test(part)) {
+        return (part.includes('-') && part.length > 1 && !/^-+$/.test(part))
+            ? (part.match(/-*[^-]+-?|-+/g) || [part])
+            : [part];
+    }
+    const chars = [...part];
+    const out = [];
+    let i = 0;
+    while (i < chars.length) {
+        const ch = chars[i];
+        if (CJK_CHAR_RE.test(ch) || CJK_OPEN_PUNCT_RE.test(ch)) {
+            let unit = ch;
+            i++;
+            while (i < chars.length && CJK_OPEN_PUNCT_RE.test(chars[i - 1])) {
+                unit += chars[i++];
+            }
+            if (i > 0 && !CJK_CHAR_RE.test(chars[i - 1])) {
+                while (i < chars.length && !CJK_CHAR_RE.test(chars[i]) && !CJK_OPEN_PUNCT_RE.test(chars[i])) {
+                    unit += chars[i++];
+                }
+            }
+            while (i < chars.length && CJK_CLOSE_PUNCT_RE.test(chars[i])) {
+                unit += chars[i++];
+            }
+            out.push(unit);
+        } else {
+            let run = ch;
+            i++;
+            while (i < chars.length && !CJK_CHAR_RE.test(chars[i]) && !CJK_OPEN_PUNCT_RE.test(chars[i])) {
+                run += chars[i++];
+            }
+            while (i < chars.length && CJK_CLOSE_PUNCT_RE.test(chars[i])) {
+                run += chars[i++];
+            }
+            if (run.includes('-') && run.length > 1 && !/^-+$/.test(run)) {
+                const hyph = run.match(/-*[^-]+-?|-+/g) || [run];
+                for (let h = 0; h < hyph.length; h++) out.push(hyph[h]);
+            } else {
+                out.push(run);
+            }
+        }
+    }
+    return out;
+}
 
 function splitChars(str) {
     return [...str];
@@ -512,9 +561,7 @@ export function tokenize(html, options = {}) {
                         }
                     }
 
-                    const subWords = (part.includes('-') && part.length > 1 && !/^-+$/.test(part))
-                        ? (part.match(/-*[^-]+-?|-+/g) || [part])
-                        : [part];
+                    const subWords = segmentSubWords(part);
 
                     for (let sIdx = 0; sIdx < subWords.length; sIdx++) {
                         const subWord = subWords[sIdx];

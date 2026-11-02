@@ -878,6 +878,108 @@ if (rootWin2) {
 // src/client/base/dx-typing.js
 var DX_CHAR_DURATION = 225;
 var RTL_CURSIVE_CHAR_RE = /[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\uFB50-\uFDFF\uFE70-\uFEFF]/;
+var CJK_CHAR_RE = /[\u2E80-\u9FFF\uF900-\uFAFF\uFE30-\uFE4F\uFF00-\uFFEF]/;
+var CJK_OPEN_PUNCT_RE = /^[\uFF08\u3010\u300A\u201C\u2018\u300C\u300E\u3014\u3008\u3016\u3018\u301A\uFF5F(]$/;
+var CJK_CLOSE_PUNCT_RE = /^[\uFF0C\u3002\uFF01\uFF1F\u3001\uFF1A\uFF1B\uFF09\u3011\u300B\u201D\u2019\u300D\u300F\u3015\u3009\u3017\u3019\u301B\uFF60.,;:!?)]$/;
+function segmentSubWords(part) {
+  if (!CJK_CHAR_RE.test(part)) {
+    return part.includes("-") && part.length > 1 && !/^-+$/.test(part) ? part.match(/-*[^-]+-?|-+/g) || [part] : [part];
+  }
+  const chars = [...part];
+  const out = [];
+  let i = 0;
+  while (i < chars.length) {
+    const ch = chars[i];
+    if (CJK_CHAR_RE.test(ch) || CJK_OPEN_PUNCT_RE.test(ch)) {
+      let unit = ch;
+      i++;
+      while (i < chars.length && CJK_OPEN_PUNCT_RE.test(chars[i - 1])) {
+        unit += chars[i++];
+      }
+      if (i > 0 && !CJK_CHAR_RE.test(chars[i - 1])) {
+        while (i < chars.length && !CJK_CHAR_RE.test(chars[i]) && !CJK_OPEN_PUNCT_RE.test(chars[i])) {
+          unit += chars[i++];
+        }
+      }
+      while (i < chars.length && CJK_CLOSE_PUNCT_RE.test(chars[i])) {
+        unit += chars[i++];
+      }
+      out.push(unit);
+    } else {
+      let run = ch;
+      i++;
+      while (i < chars.length && !CJK_CHAR_RE.test(chars[i]) && !CJK_OPEN_PUNCT_RE.test(chars[i])) {
+        run += chars[i++];
+      }
+      while (i < chars.length && CJK_CLOSE_PUNCT_RE.test(chars[i])) {
+        run += chars[i++];
+      }
+      if (run.includes("-") && run.length > 1 && !/^-+$/.test(run)) {
+        const hyph = run.match(/-*[^-]+-?|-+/g) || [run];
+        for (let h = 0; h < hyph.length; h++) out.push(hyph[h]);
+      } else {
+        out.push(run);
+      }
+    }
+  }
+  return out;
+}
+function splitCjkWordNodes(tLayer) {
+  const doc = tLayer.ownerDocument || (typeof document !== "undefined" ? document : null);
+  if (!doc) return;
+  const wNodes = tLayer.querySelectorAll("dx-w");
+  for (let wIdx = 0; wIdx < wNodes.length; wIdx++) {
+    const w = wNodes[wIdx];
+    const wText = w.textContent || "";
+    if (wText.length <= 1 || !CJK_CHAR_RE.test(wText)) continue;
+    const cs = [];
+    for (let ch = w.firstChild; ch; ch = ch.nextSibling) {
+      if (ch.nodeType === 1) cs.push(ch);
+    }
+    if (cs.length <= 1) continue;
+    const groups = [];
+    let i = 0;
+    while (i < cs.length) {
+      const ch = cs[i].textContent || "";
+      if (CJK_CHAR_RE.test(ch) || CJK_OPEN_PUNCT_RE.test(ch)) {
+        const grp = [cs[i++]];
+        while (i < cs.length && CJK_OPEN_PUNCT_RE.test(grp[grp.length - 1].textContent || "")) {
+          grp.push(cs[i++]);
+        }
+        if (!CJK_CHAR_RE.test(grp[grp.length - 1].textContent || "")) {
+          while (i < cs.length && !CJK_CHAR_RE.test(cs[i].textContent || "") && !CJK_OPEN_PUNCT_RE.test(cs[i].textContent || "")) {
+            grp.push(cs[i++]);
+          }
+        }
+        while (i < cs.length && CJK_CLOSE_PUNCT_RE.test(cs[i].textContent || "")) {
+          grp.push(cs[i++]);
+        }
+        groups.push(grp);
+      } else {
+        const grp = [cs[i++]];
+        while (i < cs.length && !CJK_CHAR_RE.test(cs[i].textContent || "") && !CJK_OPEN_PUNCT_RE.test(cs[i].textContent || "")) {
+          grp.push(cs[i++]);
+        }
+        while (i < cs.length && CJK_CLOSE_PUNCT_RE.test(cs[i].textContent || "")) {
+          grp.push(cs[i++]);
+        }
+        groups.push(grp);
+      }
+    }
+    if (groups.length > 1) {
+      const frag = doc.createDocumentFragment();
+      for (let g = 0; g < groups.length; g++) {
+        const nw = doc.createElement("dx-w");
+        const grp = groups[g];
+        for (let c = 0; c < grp.length; c++) {
+          nw.appendChild(grp[c]);
+        }
+        frag.appendChild(nw);
+      }
+      w.replaceWith(frag);
+    }
+  }
+}
 var HEX_LUT = new Uint8Array(128);
 for (let i = 0; i < 10; i++) HEX_LUT[48 + i] = i;
 for (let i = 0; i < 6; i++) HEX_LUT[65 + i] = 10 + i;
@@ -1026,47 +1128,52 @@ function buildTypingLayer(ts, delay, offset, speed) {
             continue;
           }
           const wClass = hyphen ? ' class="word"' : "";
-          tHtml += `<dx-w${wClass}>`;
           const curWordStr = chars.slice(ci, ci + len).join("");
-          const isDateWord = /^DATE(?:x2)?(?:-|$)/i.test(curWordStr);
-          const isStandardDate = isDateWord && curWordStr.startsWith("DATE");
-          let c = 0;
-          while (c < len && ci < chars.length) {
-            let curCh = chars[ci];
-            if (RTL_CURSIVE_CHAR_RE.test(curCh)) {
-              let run = curCh;
-              let runLen = 1;
-              c++;
-              ci++;
-              while (c < len && ci < chars.length && RTL_CURSIVE_CHAR_RE.test(chars[ci])) {
-                run += chars[ci];
-                runLen++;
+          const subWords = len > 1 && CJK_CHAR_RE.test(curWordStr) ? segmentSubWords(curWordStr) : [curWordStr];
+          for (let sIdx = 0; sIdx < subWords.length; sIdx++) {
+            const subStr = subWords[sIdx];
+            const subLen = [...subStr].length;
+            tHtml += `<dx-w${wClass}>`;
+            const isDateWord = /^DATE(?:x2)?(?:-|$)/i.test(subStr);
+            const isStandardDate = isDateWord && subStr.startsWith("DATE");
+            let c = 0;
+            while (c < subLen && ci < chars.length) {
+              let curCh = chars[ci];
+              if (RTL_CURSIVE_CHAR_RE.test(curCh)) {
+                let run = curCh;
+                let runLen = 1;
                 c++;
                 ci++;
+                while (c < subLen && ci < chars.length && RTL_CURSIVE_CHAR_RE.test(chars[ci])) {
+                  run += chars[ci];
+                  runLen++;
+                  c++;
+                  ci++;
+                }
+                const d2 = Math.round(delay + (offset + charIdx) * speed);
+                charIdx += runLen;
+                tHtml += `<dx-c style="animation-delay:${d2}ms">${run}</dx-c>`;
+                continue;
               }
-              const d2 = Math.round(delay + (offset + charIdx) * speed);
-              charIdx += runLen;
-              tHtml += `<dx-c style="animation-delay:${d2}ms">${run}</dx-c>`;
-              continue;
+              if (isStandardDate && c === 0 && curCh === "D") {
+                curCh = "\u{1D5D7}";
+              } else if (isStandardDate && c === 1 && curCh === "A") {
+                curCh = "\uE004";
+              } else if (isStandardDate && c === 2 && curCh === "T") {
+                curCh = "\uE005";
+              } else if (isStandardDate && c === 3 && curCh === "E") {
+                curCh = "\uE006";
+              } else if (isDateWord && c === 0 && curCh === "D") {
+                curCh = "\u{1D5D7}";
+              }
+              const d = Math.round(delay + (offset + charIdx++) * speed);
+              const cls = curCh === "\xB7" || curCh === "\u2022" ? ' class="bullet-dot"' : "";
+              tHtml += `<dx-c${cls} style="animation-delay:${d}ms">${curCh}</dx-c>`;
+              c++;
+              ci++;
             }
-            if (isStandardDate && c === 0 && curCh === "D") {
-              curCh = "\u{1D5D7}";
-            } else if (isStandardDate && c === 1 && curCh === "A") {
-              curCh = "\uE004";
-            } else if (isStandardDate && c === 2 && curCh === "T") {
-              curCh = "\uE005";
-            } else if (isStandardDate && c === 3 && curCh === "E") {
-              curCh = "\uE006";
-            } else if (isDateWord && c === 0 && curCh === "D") {
-              curCh = "\u{1D5D7}";
-            }
-            const d = Math.round(delay + (offset + charIdx++) * speed);
-            const cls = curCh === "\xB7" || curCh === "\u2022" ? ' class="bullet-dot"' : "";
-            tHtml += `<dx-c${cls} style="animation-delay:${d}ms">${curCh}</dx-c>`;
-            c++;
-            ci++;
+            tHtml += "</dx-w>";
           }
-          tHtml += "</dx-w>";
         }
       } else if (child.nodeType === 1) {
         const tok = wi < wAttr.length ? wAttr[wi++] : " ";
@@ -1221,16 +1328,19 @@ function prepareTemplateContent(el2) {
           tHtml += word;
           charIdx += word.length;
         } else {
-          tHtml += "<dx-w>";
-          const chars = [...word];
-          for (let c = 0; c < chars.length; c++) {
-            const ch = chars[c];
-            const exactDelay = Math.round(delay + (offset + charIdx) * speed);
-            charIdx++;
-            const esc = ch === "&" ? "&amp;" : ch === "<" ? "&lt;" : ch === ">" ? "&gt;" : ch;
-            tHtml += '<dx-c style="animation-delay:' + exactDelay + 'ms">' + esc + "</dx-c>";
+          const subWords = segmentSubWords(word);
+          for (let s = 0; s < subWords.length; s++) {
+            tHtml += "<dx-w>";
+            const chars = [...subWords[s]];
+            for (let c = 0; c < chars.length; c++) {
+              const ch = chars[c];
+              const exactDelay = Math.round(delay + (offset + charIdx) * speed);
+              charIdx++;
+              const esc = ch === "&" ? "&amp;" : ch === "<" ? "&lt;" : ch === ">" ? "&gt;" : ch;
+              tHtml += '<dx-c style="animation-delay:' + exactDelay + 'ms">' + esc + "</dx-c>";
+            }
+            tHtml += "</dx-w>";
           }
-          tHtml += "</dx-w>";
         }
       }
       const doc = el2.ownerDocument || (typeof document !== "undefined" ? document : null);
@@ -1334,6 +1444,9 @@ function prepareTemplateContent(el2) {
           }
         }
       }
+    }
+    if (CJK_CHAR_RE.test(tLayer.textContent || "")) {
+      splitCjkWordNodes(tLayer);
     }
     const odometers = tLayer.querySelectorAll("dx-odometer, ui-odometer");
     for (let i = 0; i < odometers.length; i++) {
@@ -3950,6 +4063,52 @@ function ssrDxOdometer(numericValue, options = {}) {
   return `<dx-odometer${classAttr}${typeAttr} percent="${cleanPercent}"${prefixAttr}${suffixAttr}${commaAttr} aria-label="${ariaLabel}" aria-hidden="true"><dx-s>${formattedText}</dx-s>${ribbonHtml}</dx-odometer>`;
 }
 var RTL_CURSIVE_CHAR_RE2 = /[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\uFB50-\uFDFF\uFE70-\uFEFF]/;
+var CJK_CHAR_RE2 = /[\u2E80-\u9FFF\uF900-\uFAFF\uFE30-\uFE4F\uFF00-\uFFEF]/;
+var CJK_OPEN_PUNCT_RE2 = /^[\uFF08\u3010\u300A\u201C\u2018\u300C\u300E\u3014\u3008\u3016\u3018\u301A\uFF5F(]$/;
+var CJK_CLOSE_PUNCT_RE2 = /^[\uFF0C\u3002\uFF01\uFF1F\u3001\uFF1A\uFF1B\uFF09\u3011\u300B\u201D\u2019\u300D\u300F\u3015\u3009\u3017\u3019\u301B\uFF60.,;:!?)]$/;
+function segmentSubWords2(part) {
+  if (!CJK_CHAR_RE2.test(part)) {
+    return part.includes("-") && part.length > 1 && !/^-+$/.test(part) ? part.match(/-*[^-]+-?|-+/g) || [part] : [part];
+  }
+  const chars = [...part];
+  const out = [];
+  let i = 0;
+  while (i < chars.length) {
+    const ch = chars[i];
+    if (CJK_CHAR_RE2.test(ch) || CJK_OPEN_PUNCT_RE2.test(ch)) {
+      let unit = ch;
+      i++;
+      while (i < chars.length && CJK_OPEN_PUNCT_RE2.test(chars[i - 1])) {
+        unit += chars[i++];
+      }
+      if (i > 0 && !CJK_CHAR_RE2.test(chars[i - 1])) {
+        while (i < chars.length && !CJK_CHAR_RE2.test(chars[i]) && !CJK_OPEN_PUNCT_RE2.test(chars[i])) {
+          unit += chars[i++];
+        }
+      }
+      while (i < chars.length && CJK_CLOSE_PUNCT_RE2.test(chars[i])) {
+        unit += chars[i++];
+      }
+      out.push(unit);
+    } else {
+      let run = ch;
+      i++;
+      while (i < chars.length && !CJK_CHAR_RE2.test(chars[i]) && !CJK_OPEN_PUNCT_RE2.test(chars[i])) {
+        run += chars[i++];
+      }
+      while (i < chars.length && CJK_CLOSE_PUNCT_RE2.test(chars[i])) {
+        run += chars[i++];
+      }
+      if (run.includes("-") && run.length > 1 && !/^-+$/.test(run)) {
+        const hyph = run.match(/-*[^-]+-?|-+/g) || [run];
+        for (let h = 0; h < hyph.length; h++) out.push(hyph[h]);
+      } else {
+        out.push(run);
+      }
+    }
+  }
+  return out;
+}
 function splitChars(str) {
   return [...str];
 }
@@ -4180,7 +4339,7 @@ function tokenize(html, options = {}) {
               tokens[i + 1].value = nextText.substring(punct.length);
             }
           }
-          const subWords = part.includes("-") && part.length > 1 && !/^-+$/.test(part) ? part.match(/-*[^-]+-?|-+/g) || [part] : [part];
+          const subWords = segmentSubWords2(part);
           for (let sIdx = 0; sIdx < subWords.length; sIdx++) {
             const subWord = subWords[sIdx];
             const isLastSubWord = sIdx === subWords.length - 1;
