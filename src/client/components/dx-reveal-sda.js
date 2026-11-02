@@ -43,6 +43,11 @@ export class DxRevealSda extends DxRevealing {
                     return;
                 }
                 if (isElementHidden(child)) {
+                    if (tag === 'DX-TYPE' || tag === 'DX-TYPE-SDA') {
+                        child.classList.remove(DX_ANIM.TYPING, 'dx-typing');
+                        child.classList.add(DX_ANIM.TYPED);
+                        cleanupTypedDOM(child);
+                    }
                     child._observeSelf?.();
                     return;
                 }

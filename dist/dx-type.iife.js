@@ -1683,6 +1683,12 @@ var DxType = (() => {
   function isElementHidden(el2) {
     if (!el2) return true;
     if (typeof el2.closest !== "function") return false;
+    if (typeof window !== "undefined" && typeof window.getComputedStyle === "function") {
+      try {
+        if (window.getComputedStyle(el2).display === "none") return true;
+      } catch (_) {
+      }
+    }
     if (!el2.closest("summary") && el2.closest("details:not([open])")) return true;
     const drawer = el2.closest('.spec-drawer, [role="dialog"].spec-drawer');
     if (drawer && !drawer.open && !drawer.classList.contains("open") && !drawer.classList.contains("spec-drawer-open")) return true;
@@ -2536,6 +2542,11 @@ var DxType = (() => {
             return;
           }
           if (isElementHidden(child)) {
+            if (tag === "DX-TYPE" || tag === "DX-TYPE-SDA") {
+              child.classList.remove(DX_ANIM.TYPING, "dx-typing");
+              child.classList.add(DX_ANIM.TYPED);
+              cleanupTypedDOM(child);
+            }
             child._observeSelf?.();
             return;
           }
